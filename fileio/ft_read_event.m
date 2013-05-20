@@ -743,7 +743,7 @@ switch eventformat
       if strcmpi(xmlfiles(i).name(1:6), 'Events')
         fieldname       = xmlfiles(i).name(1:end-4);
         filename_xml    = fullfile(filename, xmlfiles(i).name);
-        xml.(fieldname) = xml2struct(filename_xml);
+        xml.(fieldname) = xml2struct_ft(filename_xml);
       end
     end
     warning('on', 'MATLAB:REGEXP:deprecated')

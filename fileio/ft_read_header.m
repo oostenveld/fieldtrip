@@ -781,7 +781,7 @@ switch headerformat
       else
         fieldname     = xmlfiles(i).name(1:end-4);
         filename_xml  = fullfile(filename, xmlfiles(i).name);
-        orig.xml.(fieldname) = xml2struct(filename_xml);
+        orig.xml.(fieldname) = xml2struct_ft(filename_xml);
       end
     end
     warning('on', 'MATLAB:REGEXP:deprecated')
