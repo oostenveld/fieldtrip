@@ -1,0 +1,44 @@
+function write_nifti2_hdr(filename, hdr)
+
+fid = fopen(filename, wb');
+
+assert(fwrite(fid, hdr.magic          , 'int8'   )==1); % 4       `n', '+', `2', `\0','\r','\n','\032','\n' or (0x6E,0x2B,0x32,0x00,0x0D,0x0A,0x1A,0x0A)
+assert(fwrite(fid, hdr.datatype       , 'int16'  )==1); % 12      See file formats
+assert(fwrite(fid, hdr.bitpix         , 'int16'  )==1); % 14      See file formats
+assert(fwrite(fid, hdr.dim            , 'int64'  )==1); % 16      See file formats
+assert(fwrite(fid, hdr.intent_p1      , 'double' )==1); % 80      0
+assert(fwrite(fid, hdr.intent_p2      , 'double' )==1); % 88      0
+assert(fwrite(fid, hdr.intent_p3      , 'double' )==1); % 96      0
+assert(fwrite(fid, hdr.pixdim         , 'double' )==1); % 104     0,1,1,1,1,1,1,1
+assert(fwrite(fid, hdr.vox_offset     , 'int64'  )==1); % 168     Offset of data, minimum=544
+assert(fwrite(fid, hdr.scl_slope      , 'double' )==1); % 176     1
+assert(fwrite(fid, hdr.scl_inter      , 'double' )==1); % 184     0
+assert(fwrite(fid, hdr.cal_max        , 'double' )==1); % 192     0
+assert(fwrite(fid, hdr.cal_min        , 'double' )==1); % 200     0
+assert(fwrite(fid, hdr.slice_duration , 'double' )==1); % 208     0
+assert(fwrite(fid, hdr.toffset        , 'double' )==1); % 216     0
+assert(fwrite(fid, hdr.slice_start    , 'int64'  )==1); % 224     0
+assert(fwrite(fid, hdr.slice_end      , 'int64'  )==1); % 232     0
+assert(fwrite(fid, hdr.descrip        , 'int8'   )==1); % 240     All zeros
+assert(fwrite(fid, hdr.aux_file       , 'int8'   )==1); % 320     All zeros
+assert(fwrite(fid, hdr.qform_code     , 'int32'  )==1); % 344     NIFTI_XFORM_UNKNOWN (0)
+assert(fwrite(fid, hdr.sform_code     , 'int32'  )==1); % 348     NIFTI_XFORM_UNKNOWN (0)
+assert(fwrite(fid, hdr.quatern_b      , 'double' )==1); % 352     0
+assert(fwrite(fid, hdr.quatern_c      , 'double' )==1); % 360     0
+assert(fwrite(fid, hdr.quatern_d      , 'double' )==1); % 368     0
+assert(fwrite(fid, hdr.qoffset_x      , 'double' )==1); % 376     0
+assert(fwrite(fid, hdr.qoffset_y      , 'double' )==1); % 384     0
+assert(fwrite(fid, hdr.qOffset_z      , 'double' )==1); % 392     0
+assert(fwrite(fid, hdr.srow_x         , 'double' )==1); % 400     0,0,0,0
+assert(fwrite(fid, hdr.srow_y         , 'double' )==1); % 432     0,0,0,0
+assert(fwrite(fid, hdr.srow_z         , 'double' )==1); % 464     0,0,0,0
+assert(fwrite(fid, hdr.slice_code     , 'int32'  )==1); % 496     0
+assert(fwrite(fid, hdr.xyzt_units     , 'int32'  )==1); % 500     0xC (seconds, millimeters)
+assert(fwrite(fid, hdr.intent_code    , 'int32'  )==1); % 504     See file formats
+assert(fwrite(fid, hdr.intent_name    , 'int8'   )==1); % 508     See file formats
+assert(fwrite(fid, hdr.dim_info       , 'int8'   )==1); % 524     0
+assert(fwrite(fid, hdr.unused_str     , 'int8'   )==1); % 525     All zeros
+% disp(ftell(fid));                                     % 540     End of the header
+
+fclose(fid);
+
