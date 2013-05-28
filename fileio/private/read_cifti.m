@@ -17,7 +17,7 @@ vox_offset = hdr.vox_offset;
 xml_offset = 540+12;
 xml_size   = vox_offset-xml_offset-8;
 
-fid = fopen(filename, 'rb');
+fid = fopen(filename, 'rb', hdr.endian);
 
 fseek(fid, 540, 'bof');
 hdrext   = fread(fid, [1 4], 'int8');
@@ -26,8 +26,12 @@ if ~isequal(hdrext, [1 0 0 0])
 end
 
 % this is an alternative to determine the size
-% prexml   = fread(fid, [1 8], 'int8=>int8');
-% xml_size = typecast(fliplr(prexml(1:4)), 'uint32') - 16;
+prexml = fread(fid, [1 8], 'uint8=>uint8');
+if hdr.endian=='l'
+  xml_size = typecast(fliplr(prexml(1:4)), 'uint32') - 16;
+else
+  xml_size = typecast(prexml(1:4), 'uint32') - 8;
+end
 
 fseek(fid, xml_offset, 'bof');
 xmldata  = fread(fid, [1 xml_size], 'uint8=>char');
@@ -43,27 +47,29 @@ end
 % fwrite(fid, xmldata);
 % fclose(fid);
 
-% this requires the xmltree object from Guillaume Flandin 
+% this requires the xmltree object from Guillaume Flandin
 % see http://www.artefact.tk/software/matlab/xml/
 % it is also included with the gifti toolbox
 xml = xmltree(xmldata);
 
-% read the voxel data section
-fseek(fid, vox_offset, 'bof');
-switch hdr.datatype
-  case   2, [voxdata nitemsread] = fread(fid, inf, 'uchar');
-  case   4, [voxdata nitemsread] = fread(fid, inf, 'short');
-  case   8, [voxdata nitemsread] = fread(fid, inf, 'int');
-  case  16, [voxdata nitemsread] = fread(fid, inf, 'float');
-  case  64, [voxdata nitemsread] = fread(fid, inf, 'double');
-  case 512, [voxdata nitemsread] = fread(fid, inf, 'ushort');
-  case 768, [voxdata nitemsread] = fread(fid, inf, 'uint');
-  otherwise, error('unsupported datatype');
+if false
+  % read the voxel data section
+  fseek(fid, vox_offset, 'bof');
+  switch hdr.datatype
+    case   2, [voxdata nitemsread] = fread(fid, inf, 'uchar');
+    case   4, [voxdata nitemsread] = fread(fid, inf, 'short');
+    case   8, [voxdata nitemsread] = fread(fid, inf, 'int');
+    case  16, [voxdata nitemsread] = fread(fid, inf, 'float');
+    case  64, [voxdata nitemsread] = fread(fid, inf, 'double');
+    case 512, [voxdata nitemsread] = fread(fid, inf, 'ushort');
+    case 768, [voxdata nitemsread] = fread(fid, inf, 'uint');
+    otherwise, error('unsupported datatype');
+  end
 end
 
 fclose(fid);
 
 cii.hdr = hdr;
 cii.xml = xml;
-cii.voxdata = squeeze(reshape(voxdata, hdr.dim(2:end)));
+% cii.voxdata = squeeze(reshape(voxdata, hdr.dim(2:end)));
 cii.xmldata = xmldata;

@@ -15,12 +15,14 @@ ft_sourcewrite(cfg, source);
 % http://brainvis.wustl.edu/cifti/ParcellatedTimeSeries.ptseries.nii
 
 p = '/home/common/matlab/fieldtrip/data/test/bug2096';
+p = '/Volumes/Data/roboos/AeroFS/bug2096';
 % cii1 = ft_read_mri(fullfile(p, 'DenseConnectome.dconn.nii',          'fileformat', 'cifti');
 % cii2 = ft_read_mri(fullfile(p, 'DenseTimeSeries.dtseries.nii',       'fileformat', 'cifti');
 % cii3 = ft_read_mri(fullfile(p, 'ParcellatedTimeSeries.ptseries.nii', 'fileformat', 'cifti');
-cii1 = read_cifti(fullfile(p, 'DenseConnectome.dconn.nii');
-cii2 = read_cifti(fullfile(p, 'DenseTimeSeries.dtseries.nii');
-cii3 = read_cifti(fullfile(p, 'ParcellatedTimeSeries.ptseries.nii');
-
+cii1 = read_cifti(fullfile(p, 'DenseConnectome.dconn.nii'));
+cii2 = read_cifti(fullfile(p, 'DenseTimeSeries.dtseries.nii'));
+cii3 = read_cifti(fullfile(p, 'ParcellatedTimeSeries.ptseries.nii'));
+cii4 = read_cifti(fullfile(p, 'BOLD_REST2_LR.dtseries.nii'));
+cii5 = read_cifti(fullfile(p, 'BOLD_REST2_LR_Atlas.dtseries.nii'));
 
 
