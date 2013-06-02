@@ -52,24 +52,23 @@ end
 % it is also included with the gifti toolbox
 xml = xmltree(xmldata);
 
-if false
-  % read the voxel data section
-  fseek(fid, vox_offset, 'bof');
-  switch hdr.datatype
-    case   2, [voxdata nitemsread] = fread(fid, inf, 'uchar');
-    case   4, [voxdata nitemsread] = fread(fid, inf, 'short');
-    case   8, [voxdata nitemsread] = fread(fid, inf, 'int');
-    case  16, [voxdata nitemsread] = fread(fid, inf, 'float');
-    case  64, [voxdata nitemsread] = fread(fid, inf, 'double');
-    case 512, [voxdata nitemsread] = fread(fid, inf, 'ushort');
-    case 768, [voxdata nitemsread] = fread(fid, inf, 'uint');
-    otherwise, error('unsupported datatype');
-  end
+
+% read the voxel data section
+fseek(fid, vox_offset, 'bof');
+switch hdr.datatype
+  case   2, [voxdata nitemsread] = fread(fid, inf, 'uchar');
+  case   4, [voxdata nitemsread] = fread(fid, inf, 'short');
+  case   8, [voxdata nitemsread] = fread(fid, inf, 'int');
+  case  16, [voxdata nitemsread] = fread(fid, inf, 'float');
+  case  64, [voxdata nitemsread] = fread(fid, inf, 'double');
+  case 512, [voxdata nitemsread] = fread(fid, inf, 'ushort');
+  case 768, [voxdata nitemsread] = fread(fid, inf, 'uint');
+  otherwise, error('unsupported datatype');
 end
 
 fclose(fid);
 
 cii.hdr = hdr;
 cii.xml = xml;
-% cii.voxdata = squeeze(reshape(voxdata, hdr.dim(2:end)));
+cii.voxdata = squeeze(reshape(voxdata, hdr.dim(2:end)));
 cii.xmldata = xmldata;
