@@ -180,11 +180,11 @@ switch fileformat
     end
     tmp = gifti(tmp);     % construct a gifti object
     save(tmp, filename);  % write the object to file
-  
+
   case 'freesurfer'
     ft_hastoolbox('freesurfer', 1);
     write_surf(filename, bnd.pnt, bnd.tri);
-
+    
   case 'cifti'
     % in contrast to the gifti writer, the low-level function for cifti
     % needs a lot of details on the geometrical and functional
