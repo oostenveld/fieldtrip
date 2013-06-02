@@ -1,6 +1,8 @@
 function [hdr] = read_nifti2_hdr(filename)
 
 % READ_NIFTI2_HDR
+%
+% See also READ_CIFTI
 
 fid = fopen(filename, 'rb', 'l');
 hdr.sizeof_hdr = fread(fid, [1 1 ], 'int32=>int32'   ); % 1

@@ -1,6 +1,11 @@
 function cii = read_cifti(filename)
 
-% READ_CIFTI
+% READ_CIFTI reads geometry and functional data or connectivity from a cifti file
+% 
+% Use as
+%   cii = read_cifti(filename)
+% 
+% See also WRITE_CIFTI
 
 % 540 bytes with nifti-2 header
 % 4 bytes that indicate the presence of a header extension [1 0 0 0]
@@ -26,15 +31,15 @@ if ~isequal(hdrext, [1 0 0 0])
 end
 
 % this is an alternative to determine the size
-prexml = fread(fid, [1 8], 'uint8=>uint8');
+prexml   = fread(fid, [1 8], 'int8=>int8');
 if hdr.endian=='l'
-  xml_size = typecast(fliplr(prexml(1:4)), 'uint32') - 16;
+  xml_size = typecast(fliplr(prexml(1:4)), 'uint32') - 8;
 else
   xml_size = typecast(prexml(1:4), 'uint32') - 8;
 end
 
 fseek(fid, xml_offset, 'bof');
-xmldata  = fread(fid, [1 xml_size], 'uint8=>char');
+xmldata = fread(fid, [1 xml_size], 'uint8=>char');
 
 if any(xmldata==0)
   warning('removing some junk from xml section');
