@@ -11,7 +11,7 @@ function mesh=prepare_mesh_hexahedral(cfg,mri)
 %
 % Copyrights (C) 2012, Johannes Vorwerk
 %
-% Subversion does not use the Log keyword, use 'svn log <filename>' or 'svn -v log | less' to get detailled information
+% $Id$
 
 % get the default options
 cfg.tissue      = ft_getopt(cfg, 'tissue');

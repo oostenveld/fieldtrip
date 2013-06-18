@@ -8,7 +8,7 @@ function [nrm] = normals(pnt, dhk, opt);
 
 % Copyright (C) 2002-2007, Robert Oostenveld
 %
-% Subversion does not use the Log keyword, use 'svn log <filename>' or 'svn -v log | less' to get detailled information
+% $Id$
 
 if nargin<3
   opt='vertex';

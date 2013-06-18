@@ -68,7 +68,7 @@ function [association] = nonlinearassociation(cfg, data)
 
 % Copyright (C) 2007, Inge Westmijse
 %
-% Subversion does not use the Log keyword, use 'svn log <filename>' or 'svn -v log | less' to get detailled information
+% $Id$
 
 fieldtripdefs
 

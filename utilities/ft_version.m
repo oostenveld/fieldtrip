@@ -1,4 +1,5 @@
 function [v,ftpath] = ft_version(cmd)
+
 % FT_VERSION provides functionality for displaying version information on
 % the current version of FieldTrip being used, as well us for updating the
 % FieldTrip installation.

@@ -6,7 +6,7 @@ function bnd = prepare_mesh_segmentation(cfg, mri)
 
 % Copyrights (C) 2009, Robert Oostenveld
 %
-% Subversion does not use the Log keyword, use 'svn log <filename>' or 'svn -v log | less' to get detailled information
+% $Id$
 
 % get the default options
 cfg.spmversion  = ft_getopt(cfg, 'spmversion', 'spm8');

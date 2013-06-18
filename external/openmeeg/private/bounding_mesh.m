@@ -14,7 +14,7 @@ function [inside] = bounding_mesh(pos, pnt, tri);
 
 % Copyright (C) 2003, Robert Oostenveld
 %
-% Subversion does not use the Log keyword, use 'svn log <filename>' or 'svn -v log | less' to get detailled information
+% $Id$
 
 % this can be used for printing detailled user feedback
 fb = false;

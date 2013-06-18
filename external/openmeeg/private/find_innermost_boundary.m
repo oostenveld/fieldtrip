@@ -12,7 +12,7 @@ function [innermost, inside] = find_innermost_boundary(bnd)
 
 % Copyright (C) 2003, Robert Oostenveld
 %
-% Subversion does not use the Log keyword, use 'svn log <filename>' or 'svn -v log | less' to get detailled information
+% $Id$
 
 ncmp = length(bnd);
 

@@ -12,8 +12,7 @@ function [dsm] = openmeeg_dsm(pos, vol, flag)
 % Copyright (C) 2009, Alexandre Gramfort
 % INRIA Odyssee Project Team
 
-% Subversion does not use the Log keyword, use 'svn log <filename>' or 'svn -v log | less' to get detailed information
-
+% $Id$
 
 % store the current path and change folder to the temporary one
 tmpfolder = cd;

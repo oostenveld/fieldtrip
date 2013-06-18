@@ -1,4 +1,5 @@
 function x = tinv(p,v);
+
 % TINV   Inverse of Student's T cumulative distribution function (cdf).
 %   X=TINV(P,V) returns the inverse of Student's T cdf with V degrees 
 %   of freedom, at the values in P.
@@ -9,7 +10,7 @@ function x = tinv(p,v);
 % This is an open source function that was assembled by Eric Maris using
 % open source subfunctions found on the web.
 
-% Subversion does not use the Log keyword, use 'svn log <filename>' or 'svn -v log | less' to get detailled information
+% $Id$
 
 if nargin < 2, 
     error('Requires two input arguments.'); 
