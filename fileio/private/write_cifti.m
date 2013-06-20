@@ -38,9 +38,13 @@ if ~isempty(parcellation)
   assert(ft_datatype(source, 'parcellation') || ft_datatype(source, 'segmentation'), 'the input structure does not define a parcellation');
 end
 
-if isfield(source, 'transform')
+if isfield(source, 'dim')
   % it represents source estimates on regular 3-D grid
   modeltype = 'voxel';
+  % the homogenous transformation is required further down
+  if ~isfield(source, 'transform')
+    source.transform = pos2transform(source.pos);
+  end
 elseif isfield(source, 'tri')
   % it represents source estimates on a triangulated cortical sheet
   modeltype = 'surface';
@@ -58,9 +62,9 @@ end
 % get the data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-dat = source.(cfg.parameter);
-if isfield(source, [cfg.parameter 'dimord'])
-  dimord = source.([cfg.parameter 'dimord']);
+dat = source.(parameter);
+if isfield(source, [parameter 'dimord'])
+  dimord = source.([parameter 'dimord']);
 else
   dimord = source.dimord;
 end
@@ -70,6 +74,25 @@ if ~strcmp(dimtok{1}, 'pos')
   error('the first dimension should correspond to positions in the brain')
 end
 
+switch dimord
+  case 'pos_pos'
+    if ~isempty(parcellation)
+      x = 'ptseries.nii';
+    else
+      x = 'dtseries.nii';
+    end
+  case 'pos_time'
+    if ~isempty(parcellation)
+      x = 'pconn.nii';
+    else
+      x = 'dconn.nii';
+    end
+  otherwise
+    error('unsupported dimord')
+end % switch
+
+[p, f] = fileparts(filename);
+filename = fullfile(p, [f x]);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % construct the NIFTI-2 header
@@ -107,6 +130,7 @@ tree = attributes(tree, 'add', find(tree, 'CIFTI/Matrix/MatrixIndicesMap'), 'App
 
 switch(modeltype)
   case 'voxel'
+    
     if ~isempty(parcellation)
       % write one brainmodel per parcel
       pindex = source.([parcellation]);
@@ -179,11 +203,49 @@ end % case modeltype
 % 8 bytes, presumaby with the size and type?
 % variable number of bytes with the voxel data
 
-% write the header 
-write_nifti2_hdr(filename);
+% construct the nifti-2 header
+hdr.magic           = [110 43 50 0 13 10 26 10];
+hdr.datatype        = 0;
+hdr.bitpix          = 0;
+hdr.dim             = [0 0 0 0 0 0 0 0];
+hdr.intent_p1       = 0;
+hdr.intent_p2       = 0;
+hdr.intent_p3       = 0;
+hdr.pixdim          = [0 0 0 0 0 0 0 0];
+hdr.vox_offset      = 0;
+hdr.scl_slope       = 0;
+hdr.scl_inter       = 0;
+hdr.cal_max         = 0;
+hdr.cal_min         = 0;
+hdr.slice_duration  = 0;
+hdr.toffset         = 0;
+hdr.slice_start     = 0;
+hdr.slice_end       = 0;
+hdr.descrip         = char(zeros(1,80));
+hdr.aux_file        = char(zeros(1,24));
+hdr.qform_code      = 0;
+hdr.sform_code      = 0;
+hdr.quatern_b       = 0;
+hdr.quatern_c       = 0;
+hdr.quatern_d       = 0;
+hdr.qoffset_x       = 0;
+hdr.qoffset_y       = 0;
+hdr.qOffset_z       = 0;
+hdr.srow_x          = [0 0 0 0];
+hdr.srow_y          = [0 0 0 0];
+hdr.srow_z          = [0 0 0 0];
+hdr.slice_code      = 0;
+hdr.xyzt_units      = 0;
+hdr.intent_code     = 0;
+hdr.intent_name     = char(zeros(1,16));
+hdr.dim_info        = 0;
+hdr.unused_str      = char(zeros(1,15));
 
-% open the file to append all other stuff
+% open the file
 fid = fopen(filename, 'wb');
+
+% write the header
+write_nifti2_hdr(fid, hdr);
 
 xmlfile = [tempname '.xml'];  % this will contain the cifti XML structure
 save(tree, xmlfile);          % write the XMLTREE object to disk
@@ -198,4 +260,7 @@ fwrite(fid, xmlsize, 'uint32');
 fwrite(fid, xmldat, 'char');
 fwrite(fid, [0 0 0 0 0 0 0 0], 'uint8');
 fwrite(fid, dat, precision);
+
+fclose(fid);
+
 
