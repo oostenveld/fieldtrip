@@ -75,18 +75,14 @@ if ~strcmp(dimtok{1}, 'pos')
 end
 
 switch dimord
-  case 'pos_pos'
-    if ~isempty(parcellation)
-      x = '.ptseries.nii';
-    else
-      x = '.dtseries.nii';
-    end
+  case 'chan_time'
+    x = '.ptseries.nii';
   case 'pos_time'
-    if ~isempty(parcellation)
-      x = '.pconn.nii';
-    else
-      x = '.dconn.nii';
-    end
+    x = '.dtseries.nii';
+  case 'chan_chan'
+    x = '.pconn.nii';
+  case 'pos_pos'
+    x = '.dconn.nii';
   otherwise
     error('unsupported dimord')
 end % switch
@@ -213,7 +209,7 @@ xmlsize = length(xmldat);
 xmlpad  = ceil((xmlsize+8)/16)*16 - (xmlsize+8);
 
 % construct the nifti-2 header
-hdr.magic           = [110 43 50 0 13 10 26 10];
+hdr.magic = [110 43 50 0 13 10 26 10];
 
 % see http://nifti.nimh.nih.gov/nifti-1/documentation/nifti1fields/nifti1fields_pages/datatype.html
 switch precision
@@ -258,7 +254,29 @@ switch precision
     error('unsupported precision "%s"', precision);
 end
 
-hdr.dim             = [6 0 0 0 0 0 0 0]; % note the 6
+% dim(1) represents the number of dimensions
+% for a normal nifti file, dim(2:4) are x, y, z, dim(5) is time, dim(6:8) are free to choose
+switch dimord
+  case 'chan_time'
+    hdr.dim             = [6 1 1 1 1 length(source.chan) length(source.time) 1];
+  case 'pos_time'
+    hdr.dim             = [6 1 1 1 1 size(source.pos,1)  length(source.time) 1];
+  case 'chan_chan'
+    hdr.dim             = [6 1 1 1 1 length(source.chan) length(source.chan) 1];
+  case 'pos_pos'
+    hdr.dim             = [6 1 1 1 1 size(source.pos,1)  size(source.pos,1)  1];
+    %   case 'chan_chan_time'
+    %     hdr.dim             = [6 1 1 1 1 length(source.chan) length(source.chan) length(source.time)];
+    %   case 'pos_pos_time'
+    %     hdr.dim             = [6 1 1 1 1 size(source.pos,1)  size(source.pos,1)  length(source.time)];
+    %   case 'chan_chan_freq'
+    %     hdr.dim             = [6 1 1 1 1 length(source.chan) length(source.chan) length(source.freq)];
+    %   case 'pos_pos_freq'
+    %     hdr.dim             = [6 1 1 1 1 size(source.pos,1)  size(source.pos,1)  length(source.freq)];
+  otherwise
+    error('unsupported dimord')
+end % switch
+
 hdr.intent_p1       = 0;
 hdr.intent_p2       = 0;
 hdr.intent_p3       = 0;
@@ -298,6 +316,7 @@ fid = fopen(filename, 'wb');
 % write the header
 write_nifti2_hdr(fid, hdr);
 
+% write the cifti header extension
 fwrite(fid, [1 0 0 0], 'uint8');
 fwrite(fid, 8+xmlsize+xmlpad, 'int32');   % esize
 fwrite(fid, 32, 'int32');                 % etype
