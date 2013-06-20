@@ -106,7 +106,7 @@ switch (cfg.filetype)
     
     % this is a bit of a kludge, but ft_write_headshape can write cifti including data and the parcellation
     % note that the low-level function requires quite some details
-    ft_write_headshape(cfg.filename, source, 'data', 'parameter', cfg.parameter, 'parcellation', cfg.parcellation, 'format', 'cifti');
+    ft_write_headshape(cfg.filename, source, 'parameter', cfg.parameter, 'parcellation', cfg.parcellation, 'format', 'cifti');
     
   otherwise
     error('unsupported output format (%s)', cfg.filetype);
