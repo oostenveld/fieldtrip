@@ -2,24 +2,35 @@ function [hdr] = read_nifti2_hdr(filename)
 
 % READ_NIFTI2_HDR
 %
+% This implements the format as described at
+%   http://www.nitrc.org/forum/forum.php?thread_id=2148&forum_id=1941
+%
+% Please note that it is different from the suggested format described here
+%   http://www.nitrc.org/forum/forum.php?thread_id=2070&forum_id=1941
+% and
+%   https://mail.nmr.mgh.harvard.edu/pipermail//freesurfer/2011-February/017482.html
+% Notably, the unused fields have been removed and the size has been
+% reduced from 560 to 540 bytes.
+%
 % See also READ_CIFTI
 
-fid = fopen(filename, 'rb', 'l');
-hdr.sizeof_hdr = fread(fid, [1 1 ], 'int32=>int32'   ); % 1
+hdr.endian = 'l';
+fid = fopen(filename, 'rb', hdr.endian);
+hdr.sizeof_hdr = fread(fid, [1 1 ], 'int32=>int32'); % 0
 
-% this is borrowed from the FreeSurfer nifti-1 implementation
+if hdr.sizeof_hdr~=348 && hdr.sizeof_hdr~=540
+  % try opening as big endian
+  fclose(fid);
+  hdr.endian = 'b';
+  fid = fopen(filename, 'r', 'b');
+  hdr.sizeof_hdr = fread(fid, [1 1 ], 'int32=>int32'); % 0
+end
+
 if hdr.sizeof_hdr~=348 && hdr.sizeof_hdr~=540
   fclose(fid);
-  % Now try opening as big endian
-  fid = fopen(filename, 'r', 'b');
-  hdr.sizeof_hdr = fread(fid, [1 1 ], 'int32=>int32'   ); % 1
-  if hdr.sizeof_hdr~=348 && hdr.sizeof_hdr~=540
-    fclose(fid);
-    error('cannot open %s as nifti file, hdr size = %d, should be 348 or 540\n', filename, hdr.sizeof_hdr);
-  end
-  hdr.endian = 'l';
+  error('cannot open %s as nifti file, hdr size = %d, should be 348 or 540\n', filename, hdr.sizeof_hdr);
 else
-  hdr.endian = 'b';
+  % the file is now open with the appropriate little or big-endianness
 end
 
 if hdr.sizeof_hdr==384
@@ -30,7 +41,14 @@ end
 hdr.magic           = fread(fid, [1 8 ], 'int8=>int8'     ); % 4       `n', '+', `2', `\0','\r','\n','\032','\n' or (0x6E,0x2B,0x32,0x00,0x0D,0x0A,0x1A,0x0A)
 hdr.datatype        = fread(fid, [1 1 ], 'int16=>int16'   ); % 12      See file formats
 hdr.bitpix          = fread(fid, [1 1 ], 'int16=>int16'   ); % 14      See file formats
+ftell(fid)
 hdr.dim             = fread(fid, [1 8 ], 'int64=>double'  ); % 16      See file formats
+
+if hdr.dim(1)<1 || hdr.dim(1)>7
+  % see http://nifti.nimh.nih.gov/nifti-1/documentation/nifti1fields/nifti1fields_pages/dim.html
+  erorr('inconsistent endianness in the header');
+end
+
 hdr.intent_p1       = fread(fid, [1 1 ], 'double=>double' ); % 80      0
 hdr.intent_p2       = fread(fid, [1 1 ], 'double=>double' ); % 88      0
 hdr.intent_p3       = fread(fid, [1 1 ], 'double=>double' ); % 96      0
