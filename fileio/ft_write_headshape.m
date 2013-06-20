@@ -19,7 +19,6 @@ function ft_write_headshape(filename, bnd, varargin)
 % Optional input arguments should be specified as key-value pairs and
 % can include
 %   data      = data matrix, size(1) should be number of vertices
-%   dimord    = string describing the dimensions of the data, e.g. 'pos_time'
 %
 % Supported output formats are
 %   'mne_tri'		MNE surface desciption in ascii format
@@ -56,10 +55,10 @@ function ft_write_headshape(filename, bnd, varargin)
 %
 % $Id$
 
-fileformat    = ft_getopt(varargin,'format','unknown');
-data          = ft_getopt(varargin,'data');         % can be stored in a gifti file
-parcellation  = ft_getopt(varargin,'parcellation'); % can be represented in a cifti file
-dimord        = ft_getopt(varargin,'dimord');       % optional for data
+fileformat    = ft_getopt(varargin, 'format', 'unknown');
+data          = ft_getopt(varargin, 'data');         % can be stored in a gifti file
+parcellation  = ft_getopt(varargin, 'parcellation'); % can be represented in a cifti file
+parameter     = ft_getopt(varargin, 'parameter');    % required for cifti
 
 if ~isfield(bnd, 'pnt') && isfield(bnd, 'pos')
   bnd.pnt = bnd.pos;
