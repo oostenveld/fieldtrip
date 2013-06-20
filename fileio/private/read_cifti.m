@@ -5,15 +5,27 @@ function cii = read_cifti(filename)
 % Use as
 %   cii = read_cifti(filename)
 %
-% See also WRITE_CIFTI
+% See also WRITE_CIFTI, READ_NIFTI2_HDR, WRITE_NIFTI2_HDR
 
-% 540 bytes with nifti-2 header
-% 4 bytes that indicate the presence of a header extension [1 0 0 0]
-% 4 bytes with the size of the header extension in big endian?
-% 4 bytes with the header extension code NIFTI_ECODE_CIFTI [0 0 0 32]
-% variable number of bytes with the xml section, at the end there might be some empty "junk"
-% 8 bytes, presumaby with the size and type?
-% variable number of bytes with the voxel data
+% Copyright (C) 2013, Robert Oostenveld
+%
+% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% for the documentation and details.
+%
+%    FieldTrip is free software: you can redistribute it and/or modify
+%    it under the terms of the GNU General Public License as published by
+%    the Free Software Foundation, either version 3 of the License, or
+%    (at your option) any later version.
+%
+%    FieldTrip is distributed in the hope that it will be useful,
+%    but WITHOUT ANY WARRANTY; without even the implied warranty of
+%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%    GNU General Public License for more details.
+%
+%    You should have received a copy of the GNU General Public License
+%    along with FieldTrip. If not, see <http://www.gnu.org/licenses/>.
+%
+% $Id$
 
 % read the header section
 hdr = read_nifti2_hdr(filename);
@@ -70,24 +82,22 @@ end
 % it is also included with the gifti toolbox
 xml = xmltree(xmldata);
 
-if false
-  % read the voxel data section
-  fseek(fid, hdr.vox_offset, 'bof');
-  switch hdr.datatype
-    case   2, [voxdata nitemsread] = fread(fid, inf, 'uchar');
-    case   4, [voxdata nitemsread] = fread(fid, inf, 'short');
-    case   8, [voxdata nitemsread] = fread(fid, inf, 'int');
-    case  16, [voxdata nitemsread] = fread(fid, inf, 'float');
-    case  64, [voxdata nitemsread] = fread(fid, inf, 'double');
-    case 512, [voxdata nitemsread] = fread(fid, inf, 'ushort');
-    case 768, [voxdata nitemsread] = fread(fid, inf, 'uint');
-    otherwise, error('unsupported datatype');
-  end
+% read the voxel data section
+fseek(fid, hdr.vox_offset, 'bof');
+switch hdr.datatype
+  case   2, [voxdata nitemsread] = fread(fid, inf, 'uchar');
+  case   4, [voxdata nitemsread] = fread(fid, inf, 'short');
+  case   8, [voxdata nitemsread] = fread(fid, inf, 'int');
+  case  16, [voxdata nitemsread] = fread(fid, inf, 'float');
+  case  64, [voxdata nitemsread] = fread(fid, inf, 'double');
+  case 512, [voxdata nitemsread] = fread(fid, inf, 'ushort');
+  case 768, [voxdata nitemsread] = fread(fid, inf, 'uint');
+  otherwise, error('unsupported datatype');
 end
 
 fclose(fid);
 
 cii.hdr = hdr;
 cii.xml = xml;
-% cii.voxdata = squeeze(reshape(voxdata, hdr.dim(2:end)));
+cii.voxdata = squeeze(reshape(voxdata, hdr.dim(2:end)));
 cii.xmldata = xmldata;

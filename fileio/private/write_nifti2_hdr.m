@@ -2,6 +2,12 @@ function write_nifti2_hdr(filename, hdr)
 
 % WRITE_NIFTI2_HDR
 %
+% Use as
+%   write_nifti2_hdr(filename, hdr)
+% where
+%   filename   = string
+%   hdr        = structure with nifti-2 header information
+%
 % See also READ_NIFTI_HDR, READ_CIFTI, WRITE_CIFTI
 
 % Copyright (C) 2013, Robert Oostenveld

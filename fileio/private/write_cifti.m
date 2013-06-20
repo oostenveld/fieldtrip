@@ -8,7 +8,7 @@ function write_cifti(filename, source, varargin)
 %   parameter    = string, fieldname that contains the data
 %   parcellation = string, fieldname that descripbes the (optional) parcellation
 %
-% See also READ_CIFTI
+% See also READ_CIFTI, READ_NIFTI2_HDR, WRITE_NIFTI2_HDR
 
 % Copyright (C) 2013, Robert Oostenveld
 %
@@ -326,5 +326,3 @@ fwrite(fid, zeros(1,xmlpad), 'uint8');    % zero-pad to the next 16 byte boundar
 fwrite(fid, dat, precision);
 
 fclose(fid);
-
-

@@ -2,6 +2,11 @@ function [hdr] = read_nifti2_hdr(filename)
 
 % READ_NIFTI2_HDR
 %
+% Use as
+%   [hdr] = read_nifti2_hdr(filename)
+% where
+%   filename   = string
+%   
 % This implements the format as described at
 %   http://www.nitrc.org/forum/forum.php?thread_id=2148&forum_id=1941
 %
@@ -12,7 +17,27 @@ function [hdr] = read_nifti2_hdr(filename)
 % Notably, the unused fields have been removed and the size has been
 % reduced from 560 to 540 bytes.
 %
-% See also READ_CIFTI
+% See also WRITE_NIFTI_HDR, READ_CIFTI, WRITE_CIFTI
+
+% Copyright (C) 2013, Robert Oostenveld
+%
+% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% for the documentation and details.
+%
+%    FieldTrip is free software: you can redistribute it and/or modify
+%    it under the terms of the GNU General Public License as published by
+%    the Free Software Foundation, either version 3 of the License, or
+%    (at your option) any later version.
+%
+%    FieldTrip is distributed in the hope that it will be useful,
+%    but WITHOUT ANY WARRANTY; without even the implied warranty of
+%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%    GNU General Public License for more details.
+%
+%    You should have received a copy of the GNU General Public License
+%    along with FieldTrip. If not, see <http://www.gnu.org/licenses/>.
+%
+% $Id$
 
 hdr.endian = 'l';
 fid = fopen(filename, 'rb', hdr.endian);
