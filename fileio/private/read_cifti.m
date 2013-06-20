@@ -38,7 +38,7 @@ end
 esize = fread(fid, 1, 'int32=>int32');
 etype = fread(fid, 1, 'int32=>int32');
 
-hdrsize = 540+4;
+hdrsize = 540;
 voxsize = filesize-hdr.vox_offset;
 if esize>(filesize-hdrsize-voxsize)
   warning('the endianness of the header extension is inconsistent with the nifti-2 header');
@@ -46,7 +46,7 @@ if esize>(filesize-hdrsize-voxsize)
   etype = swapbytes(etype);
 end
 
-if etype~=32
+if etype~=32 && etype~=swapbytes(int32(32)) % FIXME there is an endian problem
   error('the header extension type is not cifti');
 end
 

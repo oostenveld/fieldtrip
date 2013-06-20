@@ -41,12 +41,11 @@ end
 hdr.magic           = fread(fid, [1 8 ], 'int8=>int8'     ); % 4       `n', '+', `2', `\0','\r','\n','\032','\n' or (0x6E,0x2B,0x32,0x00,0x0D,0x0A,0x1A,0x0A)
 hdr.datatype        = fread(fid, [1 1 ], 'int16=>int16'   ); % 12      See file formats
 hdr.bitpix          = fread(fid, [1 1 ], 'int16=>int16'   ); % 14      See file formats
-ftell(fid)
 hdr.dim             = fread(fid, [1 8 ], 'int64=>double'  ); % 16      See file formats
 
 if hdr.dim(1)<1 || hdr.dim(1)>7
   % see http://nifti.nimh.nih.gov/nifti-1/documentation/nifti1fields/nifti1fields_pages/dim.html
-  erorr('inconsistent endianness in the header');
+  error('inconsistent endianness in the header');
 end
 
 hdr.intent_p1       = fread(fid, [1 1 ], 'double=>double' ); % 80      0

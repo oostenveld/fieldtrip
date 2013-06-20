@@ -77,15 +77,15 @@ end
 switch dimord
   case 'pos_pos'
     if ~isempty(parcellation)
-      x = 'ptseries.nii';
+      x = '.ptseries.nii';
     else
-      x = 'dtseries.nii';
+      x = '.dtseries.nii';
     end
   case 'pos_time'
     if ~isempty(parcellation)
-      x = 'pconn.nii';
+      x = '.pconn.nii';
     else
-      x = 'dconn.nii';
+      x = '.dconn.nii';
     end
   otherwise
     error('unsupported dimord')
@@ -203,16 +203,67 @@ end % case modeltype
 % 8 bytes, presumaby with the size and type?
 % variable number of bytes with the voxel data
 
+xmlfile = [tempname '.xml'];  % this will contain the cifti XML structure
+save(tree, xmlfile);          % write the XMLTREE object to disk
+
+xmlfid = fopen(xmlfile, 'rb');
+xmldat = fread(xmlfid, [1, inf], 'char');
+fclose(xmlfid);
+xmlsize = length(xmldat);
+xmlpad  = ceil((xmlsize+8)/16)*16 - (xmlsize+8);
+
 % construct the nifti-2 header
 hdr.magic           = [110 43 50 0 13 10 26 10];
-hdr.datatype        = 0;
-hdr.bitpix          = 0;
-hdr.dim             = [0 0 0 0 0 0 0 0];
+
+% see http://nifti.nimh.nih.gov/nifti-1/documentation/nifti1fields/nifti1fields_pages/datatype.html
+switch precision
+  case 'uint8'
+    hdr.datatype = 2;
+  case 'int8'
+    hdr.datatype = 256;
+  case 'uint16'
+    hdr.datatype = 512;
+  case 'int16'
+    hdr.datatype = 4;
+  case 'uint32'
+    hdr.datatype = 768;
+  case 'int32'
+    hdr.datatype = 8;
+  case 'uint64'
+    hdr.datatype = 1280;
+  case 'int64'
+    hdr.datatype = 1024;
+  case 'single'
+    hdr.datatype = 16;
+  case 'double'
+    hdr.datatype = 64;
+  otherwise
+    error('unsupported precision "%s"', precision);
+end
+
+switch precision
+  case {'uint8' 'int8'}
+    hdr.bitpix = 1*8;
+  case {'uint16' 'int16'}
+    hdr.bitpix = 2*8;
+  case {'uint32' 'int32'}
+    hdr.bitpix = 4*8;
+  case {'uint64' 'int64'}
+    hdr.bitpix = 8*8;
+  case 'single'
+    hdr.bitpix = 4*8;
+  case 'double'
+    hdr.bitpix = 8*8;
+  otherwise
+    error('unsupported precision "%s"', precision);
+end
+
+hdr.dim             = [6 0 0 0 0 0 0 0]; % note the 6
 hdr.intent_p1       = 0;
 hdr.intent_p2       = 0;
 hdr.intent_p3       = 0;
-hdr.pixdim          = [0 0 0 0 0 0 0 0];
-hdr.vox_offset      = 0;
+hdr.pixdim          = [0 1 1 1 1 1 1 1];
+hdr.vox_offset      = 540+8+xmlsize+xmlpad;
 hdr.scl_slope       = 0;
 hdr.scl_inter       = 0;
 hdr.cal_max         = 0;
@@ -247,18 +298,12 @@ fid = fopen(filename, 'wb');
 % write the header
 write_nifti2_hdr(fid, hdr);
 
-xmlfile = [tempname '.xml'];  % this will contain the cifti XML structure
-save(tree, xmlfile);          % write the XMLTREE object to disk
-
-xmlfid = fopen(filename, 'rb');
-xmldat = fread(xmlfid, [1, inf], 'char');
-fclose(xmlfid);
-xmlsize = length(xmlfid);
-
 fwrite(fid, [1 0 0 0], 'uint8');
-fwrite(fid, xmlsize, 'uint32');
-fwrite(fid, xmldat, 'char');
-fwrite(fid, [0 0 0 0 0 0 0 0], 'uint8');
+fwrite(fid, 8+xmlsize+xmlpad, 'int32');   % esize
+fwrite(fid, 32, 'int32');                 % etype
+fwrite(fid, xmldat, 'char');              % write the ascii XML section
+fwrite(fid, zeros(1,xmlpad), 'uint8');    % zero-pad to the next 16 byte boundary
+
 fwrite(fid, dat, precision);
 
 fclose(fid);

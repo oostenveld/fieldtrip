@@ -44,10 +44,10 @@ function ft_sourcewrite(cfg, source)
 
 revision = '$Id$';
 
-ft_defaults                 
-ft_preamble init           
-ft_preamble provenance        
-ft_preamble trackconfig     
+ft_defaults
+ft_preamble init
+ft_preamble provenance
+ft_preamble trackconfig
 ft_preamble debug
 ft_preamble loadvar source
 

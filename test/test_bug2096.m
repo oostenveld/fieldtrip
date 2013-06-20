@@ -3,9 +3,6 @@ function test_bug2096
 % TEST test_bug2096
 % TEST ft_sourcewrite
 
-
-
-
 source = [];
 source.dim = [5 6 7];
 [X Y Z] = ndgrid(1:source.dim(1), 1:source.dim(2), 1:source.dim(3));
@@ -34,7 +31,6 @@ cfg.filetype = 'cifti';
 cfg.parameter = 'timeseries';
 cfg.filename = 'test_bug2096';
 ft_sourcewrite(cfg, source);
-
 
 % test reading these files
 % http://brainvis.wustl.edu/cifti/DenseConnectome.dconn.nii
