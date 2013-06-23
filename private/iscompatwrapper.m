@@ -1,7 +1,8 @@
 function b = iscompatwrapper(funcname)
-%ISCOMPATWRAPPER Checks whether the specified function name will invoke a
+
+% ISCOMPATWRAPPER Checks whether the specified function name will invoke a
 % compatibility wrapper or not.
-%
+
 % Copyright (C) 2012, Donders Centre for Cognitive Neuroimaging, Nijmegen, NL
 %
 % This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip

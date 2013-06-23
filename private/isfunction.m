@@ -1,5 +1,6 @@
 function b = isfunction(funcname)
-%ISFUNCTION tests whether the function of the specified name is a callable
+
+% ISFUNCTION tests whether the function of the specified name is a callable
 % function on the current Matlab path.
 %
 % Note that this is *not* equivalent to calling exist(funcname, 'file'),
