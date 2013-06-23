@@ -110,10 +110,10 @@ cfg = ft_checkconfig(cfg, 'renamedval',  {'correctm', 'bonferoni', 'bonferroni'}
 cfg = ft_checkconfig(cfg, 'renamedval',  {'correctm', 'holms', 'holm'});
 cfg = ft_checkconfig(cfg, 'required',    {'statistic'});
 cfg = ft_checkconfig(cfg, 'forbidden',   {'ztransform', ...
-                                          'removemarginalmeans', ...
-                                          'randomfactor', ...
-                                          'voxelthreshold', ...
-                                          'voxelstatistic'});
+  'removemarginalmeans', ...
+  'randomfactor', ...
+  'voxelthreshold', ...
+  'voxelstatistic'});
 
 % set the defaults for the main function
 if ~isfield(cfg, 'alpha'),               cfg.alpha    = 0.05;            end
@@ -190,8 +190,17 @@ else
 end;
 
 % construct the resampled design matrix or data-shuffling matrix
-fprintf('constructing randomized design\n');
-resample = resampledesign(cfg, design);
+fprintf('constructing randomized permutation design\n');
+tmpcfg = [];
+tmpcfg.resampling = 'permutation';
+tmpcfg.numresample = cfg.numrandomize;
+tmpcfg.ivar = cfg.ivar;
+tmpcfg.uvar = cfg.uvar;
+tmpcfg.cvar = cfg.cvar;
+tmpcfg.wvar = cfg.wvar;
+if isfield(cfg, 'efficient'), tmpcfg.efficient = cfg.efficient; end
+resample = resampledesign(tmpcfg, design);
+clear tmpcfg
 Nrand = size(resample,1);
 
 % most of the statfuns result in this warning, which is not interesting
@@ -239,6 +248,7 @@ try
 catch
   num = 1;
 end
+
 if num==1,
   % only the statistic is returned
   [statobs] = statfun(cfg, dat, design);
@@ -250,6 +260,8 @@ elseif num==3,
   tmpcfg = cfg;
   if strcmp(cfg. precondition, 'before'), tmpcfg.preconditionflag = 1; end
   [statobs, tmpcfg, dat]  = statfun(tmpcfg, dat, design);
+else
+  error('more than three statfun output variables are not supported');
 end
 
 if isstruct(statobs)
@@ -275,6 +287,7 @@ if strcmp(cfg.precondition, 'after'),
   tmpcfg = cfg;
   tmpcfg.preconditionflag = 1;
   [tmpstat, tmpcfg, dat]     = statfun(tmpcfg, dat, design);
+  clear tmpcfg
 end
 
 % compute the statistic for the randomized data and count the outliers
@@ -326,7 +339,7 @@ if strcmp(cfg.correctm, 'cluster')
   [stat, cfg] = clusterstat(cfg, statrand, statobs,'issource',issource);
 else
   if ~isequal(cfg.numrandomization, 'all')
-    % in case of random permutations (i.e., montecarlo sample, and NOT full
+    % in case of random resampling (i.e., montecarlo sample, and NOT full
     % permutation), the minimum p-value should not be 0, but 1/N
     prb_pos = prb_pos + 1;
     prb_neg = prb_neg + 1;
@@ -396,7 +409,7 @@ if isfield(stat, 'posclusters')
     end
   end
 end
-if isfield(stat, 'negclusters')  
+if isfield(stat, 'negclusters')
   for i=1:length(stat.negclusters)
     stat.negclusters(i).stddev  = sqrt(stat.negclusters(i).prob.*(1-stat.negclusters(i).prob)/Nrand);
     stat.negclusters(i).cirange =  1.96*stat.negclusters(i).stddev;
@@ -429,18 +442,18 @@ switch lower(cfg.correctm)
     fprintf('the returned probabilities are uncorrected, the thresholded mask is corrected\n');
     [pvals, indx] = sort(stat.prob(:));                                   % this sorts the significance probabilities from smallest to largest
     k = find(pvals > (cfg.alpha ./ ((length(pvals):-1:1)')), 1, 'first'); % compare each significance probability against its individual threshold
-    mask = (1:length(pvals))'<k;   
+    mask = (1:length(pvals))'<k;
     stat.mask = zeros(size(stat.prob));
     stat.mask(indx) = mask;
   case 'hochberg'
     % test the most significatt significance probability against alpha/N, the second largest against alpha/(N-1), etc.
     fprintf('performing Hochberg''s correction for multiple comparisons (this is *not* the Benjamini-Hochberg FDR procedure!)\n');
     fprintf('the returned probabilities are uncorrected, the thresholded mask is corrected\n');
-    [pvals, indx] = sort(stat.prob(:));                     % this sorts the significance probabilities from smallest to largest
+    [pvals, indx] = sort(stat.prob(:));                                   % this sorts the significance probabilities from smallest to largest
     k = find(pvals <= (cfg.alpha ./ ((length(pvals):-1:1)')), 1, 'last'); % compare each significance probability against its individual threshold
-    mask = (1:length(pvals))'<=k;   
+    mask = (1:length(pvals))'<=k;
     stat.mask = zeros(size(stat.prob));
-    stat.mask(indx) = mask;    
+    stat.mask(indx) = mask;
   case 'fdr'
     fprintf('performing FDR correction for multiple comparisons\n');
     fprintf('the returned probabilities are uncorrected, the thresholded mask is corrected\n');
