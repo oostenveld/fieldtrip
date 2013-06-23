@@ -1,4 +1,5 @@
 function func = ft_getuserfun(func, prefix)
+
 % FT_GETUSERFUN will search the Matlab path for a function with the
 % appropriate name, and return a function handle to the function.
 % Considered are, in this order:
@@ -10,9 +11,10 @@ function func = ft_getuserfun(func, prefix)
 % function named 'general', 'trialfun_general', or 'ft_trialfun_general',
 % whichever of those is found first and is not a compatibility wrapper.
 %
-% func can be a function handle, in which case it is returned as-is.
+% If func is a function handle, it is returned as-is.
 %
-% If no appropriate function is found, the empty array [] will be returned.
+% If no appropriate function is found, a warning is issued and the empty
+% array [] will be returned.
 
 % Copyright (C) 2012, Eelke Spaak
 %
@@ -36,12 +38,16 @@ function func = ft_getuserfun(func, prefix)
 
 if isa(func, 'function_handle')
   % treat function handle as-is
-elseif isfunction(func) && ~iscompatwrapper(func)
+elseif isfunction(func) && ~iscompatwrapper(func) && ~strncmp(which(func), matlabroot, length(matlabroot))
+  % return custom user function, do not return MATLAB function (yet)
   func = str2func(func);
 elseif isfunction([prefix '_' func]) && ~iscompatwrapper([prefix '_' func])
   func = str2func([prefix '_' func]);
 elseif isfunction(['ft_' prefix '_' func])
   func = str2func(['ft_' prefix '_' func]);
+elseif isfunction(func) && ~iscompatwrapper(func)
+  % return custom user function, it might also be MATLAB function
+  func = str2func(func);
 else
   warning(['no function by the name ''' func ''', ''' prefix '_' func...
     ''', or ''ft_' prefix '_' func ''' could not be found']);
