@@ -11,8 +11,6 @@ function [s,cfg] = ft_statfun_indepsamplesF(cfg, dat, design)
 % with the following configuration option
 %   cfg.statistic = 'indepsamplesF'
 %
-% See FT_TIMELOCKSTATISTICS, FT_FREQSTATISTICS or FT_SOURCESTATISTICS for details.
-%
 % For low-level use, the external interface of this function has to be
 %   [s,cfg] = statfun_indepsamplesF(cfg, dat, design);
 % where
@@ -37,6 +35,8 @@ function [s,cfg] = ft_statfun_indepsamplesF(cfg, dat, design)
 % Design specification:
 %   cfg.ivar = row number of the design that contains the labels of the conditions that must be 
 %              compared (default=1). The labels range from 1 to the number of conditions.
+%
+% See FT_TIMELOCKSTATISTICS, FT_FREQSTATISTICS or FT_SOURCESTATISTICS for general usage.
 
 % Copyright (C) 2006, Eric Maris
 %

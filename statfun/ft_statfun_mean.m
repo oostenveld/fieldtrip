@@ -1,7 +1,7 @@
 function [stat] = ft_statfun_mean(cfg, dat, design)
 
-% FT_STATFUN_mean computes the mean over all replications for each of
-% the observations (i.e. channel-time-frequency points or voxels).
+% FT_STATFUN_MEAN computes the mean over all replications for each of
+% the observations (e.g. channel-time-frequency points or voxels).
 %
 % This function does not depend on the experimental design and cannot
 % be used for statistical testing. However, it serves as example how
@@ -12,7 +12,9 @@ function [stat] = ft_statfun_mean(cfg, dat, design)
 % structure, that contains the result of the computation inside this
 % function in the stat field.
 %
-% See also STATFUN_DIFF for an other simple example statfun
+% See also FT_STATFUN_DIFF for another simple example and
+% FT_TIMELOCKSTATISTICS, FT_FREQSTATISTICS or FT_SOURCESTATISTICS for
+% general usage.
 
 % Copyright (C) 2012, Donders Centre for Cognitive Neuroimaging, Nijmegen, NL
 %
@@ -34,5 +36,5 @@ function [stat] = ft_statfun_mean(cfg, dat, design)
 %
 % $Id$
 
-stat = mean(dat,2);
+stat.stat = mean(dat,2);
 

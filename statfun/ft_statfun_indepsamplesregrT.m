@@ -11,7 +11,6 @@ function [s,cfg] = ft_statfun_indepsamplesregrT(cfg, dat, design)
 %   [stat] = ft_sourcestatistics(cfg, source1, source2, ...)
 % with the following configuration option:
 %   cfg.statistic = 'indepsamplesregrT'
-% see FT_TIMELOCKSTATISTICS, FT_FREQSTATISTICS or FT_SOURCESTATISTICS for details.
 %
 % For low-level use, the external interface of this function has to be
 %   [s,cfg] = statfun_indepsamplesregrT(cfg, dat, design);
@@ -36,6 +35,8 @@ function [s,cfg] = ft_statfun_indepsamplesregrT(cfg, dat, design)
 %
 % Design specification:
 %   cfg.ivar = row number of the design that contains the independent variable (default=1)
+%
+% See FT_TIMELOCKSTATISTICS, FT_FREQSTATISTICS or FT_SOURCESTATISTICS for general usage.
 
 % Copyright (C) 2006, Eric Maris
 %

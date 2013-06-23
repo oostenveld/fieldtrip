@@ -4,19 +4,18 @@ function [s,cfg] = ft_statfun_actvsblT(cfg, dat, design)
 % on the biological data in dat (the dependent variable), using the information on 
 % the independent variable (iv) in design. 
 %
-% Note: It does not make sense to use this test statistic when
-% baseline-correction was performed by subtracting the time average of the
-% baseline period. Instead of this type of baseline-correction, one may
-% subtract the time average of the combined baseline and activation
-% period.
+% Note that it does not make sense to use this test statistic when
+% baseline-correction was performed by subtracting the time average
+% of the baseline period. Instead of this type of baseline-correction,
+% one may subtract the time average of the combined baseline and
+% activation period.
 %
 % Use this function by calling one of the high-level statistics functions as:
 %   [stat] = ft_timelockstatistics(cfg, timelock1, timelock2, ...)
 %   [stat] = ft_freqstatistics(cfg, freq1, freq2, ...)
 %   [stat] = ft_sourcestatistics(cfg, source1, source2, ...)
-% with the following configuration option:
+% with the following option
 %   cfg.statistic = 'actvsblT'
-% see FT_TIMELOCKSTATISTICS, FT_FREQSTATISTICS or FT_SOURCESTATISTICS for details.
 %
 % For low-level use, the external interface of this function has to be
 %   [s,cfg] = statfun_actvsblT(cfg, dat, design);
@@ -47,6 +46,7 @@ function [s,cfg] = ft_statfun_actvsblT(cfg, dat, design)
 %   cfg.uvar        = row number of design that contains the labels of the UOs (subjects or trials)
 %                        (default=2). The labels are assumed to be integers ranging from 1 to 
 %                        the number of UOs.
+% See FT_TIMELOCKSTATISTICS, FT_FREQSTATISTICS or FT_SOURCESTATISTICS for general usage.
 
 % Copyright (C) 2006, Eric Maris
 %

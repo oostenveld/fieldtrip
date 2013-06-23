@@ -21,6 +21,8 @@ function [s, cfg] = statfun_roc(cfg, dat, design)
 % 
 % Note that this statfun performs a one sided test in which condition "1"
 % is assumed to be larger than condition "2".
+%
+% See FT_TIMELOCKSTATISTICS, FT_FREQSTATISTICS or FT_SOURCESTATISTICS for general usage.
 
 % A low-level example for this function is
 %   a = randn(1,1000) + 1;

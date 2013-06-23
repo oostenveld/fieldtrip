@@ -8,9 +8,8 @@ function [s,cfg] = ft_statfun_depsamplesF(cfg, dat, design)
 %   [stat] = ft_timelockstatistics(cfg, timelock1, timelock2, ...)
 %   [stat] = ft_freqstatistics(cfg, freq1, freq2, ...)
 %   [stat] = ft_sourcestatistics(cfg, source1, source2, ...)
-% with the following configuration option:
+% with the following configuration option
 %   cfg.statistic = 'depsamplesF'
-% see FT_TIMELOCKSTATISTICS, FT_FREQSTATISTICS or FT_SOURCESTATISTICS for details.
 %
 % For low-level use, the external interface of this function has to be
 %   [s,cfg] = statfun_depsamplesF(cfg, dat, design);
@@ -47,6 +46,7 @@ function [s,cfg] = ft_statfun_depsamplesF(cfg, dat, design)
 %                        (default=2). The labels are assumed to be integers ranging from 1 to 
 %                        the number of UOs.
 %
+% See FT_TIMELOCKSTATISTICS, FT_FREQSTATISTICS or FT_SOURCESTATISTICS for general usage.
 
 % Copyright (C) 2006, Eric Maris
 %

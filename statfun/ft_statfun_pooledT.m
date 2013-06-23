@@ -32,8 +32,7 @@ function [s] = statfun_pooledT(cfg, dat, design)
 % Configuration options that are relevant for this function are
 %   cfg.ivar = number, index into the design matrix with the independent variable
 %
-% See FT_TIMELOCKSTATISTICS, FT_FREQSTATISTICS or FT_SOURCESTATISTICS
-% for details.
+% See FT_TIMELOCKSTATISTICS, FT_FREQSTATISTICS or FT_SOURCESTATISTICS for general usage.
 
 % Copyright (C) 2007, Robert Oostenveld
 %

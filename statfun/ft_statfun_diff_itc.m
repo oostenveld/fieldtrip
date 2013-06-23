@@ -21,10 +21,10 @@ function [s] = ft_statfun_diff_itc(cfg, dat, design)
 %   cfg.statistic = 'diff_itc'
 %   cfg.method    = 'montecarlo'
 % and optionally (for use in the statfun) the option
-%  cfg.complex = 'diffabs' to compute the difference of the absolute ITC values, or
-%  cfg.complex = 'absdiff' to compute the absolute value of the difference in the complex ITC values
+%   cfg.complex = 'diffabs' to compute the difference of the absolute ITC values, or
+%   cfg.complex = 'absdiff' to compute the absolute value of the difference in the complex ITC values
 % 
-% See FT_FREQSTATISTICS and STATISTICS_MONTECARLO for more details
+% See FT_TIMELOCKSTATISTICS, FT_FREQSTATISTICS or FT_SOURCESTATISTICS for general usage.
 
 % Copyright (C) 2008, Robert Oostenveld
 %
