@@ -10,7 +10,7 @@ function [resample] = resampledesign(cfg, design)
 %   [resample] = randomizedesign(cfg, design)
 % where the configuration can contain
 %   cfg.resampling       = 'permutation' or 'bootstrap'
-%   cfg.numrandomization = number (e.g. 300), can be 'all' in case of two conditions
+%   cfg.numresample      = number (e.g. 300), can be 'all' in case of two conditions
 %   cfg.ivar             = number or list with indices, independent variable(s)
 %   cfg.uvar             = number or list with indices, unit variable(s)
 %   cfg.wvar             = number or list with indices, within-cell variable(s)
@@ -70,7 +70,7 @@ ft_checkopt(cfg, 'ivar', {'numericscalar', 'numericvector', 'empty'});
 ft_checkopt(cfg, 'uvar', {'numericscalar', 'numericvector', 'empty'});
 ft_checkopt(cfg, 'wvar', {'numericscalar', 'numericvector', 'empty'});
 ft_checkopt(cfg, 'cvar', {'numericscalar', 'numericvector', 'empty'});
-ft_checkopt(cfg, 'numrandomization', {'numericscalar', 'char'});
+ft_checkopt(cfg, 'numresample', {'numericscalar', 'char'});
 ft_checkopt(cfg, 'resampling', {'char'});
 
 cfg.ivar = ft_getopt(cfg, 'ivar'); % the default is empty
@@ -131,7 +131,7 @@ if ~isempty(cfg.cvar)
   return
 end
 
-if isnumeric(cfg.numrandomization) && cfg.numrandomization==0
+if isnumeric(cfg.numresample) && cfg.numresample==0
   % no randomizations are requested, return an empty shuffling matrix
   resample = zeros(0,Nrepl);
   return;
@@ -170,15 +170,15 @@ end
 
 if isempty(cfg.uvar) && strcmp(cfg.resampling, 'permutation')
   % reshuffle the colums of the design matrix
-  if ischar(cfg.numrandomization) && strcmp(cfg.numrandomization, 'all')
+  if ischar(cfg.numresample) && strcmp(cfg.numresample, 'all')
     % systematically shuffle the columns in the design matrix
     Nperm = prod(1:Nrepl);
     fprintf('creating all possible permutations (%d)\n', Nperm);
     resample = perms(1:Nrepl);
-  elseif ~ischar(cfg.numrandomization)
+  elseif ~ischar(cfg.numresample)
     % randomly shuffle the columns in the design matrix the specified number of times
-    resample = zeros(cfg.numrandomization, Nrepl);
-    for i=1:cfg.numrandomization
+    resample = zeros(cfg.numresample, Nrepl);
+    for i=1:cfg.numresample
       resample(i,:) = randperm(Nrepl);
     end
   end
@@ -187,8 +187,8 @@ elseif isempty(cfg.uvar) && strcmp(cfg.resampling, 'bootstrap')
   % randomly draw with replacement, keeping the number of elements the same in each class
   % only the test under the null-hypothesis (h0) is explicitely implemented here
   % but the h1 test can be achieved using a control variable
-  resample = zeros(cfg.numrandomization, Nrepl);
-  for i=1:cfg.numrandomization
+  resample = zeros(cfg.numresample, Nrepl);
+  for i=1:cfg.numresample
     resample(i,:) = randsample(1:Nrepl, Nrepl);
   end
   
@@ -207,10 +207,10 @@ elseif ~isempty(cfg.uvar) && strcmp(cfg.resampling, 'permutation')
     fprintf('number of repeated measurements in each level is '); fprintf('%d ', unitlen); fprintf('\n');
   end
   
-  if ischar(cfg.numrandomization) && strcmp(cfg.numrandomization, 'all')
+  if ischar(cfg.numresample) && strcmp(cfg.numresample, 'all')
     % create all possible permutations by systematic assignment
     if any(unitlen~=2)
-      error('cfg.numrandomization=''all'' is only supported for two repeated measurements');
+      error('cfg.numresample=''all'' is only supported for two repeated measurements');
     end
     Nperm = 2^(length(unitlevel));
     fprintf('creating all possible permutations (%d)\n', 2^(length(unitlevel)));
@@ -228,10 +228,10 @@ elseif ~isempty(cfg.uvar) && strcmp(cfg.resampling, 'permutation')
       end
     end
     
-  elseif ~ischar(cfg.numrandomization)
+  elseif ~ischar(cfg.numresample)
     % create the desired number of permutations by random shuffling
-    resample = zeros(cfg.numrandomization, Nrepl);
-    for i=1:cfg.numrandomization
+    resample = zeros(cfg.numresample, Nrepl);
+    for i=1:cfg.numresample
       for j=1:length(unitlevel)
         resample(i, unitsel{j}) = unitsel{j}(randperm(length(unitsel{j})));
       end
@@ -251,7 +251,7 @@ elseif length(cfg.uvar)==1 && strcmp(cfg.resampling, 'bootstrap') && isempty(cfg
     indx(:,k) = sel;
     Nrep(k)   = length(sel);
   end
-  resample = zeros(cfg.numrandomization, Nrepl);
+  resample = zeros(cfg.numresample, Nrepl);
   
   %sanity check on number of repetitions
   if any(Nrep~=Nrep(1)), error('all units of observation should have an equal number of repetitions'); end
@@ -264,32 +264,32 @@ elseif length(cfg.uvar)==1 && strcmp(cfg.resampling, 'bootstrap') && isempty(cfg
   end
   
   if ~checkunique,
-    for i=1:cfg.numrandomization
+    for i=1:cfg.numresample
       tmp           = randsample(1:Nrepl/Nrep(1), Nrepl/Nrep(1));
       for k=1:size(indx,1)
         resample(i,indx(k,:)) = indx(k,tmp);
       end
     end
   else
-    tmp = zeros(cfg.numrandomization*10, Nrepl/Nrep(1));
-    for i=1:cfg.numrandomization*10
+    tmp = zeros(cfg.numresample*10, Nrepl/Nrep(1));
+    for i=1:cfg.numresample*10
       tmp(i,:) = sort(randsample(1:Nrepl/Nrep(1), Nrepl/Nrep(1)));
     end
     
     tmp = unique(tmp, 'rows');
-    fprintf('found %d unique rows in bootstrap matrix of %d bootstraps', size(tmp,1), cfg.numrandomization*10);
+    fprintf('found %d unique rows in bootstrap matrix of %d bootstraps', size(tmp,1), cfg.numresample*10);
     
-    if size(tmp,1)<cfg.numrandomization
+    if size(tmp,1)<cfg.numresample
       fprintf('using only %d unique bootstraps\n', size(tmp,1));
-      cfg.numrandomization = size(tmp,1);
+      cfg.numresample = size(tmp,1);
       index = 1:size(tmp,1);
     else
       index = randperm(size(tmp,1));
-      index = index(1:cfg.numrandomization);
+      index = index(1:cfg.numresample);
     end
     
     tmp = tmp(index,:);
-    for i=1:cfg.numrandomization
+    for i=1:cfg.numresample
       for k=1:size(indx,1)
         resample(i,indx(k,:)) = indx(k,tmp(i,:));
       end
