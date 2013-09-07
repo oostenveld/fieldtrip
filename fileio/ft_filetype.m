@@ -53,6 +53,7 @@ function [type] = ft_filetype(filename, desired, varargin)
 %  - VSM-Medtech/CTF
 %  - Yokogawa
 %  - nifti, gifti
+%  - Localite
 
 % Copyright (C) 2003-2011 Robert Oostenveld
 %
@@ -1091,7 +1092,7 @@ elseif filetype_check_extension(filename, '.foci') && filetype_check_header(file
 elseif filetype_check_extension(filename, '.border') && filetype_check_header(filename, '<?xml')
   type = 'caret_border';
   manufacturer = 'Caret and ConnectomeWB';
-elseif filetype_check_extension(filename, '.spec') && filetype_check_header(filename, '<?xml')
+elseif filetype_check_extension(filename, '.spec') && (filetype_check_header(filename, '<?xml') || filetype_check_header(filename, 'BeginHeader'))
   type = 'caret_spec';
   manufacturer = 'Caret and ConnectomeWB';
 elseif filetype_check_extension(filename, '.gii') && ~isempty(strfind(filename, '.coord.')) && filetype_check_header(filename, '<?xml')
@@ -1132,6 +1133,18 @@ elseif filetype_check_extension(filename, 'trk')
   type = 'trackvis_trk';
   manufacturer = 'Martinos Center for Biomedical Imaging, see http://www.trackvis.org';
   content = 'fiber tracking data from diffusion MR imaging';
+elseif filetype_check_extension(filename, '.xml') &&  filetype_check_header(filename, '<EEGMarkerList', 39)
+  type = 'localite_pos';
+  manufacturer = 'Localite';
+  content = 'EEG electrode positions';
+elseif filetype_check_extension(filename, '.mbi')
+  type = 'manscan_mbi';
+  manufacturer = 'MANSCAN';
+  content  = 'EEG header';
+elseif filetype_check_extension(filename, '.mb2')
+  type = 'manscan_mb2';
+  manufacturer = 'MANSCAN';
+  content  = 'EEG data';    
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1245,7 +1258,7 @@ if ~isempty(p)
 else
   d = dir;
 end
-res = ~isempty(strmatch(filename,{d.name},'exact'));
+res = any(strcmp(filename,{d.name}));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SUBFUNCTION that checks whether the directory is neuralynx_cds

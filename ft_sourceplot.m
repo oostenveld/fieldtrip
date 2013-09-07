@@ -137,8 +137,7 @@ function [cfg] = ft_sourceplot(cfg, data)
 %   cfg.renderer       = 'painters', 'zbuffer',' opengl' or 'none' (default = 'opengl')
 %                        note that when using opacity the OpenGL renderer is required.
 % 
-% To facilitate data-handling and distributed computing with the peer-to-peer
-% module, this function has the following option:
+% To facilitate data-handling and distributed computing you can use
 %   cfg.inputfile   =  ...
 % If you specify this option the input data will be read from a *.mat
 % file on disk. This mat files should contain only a single variable named 'data',
@@ -330,7 +329,7 @@ if hasatlas
     % initialize the atlas
     [p, f, x] = fileparts(cfg.atlas);
     fprintf(['reading ', f,' atlas coordinates and labels\n']);
-    atlas = ft_prepare_atlas(cfg);
+    atlas = ft_read_atlas(cfg.atlas);
   else
     atlas = cfg.atlas;
   end
@@ -886,8 +885,8 @@ elseif isequal(cfg.method,'surface')
     % FIXME this should partially be dealt with by ft_sourceinterpolate
     
     % read the triangulated cortical surface from file
-    tmp  = load(cfg.surffile, 'bnd');
-    surf = tmp.bnd;
+    surf  = ft_read_headshape(cfg.surffile);
+
     if isfield(surf, 'transform'),
       % compute the surface vertices in head coordinates
       surf.pnt = warp_apply(surf.transform, surf.pnt);
@@ -975,13 +974,16 @@ elseif isequal(cfg.method,'surface')
   end
   
   if ~isempty(cfg.surfinflated)
-    % read the inflated triangulated cortical surface from file
-    tmp = load(cfg.surfinflated, 'bnd');
-    surf = tmp.bnd;
-    if isfield(surf, 'transform'),
-      % compute the surface vertices in head coordinates
-      surf.pnt = warp_apply(surf.transform, surf.pnt);
-    end
+      if ~isstruct(cfg.surfinflated)
+          % read the inflated triangulated cortical surface from file
+          surf = ft_read_headshape(cfg.surfinflated);
+      else
+          surf = cfg.surfinflated;
+          if isfield(surf, 'transform'),
+              % compute the surface vertices in head coordinates
+              surf.pnt = warp_apply(surf.transform, surf.pnt);
+          end
+      end
   end
   
   %------do the plotting
@@ -1260,8 +1262,6 @@ axis xy
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function cb_redraw(h, eventdata)
 
-profile resume;
-
 h   = getparent(h);
 opt = getappdata(h, 'opt');
 
@@ -1502,7 +1502,6 @@ set(h, 'currentaxes', curr_ax);
 
 uiresume
 
-profile off;
 
 function cb_keyboard(h, eventdata)
 

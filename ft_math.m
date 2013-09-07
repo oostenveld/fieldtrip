@@ -8,14 +8,13 @@ function data = ft_math(cfg, varargin)
 % with one or multiple FieldTrip data structures as input and where cfg is a
 % configuration structure that should contain
 %
-%  cfg.operation  = string, can be 'add', 'subtract', 'divide', 'multiply'
+%  cfg.operation  = string, can be 'add', 'subtract', 'divide', 'multiply', 'log10'
 %  cfg.parameter  = string, input data field on which the operation is performed
 %
 % If you specify only a single input data structure, the configuration should contain
 %   cfg.value     = scalar value to be used in the operation
 %
-% To facilitate data-handling and distributed computing with the peer-to-peer
-% module, this function has the following options:
+% To facilitate data-handling and distributed computing you can use
 %   cfg.inputfile   =  ...
 %   cfg.outputfile  =  ...
 % If you specify one of these (or both) the input data will be read from a *.mat
@@ -25,7 +24,23 @@ function data = ft_math(cfg, varargin)
 %
 % See also FT_DATATYPE
 
-% Copyright (C) 2012, Robert Oostenveld
+% Copyright (C) 2012-2013, Robert Oostenveld
+%
+% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% for the documentation and details.
+%
+%    FieldTrip is free software: you can redistribute it and/or modify
+%    it under the terms of the GNU General Public License as published by
+%    the Free Software Foundation, either version 3 of the License, or
+%    (at your option) any later version.
+%
+%    FieldTrip is distributed in the hope that it will be useful,
+%    but WITHOUT ANY WARRANTY; without even the implied warranty of
+%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%    GNU General Public License for more details.
+%
+%    You should have received a copy of the GNU General Public License
+%    along with FieldTrip. If not, see <http://www.gnu.org/licenses/>.
 %
 % $Id$
 
@@ -59,11 +74,11 @@ else
   % or the operation is a transformation such as log10
 end
 
-% this function only works for the new (2013x) source representation without sub-structures 
+% this function only works for the upcoming (not yet standard) source representation without sub-structures
 if ft_datatype(varargin{1}, 'source')
   % update the old-style beamformer source reconstruction
   for i=1:length(varargin)
-    varargin{i} = ft_datatype_source(varargin{i}, 'version', '2013x');
+    varargin{i} = ft_datatype_source(varargin{i}, 'version', 'upcoming');
   end
   if isfield(cfg, 'parameter') && length(cfg.parameter)>4 && strcmp(cfg.parameter(1:4), 'avg.')
     cfg.parameter = cfg.parameter(5:end); % remove the 'avg.' part
@@ -88,7 +103,7 @@ tmpcfg.parameter = cfg.parameter;
 cfg.parameter = tmpcfg.parameter;
 
 if isfield(varargin{1}, [cfg.parameter 'dimord'])
- dimord = varargin{1}.([cfg.parameter 'dimord']);
+  dimord = varargin{1}.([cfg.parameter 'dimord']);
 elseif isfield(varargin{1}, 'dimord')
   dimord = varargin{1}.dimord;
 else
@@ -169,7 +184,7 @@ else
       end
       fprintf('subtracting the 2nd input argument from the 1st\n');
       tmp = tmp - varargin{2}.(cfg.parameter);
-      
+            
     case 'divide'
       if length(varargin)>2
         error('the operation "%s" requires exactly 2 input arguments', cfg.operation);
@@ -210,4 +225,3 @@ elseif rem(n,10)==3 && rem(n,100)~=13
 else
   s = sprintf('%dth', n);
 end
-
