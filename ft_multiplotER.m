@@ -83,8 +83,7 @@ function [cfg] = ft_multiplotER(cfg, varargin)
 % layout. If you want to have more fine-grained control over the layout
 % of the subplots, you should create your own layout file.
 %
-% To facilitate data-handling and distributed computing with the peer-to-peer
-% module, this function has the following option:
+% To facilitate data-handling and distributed computing you can use
 %   cfg.inputfile   =  ...
 % If you specify this option the input data will be read from a *.mat
 % file on disk. This mat files should contain only a single variable named 'data',
@@ -96,20 +95,8 @@ function [cfg] = ft_multiplotER(cfg, varargin)
 
 % Undocumented local options:
 % cfg.layoutname
-% cfg.zlim/xparam (set to a specific frequency range or time range [zmax zmin] for an average
-% over the frequency/time bins for TFR data.  Use in conjunction with e.g. xparam = 'time', and cfg.parameter = 'powspctrm').
+% cfg.zlim/xparam (set to a specific frequency range or time range [zmax zmin] for an average over the frequency/time bins for TFR data.  Use in conjunction with e.g. xparam = 'time', and cfg.parameter = 'powspctrm').
 % cfg.preproc
-
-% This function depends on FT_TIMELOCKBASELINE which has the following options:
-% cfg.baseline, documented
-% cfg.channel
-% cfg.baselinewindow
-% cfg.previous
-% cfg.version
-%
-% This function depends on FT_FREQBASELINE which has the following options:
-% cfg.baseline, documented
-% cfg.baselinetype
 
 % Copyright (C) 2003-2006, Ole Jensen
 % Copyright (C) 2007-2011, Roemer van der Meij & Jan-Mathijs Schoffelen
@@ -223,8 +210,19 @@ dimord = varargin{1}.dimord;
 dimtok = tokenize(dimord, '_');
 
 
-% ensure that the preproc specific options are located in the cfg.preproc substructure
-cfg = ft_checkconfig(cfg, 'createsubcfg',  {'preproc'});
+% ensure that the preproc specific options are located in the cfg.preproc 
+% substructure, but also ensure that the field 'refchannel' is present at the
+% highest level in the structure. This is a little hack by JM because the field
+% refchannel can also refer to the plotting of a connectivity metric. Also,
+% the freq2raw conversion does not work at all in the call to ft_preprocessing.
+% Therefore, for now, the preprocessing will not be done when there is freq
+% data in the input. A more generic solution should be considered.
+
+if isfield(cfg, 'refchannel'), refchannelincfg = cfg.refchannel; end
+if ~any(strcmp({'freq','freqmvar'},dtype)), 
+  cfg = ft_checkconfig(cfg, 'createsubcfg',  {'preproc'}); 
+end
+if exist('refchannelincfg', 'var'), cfg.refchannel  = refchannelincfg; end
 
 if ~isempty(cfg.preproc)
   % preprocess the data, i.e. apply filtering, baselinecorrection, etc.
@@ -428,13 +426,13 @@ if (isfull || haslabelcmb) && isfield(varargin{1}, cfg.parameter)
     if ~isfull,
       % Convert 2-dimensional channel matrix to a single dimension:
       if isempty(cfg.directionality)
-        sel1 = strmatch(cfg.refchannel, varargin{i}.labelcmb(:,2), 'exact');
-        sel2 = strmatch(cfg.refchannel, varargin{i}.labelcmb(:,1), 'exact');
+        sel1 = find(strcmp(cfg.refchannel, varargin{i}.labelcmb(:,2)));
+        sel2 = find(strcmp(cfg.refchannel, varargin{i}.labelcmb(:,1)));
       elseif strcmp(cfg.directionality, 'outflow')
         sel1 = [];
-        sel2 = strmatch(cfg.refchannel, varargin{i}.labelcmb(:,1), 'exact');
+        sel2 = find(strcmp(cfg.refchannel, varargin{i}.labelcmb(:,1)));
       elseif strcmp(cfg.directionality, 'inflow')
-        sel1 = strmatch(cfg.refchannel, varargin{i}.labelcmb(:,2), 'exact');
+        sel1 = find(strcmp(cfg.refchannel, varargin{i}.labelcmb(:,2)));
         sel2 = [];
       end
       fprintf('selected %d channels for %s\n', length(sel1)+length(sel2), cfg.parameter);
@@ -676,21 +674,25 @@ if ~isempty(l)
 end
 
 % set the figure window title
-if nargin > 1
-  dataname = {inputname(2)};
-  for k = 2:Ndata
-    dataname{end+1} = inputname(k+1);
+if isempty(get(gcf, 'Name'))
+  if nargin > 1
+    dataname = {inputname(2)};
+    for k = 2:Ndata
+      dataname{end+1} = inputname(k+1);
+    end
+  else % data provided through cfg.inputfile
+    dataname = cfg.inputfile;
   end
-else % data provided through cfg.inputfile
-  dataname = cfg.inputfile;
-end
 
-if isempty(cfg.figurename)
-  set(gcf, 'Name', sprintf('%d: %s: %s', gcf, mfilename, join_str(', ',dataname)));
-  set(gcf, 'NumberTitle', 'off');
+  if isempty(cfg.figurename)
+    set(gcf, 'Name', sprintf('%d: %s: %s', gcf, mfilename, join_str(', ',dataname)));
+    set(gcf, 'NumberTitle', 'off');
+  else
+    set(gcf, 'name', cfg.figurename);
+    set(gcf, 'NumberTitle', 'off');
+  end
 else
-  set(gcf, 'name', cfg.figurename);
-  set(gcf, 'NumberTitle', 'off');
+  dataname = {};
 end
 
 % Make the figure interactive:

@@ -145,8 +145,7 @@ function [freq] = ft_freqanalysis(cfg, data)
 %
 %
 %
-% To facilitate data-handling and distributed computing with the peer-to-peer
-% module, this function has the following options:
+% To facilitate data-handling and distributed computing you can use
 %   cfg.inputfile   =  ...
 %   cfg.outputfile  =  ...
 % If you specify one of these (or both) the input data will be read from a *.mat
@@ -212,8 +211,8 @@ ft_preamble loadvar data
 
 % defaults for optional input/ouputfile and feedback
 cfg.feedback   = ft_getopt(cfg, 'feedback',   'text');
-cfg.inputlock  = ft_getopt(cfg, 'inputlock',  []);  % this can be used as mutex when doing peercellfun or another distributed computation
-cfg.outputlock = ft_getopt(cfg, 'outputlock', []);  % this can be used as mutex when doing peercellfun or another distributed computation
+cfg.inputlock  = ft_getopt(cfg, 'inputlock',  []);  % this can be used as mutex when doing distributed computation
+cfg.outputlock = ft_getopt(cfg, 'outputlock', []);  % this can be used as mutex when doing distributed computation
 
 % check if the input data is valid for this function
 data = ft_checkdata(data, 'datatype', {'raw', 'comp', 'mvar'}, 'feedback', cfg.feedback, 'hassampleinfo', 'yes');
@@ -289,6 +288,10 @@ switch cfg.method
     if ~isfield(cfg, 'filtorder'),        cfg.filtorder     = 4;            end
     if ~isfield(cfg, 'filtdir'),          cfg.filtdir       = 'twopass';    end
     if ~isfield(cfg, 'width'),            cfg.width         = 1;            end
+    
+  case 'mvar'
+    freq = feval(@ft_freqanalysis_mvar,cfg,data);
+    return
     
   otherwise
     error('specified cfg.method is not supported')
