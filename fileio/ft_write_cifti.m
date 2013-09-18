@@ -1,14 +1,14 @@
-function write_cifti(filename, source, varargin)
+function ft_write_cifti(filename, source, varargin)
 
-% WRITE_CIFTI writes a source structure according to FT_DATATYPE_SOURCE to a cifti file.
+% FT_WRITE_CIFTI writes a source structure according to FT_DATATYPE_SOURCE to a cifti file.
 %
 % Use as
-%   write_cifti(filename, source, ...)
+%   ft_write_cifti(filename, source, ...)
 % where optional input arguments should come in key-value pairs and may include
 %   parameter    = string, fieldname that contains the data
 %   parcellation = string, fieldname that descripbes the (optional) parcellation
 %
-% See also READ_CIFTI, READ_NIFTI2_HDR, WRITE_NIFTI2_HDR
+% See also FT_READ_CIFTI, READ_NIFTI2_HDR, WRITE_NIFTI2_HDR
 
 % Copyright (C) 2013, Robert Oostenveld
 %
