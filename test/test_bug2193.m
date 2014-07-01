@@ -1,11 +1,14 @@
 function test_bug2193
 
+% MEM 1500mb
+% WALLTIME 00:10:00
+
 % TEST test_bug2193
 % TEST ft_read_atlas
 
 %%%%%% from http://fmri.wfubmc.edu
 
-filename = dccnfilename('/home/common/matlab/fieldtrip/data/test/bug2193/wfu/aal_MNI_V4.nii');
+filename = dccnpath('/home/common/matlab/fieldtrip/data/test/bug2193/wfu/aal_MNI_V4.nii');
 
 aal = ft_read_atlas(filename);
 assert(all(~cellfun(@isempty, aal.tissuelabel)), 'there is an empty tissuelabel');
@@ -17,7 +20,7 @@ bbl = ft_prepare_atlas(cfg);
 
 
 %%%%%% from http://www.cyceron.fr
-filename = dccnfilename('/home/common/matlab/fieldtrip/data/test/bug2193/aal/ROI_MNI_V4.nii');
+filename = dccnpath('/home/common/matlab/fieldtrip/data/test/bug2193/aal/ROI_MNI_V4.nii');
 
 aal = ft_read_atlas(filename);
 assert(all(~cellfun(@isempty, aal.tissuelabel)), 'there is an empty tissuelabel');
@@ -32,7 +35,11 @@ aal0a = ft_prepare_atlas(cfg);
 aal0b = ft_read_atlas(cfg.atlas);
 assert(all(~cellfun(@isempty, aal0b.tissuelabel)), 'there is an empty tissuelabel');
 assert(max(aal0b.tissue(:))==length(aal0b.tissuelabel), 'inconsistent number of tissues');
-assert(all(cellfun(@strcmp, aal0a.descr.name, aal0b.tissuelabel)));
+
+% the next one fails because ft_prepare_atlas has been deprecated so the
+% brick0/brick1 in combination with the descr field does not exist anymore
+% assert(all(cellfun(@strcmp, aal0a.descr.name, aal0b.tissuelabel)));
+
 % the next one fails because label are re-indexed by ft_read_atlas are different
 % assert(all(aal0a.brick0(:) == aal0b.tissue(:)));
  

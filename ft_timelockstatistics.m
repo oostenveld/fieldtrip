@@ -20,7 +20,7 @@ function [stat] = ft_timelockstatistics(cfg, varargin)
 %   cfg.method       = different methods for calculating the significance probability and/or critical value
 %                    'montecarlo'    get Monte-Carlo estimates of the significance probabilities and/or critical values from the permutation distribution,
 %                    'analytic'      get significance probabilities and/or critical values from the analytic reference distribution (typically, the sampling distribution under the null hypothesis),
-%                    'stats'         use a parametric test from the Matlab statistics toolbox,
+%                    'stats'         use a parametric test from the MATLAB statistics toolbox,
 %                    'crossvalidate' use crossvalidation to compute predictive performance
 %
 % The other cfg options depend on the method that you select. You
@@ -67,6 +67,11 @@ ft_preamble provenance
 ft_preamble trackconfig
 ft_preamble debug
 ft_preamble loadvar varargin
+
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
 
 % check if the input data is valid for this function
 for i=1:length(varargin)

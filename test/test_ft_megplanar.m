@@ -1,5 +1,8 @@
 function test_ft_megplanar
 
+% MEM 1500mb
+% WALLTIME 00:10:00
+
 % TEST test_ft_megplanar
 % TEST ft_megplanar ft_prepare_neighbours ft_topoplotER
 
@@ -96,7 +99,7 @@ end
 %% check for qualitative changes in transformation
 % load exampledata from ER tutorial, simplified
 
-cd(dccnfilename('/home/common/matlab/fieldtrip/data/test'))
+cd(dccnpath('/home/common/matlab/fieldtrip/data/test'))
 load avgFIC
 
 % compute neighbours

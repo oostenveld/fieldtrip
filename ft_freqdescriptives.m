@@ -74,6 +74,11 @@ ft_preamble trackconfig
 ft_preamble debug
 ft_preamble loadvar freq
 
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
+
 % check if the input cfg is valid for this function
 cfg = ft_checkconfig(cfg, 'renamed', {'jacknife', 'jackknife'});
 
@@ -122,6 +127,9 @@ if hasrpt, if ~strcmp(cfg.trials,  'all'), freq = ft_selectdata(freq, 'rpt',    
 
 if ~strcmp(cfg.channel, 'all'),
   channel = ft_channelselection(cfg.channel, freq.label);
+  if isempty(channel)
+      error('no channels selected');
+  end
   freq    = ft_selectdata(freq, 'channel', channel);
 end
 

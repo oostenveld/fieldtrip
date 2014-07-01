@@ -1,5 +1,8 @@
 function test_bug1911
 
+% MEM 1500mb
+% WALLTIME 00:10:00
+
 % TEST ft_databrowser
 
 % When ft_movieplotER is called within ft_databrowser by right-clicking on a
@@ -8,7 +11,7 @@ function test_bug1911
 %
 % I have only experienced this problem in Windows. 
 
-cd(dccnfilename('/home/common/matlab/fieldtrip/data/test'));
+cd(dccnpath('/home/common/matlab/fieldtrip/data/test'));
 load bug1911.mat
 
 cfg = [];

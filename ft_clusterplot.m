@@ -67,6 +67,11 @@ ft_preamble trackconfig
 ft_preamble debug
 ft_preamble loadvar stat
 
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
+
 % check if the given data is appropriate
 if isfield(stat,'freq') && length(stat.freq) > 1
   error('stat contains multiple frequencies which is not allowed because it should be averaged over frequencies')
@@ -137,6 +142,12 @@ if ~is2D
   stat.time = 0; %doesn't matter what it is, so just choose 0
 end;
 
+if exist('stat.cfg.correcttail') && ((strcmp(stat.cfg.correcttail,'alpha') || strcmp(stat.cfg.correcttail,'prob')) && (stat.cfg.tail == 0));
+  if ~(cfg.alpha >= stat.cfg.alpha);
+    warning(['the pvalue you plot: cfg.alpha = ' num2str(cfg.alpha) ' is higher than the correcttail option you tested: stat.cfg.alpha = ' num2str(stat.cfg.alpha)]);
+  end
+end
+
 % find significant clusters
 sigpos = [];
 signeg = [];
@@ -167,22 +178,34 @@ else
   end
   
   % make clusterslabel matrix per significant cluster
-  posCLM = squeeze(stat.posclusterslabelmat);
-  sigposCLM = zeros(size(posCLM));
-  probpos = [];
-  for iPos = 1:length(sigpos)
-    sigposCLM(:,:,iPos) = (posCLM == sigpos(iPos));
-    probpos(iPos) = stat.posclusters(iPos).prob;
-    hlsignpos(iPos) = prob2hlsign(probpos(iPos), cfg.highlightsymbolseries);
+  if haspos
+    posCLM = squeeze(stat.posclusterslabelmat);
+    sigposCLM = zeros(size(posCLM));
+    probpos = [];
+    for iPos = 1:length(sigpos)
+      sigposCLM(:,:,iPos) = (posCLM == sigpos(iPos));
+      probpos(iPos) = stat.posclusters(iPos).prob;
+      hlsignpos(iPos) = prob2hlsign(probpos(iPos), cfg.highlightsymbolseries);
+    end
+  else
+    posCLM = [];
+    sigposCLM = [];
+    probpos = [];
   end
   
-  negCLM = squeeze(stat.negclusterslabelmat);
-  signegCLM = zeros(size(negCLM));
-  probneg = [];
-  for iNeg = 1:length(signeg)
-    signegCLM(:,:,iNeg) = (negCLM == signeg(iNeg));
-    probneg(iNeg) = stat.negclusters(iNeg).prob;
-    hlsignneg(iNeg) = prob2hlsign(probneg(iNeg), cfg.highlightsymbolseries);
+  if hasneg
+    negCLM = squeeze(stat.negclusterslabelmat);
+    signegCLM = zeros(size(negCLM));
+    probneg = [];
+    for iNeg = 1:length(signeg)
+      signegCLM(:,:,iNeg) = (negCLM == signeg(iNeg));
+      probneg(iNeg) = stat.negclusters(iNeg).prob;
+      hlsignneg(iNeg) = prob2hlsign(probneg(iNeg), cfg.highlightsymbolseries);
+    end
+  else % no negative clusters
+    negCLM = [];
+    signegCLM = [];
+    probneg = [];
   end
   
   fprintf('%s%i%s%g%s\n','There are ',Nsigall,' clusters smaller than alpha (',cfg.alpha,')')
@@ -209,7 +232,14 @@ else
     possum = sum(possum,1);
     negsum = sum(signegCLM,3);
     negsum = sum(negsum,1);
-    allsum = possum + negsum;
+    
+    if haspos && hasneg
+      allsum = possum + negsum;
+    elseif haspos
+      allsum = possum;
+    else
+      allsum = negsum;
+    end
     
     ind_timewin_min = min(find(allsum~=0));
     ind_timewin_max = max(find(allsum~=0));

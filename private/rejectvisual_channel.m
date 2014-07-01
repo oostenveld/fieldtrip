@@ -1,4 +1,4 @@
-function [chansel, trlsel, cfg] = rejectvisual_channel(cfg, data);
+function [chansel, trlsel, cfg] = rejectvisual_channel(cfg, data)
 
 % SUBFUNCTION for rejectvisual
 
@@ -29,10 +29,6 @@ cfg.channel = ft_channelselection(cfg.channel, data.label);
 trlsel  = logical(ones(1,ntrl));
 chansel = logical(zeros(1,nchan));
 chansel(match_str(data.label, cfg.channel)) = 1;
-
-% remove all non-wanted channels
-nchan = sum(chansel);
-data = ft_selectdata(data, 'channel', cfg.channel);
 
 % compute the sampling frequency from the first two timepoints
 fsample = 1/mean(diff(data.time{1}));
@@ -270,14 +266,14 @@ info.quit = 1;
 guidata(h,info);
 uiresume;
 
-function str = description_channel(info);
+function str = description_channel(info)
 if info.chansel(info.chanlop)
   str = sprintf('channel %s marked as GOOD\n', info.data.label{info.chanlop});
 else
   str = sprintf('channel %s marked as BAD\n', info.data.label{info.chanlop});
 end
 
-function str = description_trial(info);
+function str = description_trial(info)
 if info.trlsel(info.trlop)
   str = sprintf('trial %d marked as GOOD\n', info.trlop);
 else

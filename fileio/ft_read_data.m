@@ -31,7 +31,7 @@ function [dat] = ft_read_data(filename, varargin)
 %
 % See also FT_READ_HEADER, FT_READ_EVENT, FT_WRITE_DATA, FT_WRITE_EVENT
 
-% Copyright (C) 2003-2012 Robert Oostenveld
+% Copyright (C) 2003-2013 Robert Oostenveld
 %
 % This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
 % for the documentation and details.
@@ -107,6 +107,12 @@ end
 if ~isempty(endtrial) && mod(endtrial, 1)
   warning('rounding "endtrial" to the nearest integer');
   endtrial = round(endtrial);
+end
+
+% if we are dealing with a compressed dataset, inflate it first
+if strcmp(dataformat, 'compressed')
+  filename = inflate_file(filename);
+  dataformat = ft_filetype(filename);
 end
 
 % ensure that the headerfile and datafile are defined, which are sometimes different than the name of the dataset
@@ -341,7 +347,7 @@ switch dataformat
     begsample = begsample - (begepoch-1)*epochlength;  % correct for the number of bytes that were skipped
     endsample = endsample - (begepoch-1)*epochlength;  % correct for the number of bytes that were skipped
     dat = dat(:, begsample:endsample);
-    % close the file between seperate read operations
+    % close the file between separate read operations
     fclose(orig.Head.FILE.FID);
     
   case {'biosig'}
@@ -424,6 +430,13 @@ switch dataformat
       hdr.orig = [];
     end
     dat = read_deymed_dat(datafile, hdr.orig, begsample, endsample);
+    dat = dat(chanindx, :);
+    
+  case 'emotiv_mat'
+    % This is a MATLAB *.mat file that is created using the Emotiv MATLAB
+    % example code. It contains a 25xNsamples matrix and some other stuff.
+    dat = hdr.orig.data_eeg';
+    dat = dat(chanindx, begsample:endsample);
     
   case 'gtec_mat'
     if isfield(hdr, 'orig')
@@ -646,6 +659,7 @@ switch dataformat
     dimord = 'chans_samples_trials';
     
   case {'egi_mff_v1' 'egi_mff'} % this is currently the default
+    
     % The following represents the code that was written by Ingrid, Robert
     % and Giovanni to get started with the EGI mff dataset format. It might
     % not support all details of the file formats.
@@ -653,18 +667,19 @@ switch dataformat
     % released as fieldtrip/external/egi_mff and referred further down in
     % this function as 'egi_mff_v2'.
     
-    % check if requested data contains multiple epochs. If so, give error
-    if isfield(hdr.orig.xml,'epoch') && length(hdr.orig.xml.epoch) > 1
-      data_in_epoch = zeros(1,length(hdr.orig.xml.epoch));
-      for iEpoch = 1:length(hdr.orig.xml.epoch)
-        begsamp_epoch = round(str2double(hdr.orig.xml.epoch(iEpoch).epoch.beginTime)./1000./hdr.Fs);
-        endsamp_epoch = round(str2double(hdr.orig.xml.epoch(iEpoch).epoch.endTime)./1000./hdr.Fs);
-        data_in_epoch(iEpoch) = length(intersect(begsamp_epoch:endsamp_epoch,begsample:endsample));
-      end
-      if sum(data_in_epoch>1) > 1
-        fprintf('Requested sample %i to %i. \n', begsample, endsample);
-        error('The requested data is spread out over multiple epochs with possibly discontinuous boundaries. This is not allowed. Adjust trl to request only data within a single epoch.');
-      end
+    % check if requested data contains multiple epochs and not segmented. If so, give error
+    if isfield(hdr.orig.xml,'epochs') && length(hdr.orig.xml.epochs) > 1
+        if hdr.nTrials ==1
+            data_in_epoch = zeros(1,length(hdr.orig.xml.epochs));
+            for iEpoch = 1:length(hdr.orig.xml.epochs)
+                begsamp_epoch = hdr.orig.epochdef(iEpoch,1);
+                endsamp_epoch = hdr.orig.epochdef(iEpoch,2);
+                data_in_epoch(iEpoch) = length(intersect(begsamp_epoch:endsamp_epoch,begsample:endsample));
+            end
+            if sum(data_in_epoch>1) > 1
+                warning('The requested segment from %i to %i is spread out over multiple epochs with possibly discontinuous boundaries', begsample, endsample);
+            end
+        end
     end
     
     % read in data in different signals
@@ -721,13 +736,21 @@ switch dataformat
     end
     % concat signals
     dat = cat(1,dat{:});
+
+    if hdr.nTrials > 1
+        dat2=zeros(hdr.nChans,hdr.nSamples,hdr.nTrials);
+        for i=1:hdr.nTrials
+            dat2(:,:,i)=dat(:,hdr.orig.epochdef(i,1):hdr.orig.epochdef(i,2));
+        end;
+        dat=dat2;
+    end
     
   case 'egi_mff_v2'
     % ensure that the EGI_MFF toolbox is on the path
     ft_hastoolbox('egi_mff', 1);
     % ensure that the JVM is running and the jar file is on the path
       %%%%%%%%%%%%%%%%%%%%%%
-      %workaround for Matlab bug resulting in global variables being cleared
+      %workaround for MATLAB bug resulting in global variables being cleared
       globalTemp=cell(0);
       globalList=whos('global');
       varList=whos;
@@ -740,7 +763,7 @@ switch dataformat
       mff_setup;
       
       %%%%%%%%%%%%%%%%%%%%%%
-      %workaround for Matlab bug resulting in global variables being cleared
+      %workaround for MATLAB bug resulting in global variables being cleared
       varNames={varList.name};
       for i=1:length(globalList)
           eval([globalList(i).name '=globalTemp{i};']);
@@ -851,6 +874,7 @@ switch dataformat
     dat  = orig.data(chanindx, begsample:endsample);
     
   case {'ns_cnt' 'ns_cnt16', 'ns_cnt32'}
+    ft_hastoolbox('eeglab', 1);
     % Neuroscan continuous data
     sample1    = begsample-1;
     ldnsamples = endsample-begsample+1; % number of samples to read
@@ -865,7 +889,7 @@ switch dataformat
     end
     
     if strcmp(dataformat, 'ns_cnt')
-      tmp = loadcnt(filename, 'sample1', sample1, 'ldnsamples', ldnsamples);
+      tmp = loadcnt(filename, 'sample1', sample1, 'ldnsamples', ldnsamples); % let loadcnt figure it out
     elseif strcmp(dataformat, 'ns_cnt16')
       tmp = loadcnt(filename, 'sample1', sample1, 'ldnsamples', ldnsamples, 'dataformat', 'int16');
     elseif strcmp(dataformat, 'ns_cnt32')
@@ -881,12 +905,19 @@ switch dataformat
     dat       = dat(:,chanindx,:);      % select channels
     dimord    = 'trials_chans_samples'; % selection using begsample and endsample will be done later
     
-  case {'neuromag_fif' 'neuromag_mne' 'babysquid_fif'}
+  case {'neuromag_fif' 'neuromag_mne'}
     % check that the required low-level toolbox is available
     ft_hastoolbox('mne', 1);
     if (hdr.orig.iscontinuous)
       dat = fiff_read_raw_segment(hdr.orig.raw,begsample+hdr.orig.raw.first_samp-1,endsample+hdr.orig.raw.first_samp-1,chanindx);
       dimord = 'chans_samples';
+    elseif (hdr.orig.isepoched)
+      data = permute(hdr.orig.epochs.data, [2 3 1]);  % Chan X Sample X Trials
+      if requesttrials
+        dat = data(chanindx, :, begtrial:endtrial);
+      else
+        dat = data(chanindx, begsample:endsample);  % reading over boundaries
+      end
     elseif (hdr.orig.isaverage)
       dat = cat(2, hdr.orig.evoked.epochs);            % concatenate all epochs, this works both when they are of constant or variable length
       if checkboundary
@@ -900,8 +931,6 @@ switch dataformat
       end
       dat = dat(chanindx, begsample:endsample);        % select the desired channels and samples
       dimord = 'chans_samples';
-    elseif (hdr.orig.isepoched)
-      error('Support for epoched *.fif data is not yet implemented.')
     end
     
   case 'neuromag_mex'

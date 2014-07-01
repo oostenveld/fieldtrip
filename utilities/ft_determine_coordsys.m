@@ -12,7 +12,7 @@ function [data] = ft_determine_coordsys(data, varargin)
 %  - a volume conduction model of the head
 % or most other FieldTrip structures that represent geometrical information.
 %
-% Additional optional input arguments should be specified as key-value pairs 
+% Additional optional input arguments should be specified as key-value pairs
 % and can include
 %   interactive  = string, 'yes' or 'no' (default = 'yes')
 %   axisscale    = scaling factor for the reference axes and sphere (default = 1)
@@ -88,6 +88,9 @@ end
 axmax = axisscale*axmax;
 rbol  = axisscale*rbol;
 
+fprintf('The axes are %g %s long in each direction\n', axmax, unit);
+fprintf('The diameter of the sphere at the origin is %g %s\n', 2*rbol, unit);
+
 if isfield(data, 'coordsys') && ~isempty(data.coordsys)
   label = cell(3,1);
   if length(data.coordsys)==3 && length(intersect(data.coordsys, 'rlasif'))==3
@@ -121,6 +124,14 @@ if isfield(data, 'coordsys') && ~isempty(data.coordsys)
     label{1} = 'the right';
     label{2} = 'anterior';
     label{3} = 'superior';
+  elseif strcmpi(data.coordsys, 'paxinos')
+    label{1} = 'the right';
+    label{2} = 'superior';
+    label{3} = 'posterior';
+  elseif strcmpi(data.coordsys, 'unknown')
+    label{1} = 'unknown';
+    label{2} = 'unknown';
+    label{3} = 'unknown';
   else
     error('unsupported coordsys');
   end
@@ -200,7 +211,7 @@ switch dtype
   case 'mesh'
     ft_plot_mesh(data);
     camlight;
-
+    
   case 'headmodel'
     ft_plot_vol(data);
     camlight;
@@ -219,6 +230,12 @@ switch dtype
     
   case 'unknown'
 end % switch dtype{k}
+
+if isfield(data, 'tri')
+  % this makes the 3-D object easier to understand
+  camlight
+  lighting gouraud
+end
 
 % get the xyz-axes
 xdat  = [-axmax 0 0; axmax 0 0];
@@ -324,6 +341,10 @@ if ~isempty(str) && ~strcmp(str, 'unknown')
       labelx = {'-X (posterior)' '+X (anterior)'};
       labely = {'-Y (right)'     '+Y (left)'};
       labelz = {'-Z (inferior)'  '+Z (superior)'};
+    case {'paxinos'}
+      labelx = {'-X (left)'      '+X (right)'};
+      labely = {'-Y (inferior)'  '+Y (superior)'};
+      labelz = {'-Z (anterior)'  '+Z (posterior)'};
     otherwise
       error('unknown coordsys');
   end

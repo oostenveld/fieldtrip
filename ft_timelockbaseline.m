@@ -19,7 +19,7 @@ function [timelock] = ft_timelockbaseline(cfg, timelock)
 % files should contain only a single variable, corresponding with the
 % input/output structure.
 %
-% See also FT_TIMELOCKANALYSIS, FT_FREQBASELINE
+% See also FT_TIMELOCKANALYSIS, FT_FREQBASELINE, FT_TIMELOCKGRANDAVERAGE
 
 % Undocumented local options:
 %   cfg.baselinewindow
@@ -55,6 +55,11 @@ ft_preamble provenance
 ft_preamble trackconfig
 ft_preamble debug
 ft_preamble loadvar timelock
+
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
 
 % check if the input data is valid for this function
 timelock = ft_checkdata(timelock, 'datatype', 'timelock', 'feedback', 'yes');

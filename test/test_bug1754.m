@@ -1,12 +1,15 @@
 function test_bug1754
 
+% MEM 1500mb
+% WALLTIME 00:10:00
+
 % TEST test_bug1754
 % TEST ft_freqbaseline
 
 % Note: new tests were added when bug #1754 was fixed. This script is now
 % reduntant, and can be removed.
 
-cd(dccnfilename('/home/common/matlab/fieldtrip/data/test'))
+cd(dccnpath('/home/common/matlab/fieldtrip/data/test'))
 load bug1754.mat
 
 cfg = [];

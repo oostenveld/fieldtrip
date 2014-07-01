@@ -12,7 +12,7 @@ function [cfg] = ft_movieplotTFR(cfg, data)
 %   cfg.ylim         = selection boundaries over second dimension in data (e.g., freq)
 %                          'maxmin' or [xmin xmax] (default = 'maxmin')
 %   cfg.zlim         = plotting limits for color dimension, 'maxmin',
-%                          'maxabs' or [zmin zmax] (default = 'maxmin')
+%                          'maxabs', 'zeromax', 'minzero', or [zmin zmax] (default = 'maxmin')
 %   cfg.samperframe  = number, samples per fram (default = 1)
 %   cfg.framespersec = number, frames per second (default = 5)
 %   cfg.framesfile   = [] (optional), no file saved, or 'string', filename of saved frames.mat (default = []);
@@ -70,7 +70,13 @@ ft_preamble trackconfig
 ft_preamble debug
 ft_preamble loadvar data
 
-% check the input dtaa, this function is also called from ft_movieplotER
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
+
+% check if the input data is valid for this function
+% note that this function is also called from ft_movieplotER
 data = ft_checkdata(data, 'datatype', {'timelock', 'freq'});
 
 % check if the input cfg is valid for this function
@@ -193,6 +199,14 @@ elseif ischar(cfg.zlim) && strcmp(cfg.zlim,'maxabs')
   cfg.zlim     = [];
   cfg.zlim(1)  = -max(abs(parameter(:)));
   cfg.zlim(2)  =  max(abs(parameter(:)));
+elseif ischar(cfg.zlim) && strcmp(cfg.zlim,'zeromax')
+  cfg.zlim     = [];
+  cfg.zlim(1)  = 0;
+  cfg.zlim(2)  = max(parameter(:));
+elseif ischar(cfg.zlim) && strcmp(cfg.zlim,'minzero')
+  cfg.zlim     = [];
+  cfg.zlim(1)  = min(parameter(:));
+  cfg.zlim(2)  = 0;
 end
 
 h = gcf;

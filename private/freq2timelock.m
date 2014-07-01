@@ -1,4 +1,4 @@
-function [timelock, cfg] = freq2timelock(cfg, freq);
+function [timelock, cfg] = freq2timelock(cfg, freq)
 
 % FREQ2TIMELOCK  transform the frequency data into something
 % on which the timelocked source reconstruction methods can
@@ -72,7 +72,7 @@ timelock        = [];
 timelock.avg    = avg;
 timelock.label  = cfg.channel;
 timelock.time   = 1:size(timelock.avg,2);
-timelock.cfg    = freq.cfg;
+if isfield(freq, 'cfg'), timelock.cfg = freq.cfg; end
 timelock.dimord = 'chan_time';
 
 if isfield(freq, 'grad')

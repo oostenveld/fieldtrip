@@ -39,6 +39,8 @@ function bnd = prepare_mesh_manual(cfg, mri)
 
 global obj
 
+mri = ft_checkdata(mri, 'datatype', {'volume', 'segmentation'}, 'hasunit', 'yes');
+
 bnd.pnt = [];
 bnd.tri = [];
 
@@ -134,7 +136,7 @@ catch
 end
 
 
-function cb_redraw(hObject, eventdata, handles);
+function cb_redraw(hObject, eventdata, handles)
 fig  = get(hObject, 'parent');
 prop = getappdata(fig,'prop');
 data = getappdata(fig,'data');

@@ -1,4 +1,4 @@
-function [source] = ft_source2full(source);
+function [source] = ft_source2full(source)
 
 % FT_SOURCE2FULL recreates the grid locations outside the brain in the source 
 % reconstruction, so that the source volume again describes the full grid.
@@ -100,7 +100,7 @@ else
   % recreate the positions of the dipole grid
   [X, Y, Z] = ndgrid(xgrid, ygrid, zgrid);
   pos = [X(:) Y(:) Z(:)];
-  pos = warp_apply(inv([M T(:);0 0 0 1]), pos);
+  pos = ft_warp_apply(inv([M T(:);0 0 0 1]), pos);
 end
 
 Nsparse = length(source.inside);

@@ -52,7 +52,7 @@ if isstruct(obj) && numel(obj)>1
   % deal with a structure array
   for i=1:numel(obj)
     if nargin>1
-      tmp(i) = ft_convert_units(obj(i), target);
+      tmp(i) = ft_convert_units(obj(i), target, varargin{:});
     else
       tmp(i) = ft_convert_units(obj(i));
     end
@@ -68,10 +68,31 @@ if isfield(obj, 'unit') && ~isempty(obj.unit)
   % use the units specified in the object
   unit = obj.unit;
   
+elseif isfield(obj, 'bnd') && isfield(obj.bnd, 'unit')
+  
+  unit = unique({obj.bnd.unit});
+  if ~all(strcmp(unit, unit{1}))
+    error('inconsistent units in the individual boundaries');
+  else
+    unit = unit{1};
+  end
+  
+  % keep one representation of the units rather than keeping it with each boundary
+  % the units will be reassigned further down
+  obj.bnd = rmfield(obj.bnd, 'unit');
+  
 else
   % try to determine the units by looking at the size of the object
   if isfield(obj, 'chanpos') && ~isempty(obj.chanpos)
     siz = norm(idrange(obj.chanpos));
+    unit = ft_estimate_units(siz);
+    
+  elseif isfield(obj, 'elecpos') && ~isempty(obj.elecpos)
+    siz = norm(idrange(obj.elecpos));
+    unit = ft_estimate_units(siz);
+    
+  elseif isfield(obj, 'coilpos') && ~isempty(obj.coilpos)
+    siz = norm(idrange(obj.coilpos));
     unit = ft_estimate_units(siz);
     
   elseif isfield(obj, 'pnt') && ~isempty(obj.pnt)
@@ -143,10 +164,18 @@ if istrue(feedback)
   fprintf('converting units from ''%s'' to ''%s''\n', unit, target)
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% apply the scaling factor
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % volume conductor model
 if isfield(obj, 'r'), obj.r = scale * obj.r; end
 if isfield(obj, 'o'), obj.o = scale * obj.o; end
-if isfield(obj, 'bnd'), for i=1:length(obj.bnd), obj.bnd(i).pnt = scale * obj.bnd(i).pnt; end, end
+if isfield(obj, 'bnd'),
+  for i=1:length(obj.bnd)
+    obj.bnd(i).pnt = scale * obj.bnd(i).pnt;
+  end
+end
 
 % gradiometer array
 if isfield(obj, 'pnt1'), obj.pnt1 = scale * obj.pnt1; end
@@ -154,22 +183,25 @@ if isfield(obj, 'pnt2'), obj.pnt2 = scale * obj.pnt2; end
 if isfield(obj, 'prj'),  obj.prj  = scale * obj.prj;  end
 
 % gradiometer array, electrode array, head shape or dipole grid
-if isfield(obj, 'pnt'),     obj.pnt     = scale * obj.pnt; end
-if isfield(obj, 'chanpos'), obj.chanpos = scale * obj.chanpos; end
-if isfield(obj, 'coilpos'), obj.coilpos = scale * obj.coilpos; end
-if isfield(obj, 'elecpos'), obj.elecpos = scale * obj.elecpos; end
+if isfield(obj, 'pnt'),        obj.pnt     = scale * obj.pnt; end
+if isfield(obj, 'chanpos'),    obj.chanpos = scale * obj.chanpos; end
+if isfield(obj, 'chanposorg'), obj.chanposorg = scale * obj.chanposorg; end
+if isfield(obj, 'coilpos'),    obj.coilpos = scale * obj.coilpos; end
+if isfield(obj, 'elecpos'),    obj.elecpos = scale * obj.elecpos; end
 
 % gradiometer array that combines multiple coils in one channel
 if isfield(obj, 'tra') && isfield(obj, 'chanunit')
   % find the gradiometer channels that are expressed as unit of field strength divided by unit of distance, e.g. T/cm
   for i=1:length(obj.chanunit)
     tok = tokenize(obj.chanunit{i}, '/');
-    if length(tok)==1
-      % assume that it is T or so
-    elseif length(tok)==2
-      % assume that it is T/cm or so
+    if ~isempty(regexp(obj.chanunit{i}, 'm$', 'once'))
+      % assume that it is T/m or so
       obj.tra(i,:)    = obj.tra(i,:) / scale;
       obj.chanunit{i} = [tok{1} '/' target];
+    elseif ~isempty(regexp(obj.chanunit{i}, '[T|V]$', 'once'))
+      % assume that it is T or V, don't do anything
+    elseif strcmp(obj.chanunit{i}, 'unknown')
+      % assume that it is T or V, don't do anything
     else
       error('unexpected units %s', obj.chanunit{i});
     end

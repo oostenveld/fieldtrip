@@ -1,5 +1,8 @@
 function test_bug946
 
+% MEM 1500mb
+% WALLTIME 00:10:00
+
 % TEST ft_appenddata
 
 % make some dummy data

@@ -8,7 +8,7 @@ function ft_documentationreference(outdir)
 %
 % See FT_DOCUMENTATIONINDEX
 
-% Copyright (C) 2008-2012, Robert Oostenveld
+% Copyright (C) 2008-2014, Robert Oostenveld
 %
 % This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
 % for the documentation and details.
@@ -53,7 +53,7 @@ f6 = {f6.name}';
 f7 = dir(fullfile(p, 'realtime', '*.m'));
 f7 = {f7.name}';
 
-f8 = dir(fullfile(p, 'realtime', 'datasource', '*.m'));
+f8 = dir(fullfile(p, 'realtime', 'example', '*.m'));
 f8 = {f8.name}';
 
 f9 = dir(fullfile(p, 'peer', '*.m'));
@@ -86,7 +86,19 @@ f17 = {f17.name}';
 f18 = dir(fullfile(p, 'utility', '*.m'));
 f18 = {f18.name}';
 
-funname = cat(1, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15, f16, f17, f18);
+f19 = dir(fullfile(p, 'engine', '*.m'));
+f19 = {f19.name}';
+
+f20 = dir(fullfile(p, 'realtime', 'online_eeg', '*.m'));
+f20 = {f20.name}';
+
+f21 = dir(fullfile(p, 'realtime', 'online_meg', '*.m'));
+f21 = {f21.name}';
+
+f22 = dir(fullfile(p, 'realtime', 'online_mri', '*.m'));
+f22 = {f22.name}';
+
+funname = cat(1, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15, f16, f17, f18, f19, f20, f21, f22);
 
 for i=1:length(funname)
   [p, funname{i}, x] = fileparts(funname{i});
@@ -113,7 +125,7 @@ for i=1:length(funname)
   
   fid = fopen(filename, 'wt');
   fprintf(fid, '=====  %s =====\n\n', upper(funname{i}));
-  fprintf(fid, 'Note that this reference documentation is identical to the help that is displayed in Matlab when you type "help %s".\n\n', funname{i});
+  fprintf(fid, 'Note that this reference documentation is identical to the help that is displayed in MATLAB when you type "help %s".\n\n', funname{i});
   fprintf(fid, '<html><pre>\n');   % required for docuwiki > use html preformatted style
   fprintf(fid, '%s', str);
   fprintf(fid, '</pre></html>\n'); % required for docuwiki

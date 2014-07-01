@@ -14,13 +14,13 @@ function [cfg] = ft_singleplotTFR(cfg, data)
 %   cfg.maskparameter  = field in the data to be used for masking of data
 %                        (not possible for mean over multiple channels, or when input contains multiple subjects
 %                        or trials)
-%   cfg.maskstyle      = style used to masking, 'opacity' or 'saturation' (default = 'opacity')
-%                        use 'saturation' when saving to vector-format (like *.eps) to avoid all sorts of image-problems
+%   cfg.maskstyle      = style used to masking, 'opacity', 'saturation' or 'outline' (default = 'opacity')
+%                        use 'saturation' or 'outline' when saving to vector-format (like *.eps) to avoid all sorts of image-problems
 %   cfg.maskalpha      = alpha value between 0 (transparant) and 1 (opaque) used for masking areas dictated by cfg.maskparameter (default = 1)
 %   cfg.masknans       = 'yes' or 'no' (default = 'yes')
 %   cfg.xlim           = 'maxmin' or [xmin xmax] (default = 'maxmin')
 %   cfg.ylim           = 'maxmin' or [ymin ymax] (default = 'maxmin')
-%   cfg.zlim           = 'maxmin','maxabs' or [zmin zmax] (default = 'maxmin')
+%   cfg.zlim           = 'maxmin','maxabs', 'zeromax', 'minzero', or [zmin zmax] (default = 'maxmin')
 %   cfg.baseline       = 'yes','no' or [time1 time2] (default = 'no'), see FT_FREQBASELINE
 %   cfg.baselinetype   = 'absolute', 'relative', 'relchange' or 'db' (default = 'absolute')
 %   cfg.trials         = 'all' or a selection given as a 1xN vector (default = 'all')
@@ -90,6 +90,11 @@ ft_preamble init
 ft_preamble provenance
 ft_preamble trackconfig
 ft_preamble debug
+
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
 
 % check if the input data is valid for this function
 data = ft_checkdata(data, 'datatype', 'freq');
@@ -176,8 +181,9 @@ if hasrpt,
     tempdata.dimord    = data.dimord;
     tempdata.freq      = data.freq;
     tempdata.label     = data.label;
+    tempdata.time      = data.time;
     tempdata.powspctrm = data.(cfg.parameter);
-    tempdata.cfg       = data.cfg;
+    if isfield(data, 'cfg') tempdata.cfg = data.cfg; end
     tempdata           = ft_freqdescriptives(tmpcfg, tempdata);
     data.(cfg.parameter)  = tempdata.powspctrm;
     clear tempdata
@@ -202,14 +208,15 @@ isfull  = length(selchan)>1;
 haslabelcmb = isfield(data, 'labelcmb');
 
 % check whether the bivariate metric is the one requested to plot
-shouldPlotCmb = (haslabelcmb && ...
-  size(data.(cfg.parameter),selchan(1)) == size(data.labelcmb,1)) ...
-  || isfull; % this should work because if dimord has multiple chans (so isfull=1)
-             % then we can never plot anything without reference channel
-             % this is different when haslabelcmb=1; then the parameter
-             % requested to plot might well be a simple powspctrm
+%shouldPlotCmb = (haslabelcmb && ...
+%  size(data.(cfg.parameter),selchan(1)) == size(data.labelcmb,1)) ...
+%  || isfull; % this should work because if dimord has multiple chans (so isfull=1)
+%             % then we can never plot anything without reference channel
+%             % this is different when haslabelcmb=1; then the parameter
+%             % requested to plot might well be a simple powspctrm
+%if (isfull || haslabelcmb) && shouldPlotCmb
 
-if (isfull || haslabelcmb) && shouldPlotCmb
+if (isfull || haslabelcmb) && (isfield(data, cfg.parameter) && ~strcmp(cfg.parameter, 'powspctrm'))
   % A reference channel is required:
   if ~isfield(cfg, 'refchannel')
     error('no reference channel is specified');
@@ -433,6 +440,12 @@ if strcmp(cfg.zlim,'maxmin')
 elseif strcmp(cfg.zlim,'maxabs')
   zmin = -max(abs(datamatrix(:)));
   zmax = max(abs(datamatrix(:)));
+elseif strcmp(cfg.zlim,'zeromax')
+  zmin = 0;
+  zmax = max(datamatrix(:));
+elseif strcmp(cfg.zlim,'minzero')
+  zmin = min(datamatrix(:));
+  zmax = 0;
 else
   zmin = cfg.zlim(1);
   zmax = cfg.zlim(2);
@@ -478,9 +491,17 @@ end
 
 % Make the figure interactive:
 if strcmp(cfg.interactive, 'yes')
-  set(gcf, 'WindowButtonUpFcn',     {@ft_select_range, 'multiple', false, 'callback', {@select_topoplotTFR, cfg, data}, 'event', 'WindowButtonUpFcn'});
-  set(gcf, 'WindowButtonDownFcn',   {@ft_select_range, 'multiple', false, 'callback', {@select_topoplotTFR, cfg, data}, 'event', 'WindowButtonDownFcn'});
-  set(gcf, 'WindowButtonMotionFcn', {@ft_select_range, 'multiple', false, 'callback', {@select_topoplotTFR, cfg, data}, 'event', 'WindowButtonMotionFcn'});
+  % first, attach data to the figure with the current axis handle as a name
+  dataname = num2str(gca);
+  dotpos   = findstr(dataname,'.');
+  dataname = ['DATA' dataname(1:dotpos-1) 'DOT' dataname(dotpos+1:end)];
+  setappdata(gcf,dataname,data);
+  set(gcf, 'WindowButtonUpFcn',     {@ft_select_range, 'multiple', false, 'callback', {@select_topoplotTFR, cfg}, 'event', 'WindowButtonUpFcn'});
+  set(gcf, 'WindowButtonDownFcn',   {@ft_select_range, 'multiple', false, 'callback', {@select_topoplotTFR, cfg}, 'event', 'WindowButtonDownFcn'});
+  set(gcf, 'WindowButtonMotionFcn', {@ft_select_range, 'multiple', false, 'callback', {@select_topoplotTFR, cfg}, 'event', 'WindowButtonMotionFcn'});
+  %   set(gcf, 'WindowButtonUpFcn',     {@ft_select_range, 'multiple', false, 'callback', {@select_topoplotTFR, cfg, data}, 'event', 'WindowButtonUpFcn'});
+  %   set(gcf, 'WindowButtonDownFcn',   {@ft_select_range, 'multiple', false, 'callback', {@select_topoplotTFR, cfg, data}, 'event', 'WindowButtonDownFcn'});
+  %   set(gcf, 'WindowButtonMotionFcn', {@ft_select_range, 'multiple', false, 'callback', {@select_topoplotTFR, cfg, data}, 'event', 'WindowButtonMotionFcn'});
 end
 
 % Create title text containing channel name(s) and channel number(s):
@@ -525,22 +546,20 @@ if ~isempty(cfg.renderer)
   set(gcf, 'renderer', cfg.renderer)
 end
 
-% add a menu to the figure, but only if the current figure does not have
-% subplots
-% also, delete any possibly existing previous menu
-% this is safe because delete([]) does nothing
+% do the general cleanup and bookkeeping at the end of the function
+ft_postamble debug
+ft_postamble trackconfig
+ft_postamble provenance
+ft_postamble previous data
+
+% add a menu to the figure, but only if the current figure does not have subplots
+% also, delete any possibly existing previous menu, this is safe because delete([]) does nothing
 delete(findobj(gcf, 'type', 'uimenu', 'label', 'FieldTrip'));
 if numel(findobj(gcf, 'type', 'axes', '-not', 'tag', 'ft-colorbar')) <= 1
   ftmenu = uimenu(gcf, 'Label', 'FieldTrip');
   uimenu(ftmenu, 'Label', 'Show pipeline',  'Callback', {@menu_pipeline, cfg});
   uimenu(ftmenu, 'Label', 'About',  'Callback', @menu_about);
 end
-
-% do the general cleanup and bookkeeping at the end of the function
-ft_postamble debug
-ft_postamble trackconfig
-ft_postamble provenance
-ft_postamble previous data
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SUBFUNCTION which is called after selecting a time range
@@ -550,6 +569,12 @@ function select_topoplotTFR(cfg, varargin)
 % last callback-input of ft_select_range is contextmenu label, if used
 range = varargin{end-1}; 
 varargin = varargin(1:end-2); % remove range and last
+
+% get appdata belonging to current axis
+dataname = num2str(gca);
+dotpos   = findstr(dataname,'.');
+dataname = ['DATA' dataname(1:dotpos-1) 'DOT' dataname(dotpos+1:end)];
+data = getappdata(gcf, dataname);
 
 if isfield(cfg, 'inputfile')
   % the reading has already been done and varargin contains the data
@@ -576,7 +601,7 @@ fprintf('selected cfg.ylim = [%f %f]\n', cfg.ylim(1), cfg.ylim(2));
 p = get(gcf, 'Position');
 f = figure;
 set(f, 'Position', p);
-ft_topoplotTFR(cfg, varargin{:});
+ft_topoplotTFR(cfg, data);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SUBFUNCTION which handles hot keys in the current plot

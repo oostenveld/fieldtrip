@@ -8,7 +8,7 @@ function ft_compile_mex(force)
 % to a backup directory that is not on your MATLAB path. Subsequently you
 % can rtun this function to recompile it on your platform with your
 % compiler settings
-% 
+%
 % The standards procedure for compiling mex files is detailled on
 % http://fieldtriptoolbox.org/development/guidelines/code#compiling_mex_files
 %
@@ -20,7 +20,7 @@ function ft_compile_mex(force)
 % procedure for setting up the MEX environment.
 %
 % The logic in this script is to first build a list of files that actually
-% need compilation for the particular platform that Matlab is running on,
+% need compilation for the particular platform that MATLAB is running on,
 % and then to go through that list. Functions are added to the list by
 % giving their destination directory and (relative to that) the name of the
 % source file (without the .c). Optionally, you can specify a list of
@@ -29,7 +29,7 @@ function ft_compile_mex(force)
 % the MEX command, e.g., for including other c-sources or giving compiler
 % flags.
 %
-% See also MEX 
+% See also MEX
 
 % Copyright (C) 2010, Stefan Klanke
 %
@@ -94,12 +94,21 @@ L = add_mex_source(L,'src','det2x2');
 L = add_mex_source(L,'src','inv2x2');
 L = add_mex_source(L,'src','mtimes2x2');
 L = add_mex_source(L,'src','sandwich2x2');
-
-L = add_mex_source(L,'src','mxSerialize');
-L = add_mex_source(L,'src','mxDeserialize');
-L = add_mex_source(L,'src','CalcMD5');
-
 L = add_mex_source(L,'src','combineClusters');
+
+% this one is located elsewhere
+L = add_mex_source(L,'external/fileexchange','CalcMD5');
+
+% this one depends on the MATLAB version
+if matlabversion('2014a', inf)
+  % use the C++ interface
+  L = add_mex_source(L,'src','mxSerialize_cpp');
+  L = add_mex_source(L,'src','mxDeserialize_cpp');
+else
+  % use the C interface
+  L = add_mex_source(L,'src','mxSerialize_c');
+  L = add_mex_source(L,'src','mxDeserialize_c');
+end
 
 oldDir = pwd;
 [baseDir, myName] = fileparts(mfilename('fullpath'));
@@ -180,13 +189,21 @@ function compile_mex_list(L, baseDir, force)
 
 for i=1:length(L)
   [relDir, name] = fileparts(L(i).relName);
-  
-  sfname = [baseDir filesep L(i).dir filesep L(i).relName '.c'];
-  SF = dir(sfname);
-  if numel(SF)<1
-    fprintf(1,'Error: source file %s cannot be found.', sfname);
+  sfname1 = fullfile(baseDir, L(i).dir, [L(i).relName '.c']);
+  sfname2 = fullfile(baseDir, L(i).dir, [L(i).relName '.cpp']);
+  if exist(sfname1, 'file')
+    sfname = sfname1;
+    L(i).ext = 'c';
+  elseif exist(sfname2, 'file')
+    sfname = sfname2;
+    L(i).ext = 'cpp';
+  else
+    sfname = '';
+    L(i).ext = '';
+    fprintf(1,'Error: source file for %s cannot be found.\n', L(i).relName);
     continue;
   end
+  SF = dir(sfname);
   
   if ~force
     mfname = [baseDir filesep L(i).dir filesep name '.' mexext];
@@ -198,6 +215,6 @@ for i=1:length(L)
   end
   fprintf(1,'Compiling MEX file %s/%s ...\n', L(i).dir, name);
   cd([baseDir '/' L(i).dir]);
-  cmd = sprintf('mex %s.c %s', L(i). relName, L(i).extras);
+  cmd = sprintf('mex %s.%s %s', L(i).relName, L(i).ext, L(i).extras);
   eval(cmd);
 end

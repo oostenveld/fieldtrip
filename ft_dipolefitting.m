@@ -130,8 +130,13 @@ ft_preamble trackconfig
 ft_preamble debug
 ft_preamble loadvar data
 
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
+
 % check if the input data is valid for this function
-data = ft_checkdata(data, 'datatype', {'timelock', 'freq', 'comp'}, 'feedback', 'yes');
+data = ft_checkdata(data, 'datatype', {'comp', 'timelock', 'freq'}, 'feedback', 'yes');
 
 % set the defaults
 if ~isfield(cfg, 'channel'),     cfg.channel = 'all';        end
@@ -143,7 +148,9 @@ if ~isfield(cfg, 'gridsearch'),  cfg.gridsearch = 'yes';     end
 if ~isfield(cfg, 'nonlinear'),   cfg.nonlinear = 'yes';      end
 if ~isfield(cfg, 'symmetry'),    cfg.symmetry = [];          end
 
-% put the low-level options pertaining to the dipole grid (used for initial scanning) in their own field
+% put the low-level options pertaining to the dipole grid in their own field
+cfg = ft_checkconfig(cfg, 'renamed', {'tightgrid', 'tight'}); % this is moved to cfg.grid.tight by the subsequent createsubcfg
+cfg = ft_checkconfig(cfg, 'renamed', {'sourceunits', 'unit'}); % this is moved to cfg.grid.unit by the subsequent createsubcfg
 cfg = ft_checkconfig(cfg, 'createsubcfg',  {'grid'});
 
 % the default for this depends on the data type
@@ -297,18 +304,20 @@ if strcmp(cfg.gridsearch, 'yes')
   % construct the dipole grid on which the gridsearch will be done
   tmpcfg = [];
   tmpcfg.vol  = vol;
-  tmpcfg.grad = sens; % this can be electrodes or gradiometers
+  if ft_senstype(sens, 'eeg')
+    tmpcfg.elec = sens;
+  else
+    tmpcfg.grad = sens;
+  end
   % copy all options that are potentially used in ft_prepare_sourcemodel
   try, tmpcfg.grid        = cfg.grid;         end
   try, tmpcfg.mri         = cfg.mri;          end
   try, tmpcfg.headshape   = cfg.headshape;    end
-  try, tmpcfg.tightgrid   = cfg.tightgrid;    end
   try, tmpcfg.symmetry    = cfg.symmetry;     end
   try, tmpcfg.smooth      = cfg.smooth;       end
   try, tmpcfg.threshold   = cfg.threshold;    end
   try, tmpcfg.spheremesh  = cfg.spheremesh;   end
   try, tmpcfg.inwardshift = cfg.inwardshift;  end
-  try, tmpcfg.sourceunits = cfg.sourceunits;  end
   grid = ft_prepare_sourcemodel(tmpcfg);
 
   ft_progress('init', cfg.feedback, 'scanning grid');

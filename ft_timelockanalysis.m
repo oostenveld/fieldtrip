@@ -96,17 +96,17 @@ ft_preamble provenance data
 ft_preamble trackconfig
 ft_preamble debug
 
-% return immediately after distributed execution
-if ~isempty(ft_getopt(cfg, 'distribute'))
+% the abort variable is set to true or false in ft_preamble_init
+if abort
   return
 end
 
 % check if the input data is valid for this function
-data = ft_checkdata(data, 'datatype', {'raw', 'comp'}, 'feedback', 'yes', 'hassampleinfo', 'yes');
+data = ft_checkdata(data, 'datatype', {'raw+comp', 'raw'}, 'feedback', 'yes', 'hassampleinfo', 'yes');
 
 % check if the input cfg is valid for this function
-cfg = ft_checkconfig(cfg, 'deprecated',  {'normalizecov', 'normalizevar'});
-cfg = ft_checkconfig(cfg, 'deprecated',  {'latency', 'blcovariance', 'blcovariancewindow'});
+cfg = ft_checkconfig(cfg, 'forbidden',  {'normalizecov', 'normalizevar'});
+cfg = ft_checkconfig(cfg, 'forbidden',  {'latency', 'blcovariance', 'blcovariancewindow'});
 cfg = ft_checkconfig(cfg, 'renamed',     {'blc', 'demean'});
 cfg = ft_checkconfig(cfg, 'renamed',     {'blcwindow', 'baselinewindow'});
 
@@ -122,7 +122,10 @@ if ~isfield(cfg, 'preproc'),       cfg.preproc      = [];     end
 
 % select trials of interest
 if ~strcmp(cfg.trials, 'all')
-  data = ft_selectdata(data, 'rpt', cfg.trials);
+  tmpcfg = [];
+  tmpcfg.trials = cfg.trials;
+  data = ft_selectdata(tmpcfg, data);
+  [cfg, data] = rollback_provenance(cfg, data);
 end
 
 ntrial = length(data.trial);
@@ -350,17 +353,17 @@ end
 if strcmp(cfg.covariance, 'yes')
   timelock.cov = covsig;
 end
-if isfield(data, 'grad')
-  % copy the gradiometer array along
-  timelock.grad = data.grad;
+
+% some fields from the input should be copied over in the output
+copyfield = {'grad', 'elec', 'topo', 'topolabel', 'unmixing'};
+for i=1:length(copyfield)
+  if isfield(data, copyfield{i})
+    timelock.(copyfield{i}) = data.(copyfield{i});
+  end
 end
-if isfield(data, 'elec')
-  % copy the electrode array along
-  timelock.elec = data.elec;
-end
+
 if isfield(data, 'trialinfo') && strcmp(cfg.keeptrials, 'yes')
-  % copy the trialinfo into the output
-  % but not the sampleinfo
+  % copy the trialinfo into the output, but not the sampleinfo
   timelock.trialinfo = data.trialinfo;
 end
 
@@ -371,4 +374,3 @@ ft_postamble provenance timelock
 ft_postamble history    timelock
 ft_postamble savevar    timelock
 ft_postamble debug
-

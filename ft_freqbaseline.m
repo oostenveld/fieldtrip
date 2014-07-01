@@ -12,7 +12,8 @@ function [freq] = ft_freqbaseline(cfg, freq)
 %                      cell array of strings to specify multiple fields to normalize
 %                      (default = 'powspctrm')
 %
-% See also FT_FREQANALYSIS, FT_TIMELOCKBASELINE, FT_FREQCOMPARISON
+% See also FT_FREQANALYSIS, FT_TIMELOCKBASELINE, FT_FREQCOMPARISON,
+% FT_FREQGRANDAVERAGE
 
 % Undocumented local options:
 %   cfg.inputfile  = one can specifiy preanalysed saved data as input
@@ -49,6 +50,11 @@ ft_preamble provenance
 ft_preamble trackconfig
 ft_preamble debug
 ft_preamble loadvar freq
+
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
 
 % check if the input data is valid for this function
 freq = ft_checkdata(freq, 'datatype', 'freq', 'feedback', 'yes');

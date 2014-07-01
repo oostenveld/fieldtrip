@@ -1,5 +1,8 @@
 function test_resampledesign
 
+% MEM 1500mb
+% WALLTIME 00:10:00
+
 % TEST test_resampledesign
 % TEST resampledesign
 

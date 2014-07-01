@@ -1,5 +1,8 @@
 function test_tutorial_eventrelatedstatistics(datadir)
 
+% MEM 2gb
+% WALLTIME 00:20:00
+
 % TEST test_tutorial_eventrelatedstatistics
 % TEST ft_timelockanalysis ft_multiplotER ft_singleplotER ft_timelockstatistics
 % TEST ft_topoplotER ft_clusterplot
@@ -75,7 +78,7 @@ cfg.latency     = [0.3 0.7];
 cfg.avgovertime = 'yes';
 cfg.parameter   = 'individual';
 cfg.method      = 'analytic';
-cfg.statistic   = 'depsamplesT';
+cfg.statistic   = 'ft_statfun_depsamplesT';
 cfg.alpha       = 0.05;
 cfg.correctm    = 'no';
  
@@ -125,7 +128,7 @@ cfg.latency     = [0.3 0.7];
 cfg.avgovertime = 'yes';
 cfg.parameter   = 'individual';
 cfg.method      = 'analytic';
-cfg.statistic   = 'depsamplesT'
+cfg.statistic   = 'ft_statfun_depsamplesT';
 cfg.alpha       = 0.05;
 cfg.correctm    = 'bonferoni';
  
@@ -144,7 +147,7 @@ cfg.latency     = [0.3 0.7];
 cfg.avgovertime = 'yes';
 cfg.parameter   = 'individual';
 cfg.method      = 'montecarlo';
-cfg.statistic   = 'depsamplesT'
+cfg.statistic   = 'ft_statfun_depsamplesT';
 cfg.alpha       = 0.05;
 cfg.correctm    = 'no';
 cfg.correcttail = 'prob';
@@ -181,7 +184,7 @@ cfg.latency     = [0.3 0.7];
 cfg.avgovertime = 'yes';
 cfg.parameter   = 'individual';
 cfg.method      = 'montecarlo';
-cfg.statistic   = 'depsamplesT'
+cfg.statistic   = 'ft_statfun_depsamplesT';
 cfg.alpha       = 0.05;
 cfg.correctm    = 'cluster';
 cfg.correcttail = 'prob';
@@ -213,7 +216,7 @@ cfg.latency     = [-0.5 2];
 cfg.avgovertime = 'no';
 cfg.parameter   = 'individual';
 cfg.method      = 'montecarlo';
-cfg.statistic   = 'depsamplesT';
+cfg.statistic   = 'ft_statfun_depsamplesT';
 cfg.alpha       = 0.05;
 cfg.correctm    = 'cluster';
 cfg.correcttail = 'prob';

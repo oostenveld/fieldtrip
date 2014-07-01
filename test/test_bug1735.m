@@ -1,9 +1,12 @@
 function test_bug1735
 
+% MEM 1500mb
+% WALLTIME 00:10:00
+
 % TEST test_bug1735
 % TEST ft_appenddata
 
-cd(dccnfilename('/home/common/matlab/fieldtrip/data/test'))
+cd(dccnpath('/home/common/matlab/fieldtrip/data/test'))
 load bug1735.mat
 
 part1 = data_trgtOnstimOnBTrgtLDetected_sourceL;

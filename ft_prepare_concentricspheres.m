@@ -36,6 +36,11 @@ ft_preamble provenance
 ft_preamble trackconfig
 ft_preamble debug
 
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
+
 % check if the input cfg is valid for this function
 cfg = ft_checkconfig(cfg, 'forbidden', 'nonlinear');
 
@@ -127,7 +132,7 @@ for i = 1:numel(headshape)
 end
 
 if numel(cfg.conductivity)==numel(headshape)
-  vol.c = cfg.conductivity;
+  vol.cond = cfg.conductivity;
 else
   error('incorrect specification of cfg.conductivity');
 end

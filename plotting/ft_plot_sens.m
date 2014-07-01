@@ -8,11 +8,11 @@ function hs = ft_plot_sens(sens, varargin)
 % or PREPARE_VOL_SENS.
 %
 % Optional input arguments should come in key-value pairs and can include
-%   style         = plotting style for the points representing the channels, see plot3 (default = 'k.')
-%   coil          = true/false, plot each individual coil or the channelposition (default = false)
-%   coildiameter  = diameter of the MEG gradiometer coils (default = 0)
-%   label         = show the label, can be 'off', 'label', 'number' (default = 'off')
-%   chantype      = string or cell-array with strings, for example {'meg', 'megref'} (default = 'all')
+%   'style'         = plotting style for the points representing the channels, see plot3 (default = 'k.')
+%   'coil'          = true/false, plot each individual coil or the channelposition (default = false)
+%   'coildiameter'  = diameter of the MEG gradiometer coils (default = 0)
+%   'label'         = show the label, can be 'off', 'label', 'number' (default = 'off')
+%   'chantype'      = string or cell-array with strings, for example {'meg', 'megref'} (default = 'all')
 %
 % Example
 %   sens = ft_read_sens('Subject01.ds');
@@ -91,6 +91,10 @@ if ~holdflag
   hold on
 end
 
+if all(any(isnan(sens.chanpos), 2))
+    coil = true;
+end
+
 if istrue(coil)
   % simply plot the position of all coils or electrodes
   if isfield(sens, 'coilpos')
@@ -165,7 +169,7 @@ for i=1:size(pnt,1)
   r1 = rotate([0 th 0]);
   r2 = rotate([0 0 ph]);
   t  = translate(pnt(i,:));
-  rim = warp_apply(t*r2*r1*s, pos); % scale, rotate and translate the template coil vertices, skip the central vertex
+  rim = ft_warp_apply(t*r2*r1*s, pos); % scale, rotate and translate the template coil vertices, skip the central vertex
   rim(1,:) = rim(end,:);            % replace the first (central) point with the last, this closes the circle
   h = line(rim(:,1), rim(:,2), rim(:,3));
   set(h, 'color', 'k');

@@ -144,7 +144,7 @@ switch fileformat
       write_vtk(filename, bnd.pnt, bnd.hex);
     end
     
-  case 'ply'
+  case {'ply', 'ply_ascii', 'ply_binary'}
     [p, f, x] = fileparts(filename);
     filename = fullfile(p, [f, '.ply']); % ensure it has the right extension
     
@@ -162,7 +162,11 @@ switch fileformat
       elements = bnd.hex;
     end
     
-    write_ply(filename, vertices, elements);
+    if length(fileformat)>4
+      write_ply(filename, vertices, elements, fileformat(5:end));
+    else
+      write_ply(filename, vertices, elements, 'ascii');
+    end
     
   case 'stl'
     nrm = normals(bnd.pnt, bnd.tri, 'triangle');

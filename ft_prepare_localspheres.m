@@ -37,6 +37,11 @@ ft_preamble trackconfig
 ft_preamble debug
 ft_preamble loadvar mri
 
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
+
 % check if the input cfg is valid for this function
 cfg = ft_checkconfig(cfg, 'renamed', {'spheremesh', 'numvertices'}); 
 
@@ -46,7 +51,6 @@ if ~isfield(cfg, 'maxradius'),     cfg.maxradius = 20;      end
 if ~isfield(cfg, 'baseline'),      cfg.baseline = 5;        end
 if ~isfield(cfg, 'feedback'),      cfg.feedback = 'yes';    end
 if ~isfield(cfg, 'smooth');        cfg.smooth    = 5;       end % in voxels
-if ~isfield(cfg, 'sourceunits'),   cfg.sourceunits = 'cm';  end
 if ~isfield(cfg, 'threshold'),     cfg.threshold = 0.5;     end % relative
 if ~isfield(cfg, 'numvertices'),   cfg.numvertices = [];    end
 if ~isfield(cfg, 'singlesphere'),  cfg.singlesphere = 'no'; end

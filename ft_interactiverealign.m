@@ -56,25 +56,30 @@ ft_preamble provenance
 ft_preamble trackconfig
 ft_preamble debug
 
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
+
 % check if the input cfg is valid for this function
 cfg = ft_checkconfig(cfg, 'required', {'individual', 'template'});
 
-if ~isfield(cfg.individual, 'vol'),              cfg.individual.vol = [];                   end
-if ~isfield(cfg.individual, 'elec'),             cfg.individual.elec = [];                  end
-if ~isfield(cfg.individual, 'grad'),             cfg.individual.grad = [];                  end
-if ~isfield(cfg.individual, 'headshape'),        cfg.individual.headshape = [];             end
-if ~isfield(cfg.individual, 'headshapestyle'),   cfg.individual.headshapestyle = 'vertex';  end
-if ~isfield(cfg.individual, 'volstyle'),         cfg.individual.volstyle = 'edge';          end
+cfg.individual.elec           = ft_getopt(cfg.individual, 'elec', []);
+cfg.individual.grad           = ft_getopt(cfg.individual, 'grad', []);
+cfg.individual.headshape      = ft_getopt(cfg.individual, 'headshape', []);
+cfg.individual.headshapestyle = ft_getopt(cfg.individual, 'headshapestyle', 'vertex');
+cfg.individual.vol            = ft_getopt(cfg.individual, 'vol', []);
+cfg.individual.volstyle       = ft_getopt(cfg.individual, 'volstyle', 'edge');
 
-if ~isfield(cfg.template, 'vol'),              cfg.template.vol = [];                     end
-if ~isfield(cfg.template, 'elec'),             cfg.template.elec = [];                    end
-if ~isfield(cfg.template, 'grad'),             cfg.template.grad = [];                    end
-if ~isfield(cfg.template, 'headshape'),        cfg.template.headshape = [];               end
-if ~isfield(cfg.template, 'headshapestyle'),   cfg.template.headshapestyle = 'surface';   end
-if ~isfield(cfg.template, 'volstyle'),         cfg.template.volstyle = 'surface';         end
+cfg.template.elec           = ft_getopt(cfg.template, 'elec', []);
+cfg.template.grad           = ft_getopt(cfg.template, 'grad', []);
+cfg.template.headshape      = ft_getopt(cfg.template, 'headshape', []);
+cfg.template.headshapestyle = ft_getopt(cfg.template, 'headshapestyle', 'vertex');
+cfg.template.vol            = ft_getopt(cfg.template, 'vol', []);
+cfg.template.volstyle       = ft_getopt(cfg.template, 'volstyle', 'edge');
 
-template   = cfg.template;
-individual = cfg.individual;
+template   = struct(cfg.template);
+individual = struct(cfg.individual);
 
 if ~isempty(template.headshape)
   if ~isfield(template.headshape, 'tri') || isempty(template.headshape.tri)
@@ -91,121 +96,125 @@ end
 
 % open a figure
 fig = figure;
+set(gca, 'position',[0.05 0.15 0.75 0.75]);
+
 % add the data to the figure
-set(fig, 'CloseRequestFcn', @cb_close);
+set(fig, 'CloseRequestFcn', @cb_quit);
 setappdata(fig, 'individual', individual);
 setappdata(fig, 'template',   template);
 setappdata(fig, 'transform',  eye(4));
+setappdata(fig, 'cleanup',    false);
 
 % add the GUI elements
 cb_creategui(gca);
 cb_redraw(gca);
 rotate3d on
-waitfor(fig);
+cleanup = false;
+while ~cleanup
+  uiwait(fig);
+  cfg.m   = getappdata(fig, 'transform');
+  cleanup = getappdata(fig, 'cleanup');
+end
 
-% get the data from the figure that was left behind as global variable
-% FIXME pass this as appdata
-global norm
-tmp = norm;
-clear global norm
-norm = tmp;
-clear tmp
+% remember the transform and touch it
+cfg.m = getappdata(fig, 'transform');
+cfg.m;
 
-% remember the transform
-cfg.m = norm.m;
+delete(fig);
 
 % do the general cleanup and bookkeeping at the end of the function
 ft_postamble debug
 ft_postamble trackconfig
 ft_postamble provenance
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% some simple SUBFUNCTIONs that facilitate 3D plotting
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function h = my_plot3(xyz, varargin)
-h = plot3(xyz(:,1), xyz(:,2), xyz(:,3), varargin{:});
-function h = my_text3(xyz, varargin)
-h = text(xyz(:,1), xyz(:,2), xyz(:,3), varargin{:});
-function my_line3(xyzB, xyzE, varargin)
-for i=1:size(xyzB,1)
-  line([xyzB(i,1) xyzE(i,1)], [xyzB(i,2) xyzE(i,2)], [xyzB(i,3) xyzE(i,3)], varargin{:})
-end
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function cb_creategui(hObject, eventdata, handles);
+function cb_creategui(hObject, eventdata, handles)
+
 % define the position of each GUI element
 fig = get(hObject, 'parent');
+
 % constants
-CONTROL_WIDTH  = 0.05;
-CONTROL_HEIGHT = 0.06; 
-CONTROL_HOFFSET = 0.7;
+CONTROL_WIDTH  = 0.04;
+CONTROL_HEIGHT = 0.05; 
+CONTROL_HOFFSET = 0.75;
 CONTROL_VOFFSET = 0.5;
+
 % rotateui
 uicontrol('tag', 'rotateui', 'parent', fig, 'units', 'normalized', 'style', 'text', 'string', 'rotate', 'callback', [])
-uicontrol('tag', 'rx', 'parent', fig, 'units', 'normalized', 'style', 'edit', 'string', '0', 'callback', @cb_redraw)
-uicontrol('tag', 'ry', 'parent', fig, 'units', 'normalized', 'style', 'edit', 'string', '0', 'callback', @cb_redraw)
-uicontrol('tag', 'rz', 'parent', fig, 'units', 'normalized', 'style', 'edit', 'string', '0', 'callback', @cb_redraw)
-ft_uilayout(fig, 'tag', 'rotateui', 'BackgroundColor', [0.8 0.8 0.8], 'width', 2*CONTROL_WIDTH, 'height', CONTROL_HEIGHT/2, 'hpos', CONTROL_HOFFSET,                 'vpos', CONTROL_VOFFSET);
-ft_uilayout(fig, 'tag', 'rx',       'BackgroundColor', [0.8 0.8 0.8], 'width', CONTROL_WIDTH,   'height', CONTROL_HEIGHT/2, 'hpos', CONTROL_HOFFSET+3*CONTROL_WIDTH, 'vpos', CONTROL_VOFFSET);
-ft_uilayout(fig, 'tag', 'ry',       'BackgroundColor', [0.8 0.8 0.8], 'width', CONTROL_WIDTH,   'height', CONTROL_HEIGHT/2, 'hpos', CONTROL_HOFFSET+4*CONTROL_WIDTH, 'vpos', CONTROL_VOFFSET);
-ft_uilayout(fig, 'tag', 'rz',       'BackgroundColor', [0.8 0.8 0.8], 'width', CONTROL_WIDTH,   'height', CONTROL_HEIGHT/2, 'hpos', CONTROL_HOFFSET+5*CONTROL_WIDTH, 'vpos', CONTROL_VOFFSET);
+uicontrol('tag', 'rx',       'parent', fig, 'units', 'normalized', 'style', 'edit', 'string', '0', 'callback', @cb_redraw)
+uicontrol('tag', 'ry',       'parent', fig, 'units', 'normalized', 'style', 'edit', 'string', '0', 'callback', @cb_redraw)
+uicontrol('tag', 'rz',       'parent', fig, 'units', 'normalized', 'style', 'edit', 'string', '0', 'callback', @cb_redraw)
+ft_uilayout(fig, 'tag', 'rotateui', 'BackgroundColor', [0.8 0.8 0.8], 'width', 2*CONTROL_WIDTH, 'height', CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET,                 'vpos', CONTROL_VOFFSET+CONTROL_HEIGHT);
+ft_uilayout(fig, 'tag', 'rx',       'BackgroundColor', [0.8 0.8 0.8], 'width', CONTROL_WIDTH,   'height', CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET+3*CONTROL_WIDTH, 'vpos', CONTROL_VOFFSET+CONTROL_HEIGHT);
+ft_uilayout(fig, 'tag', 'ry',       'BackgroundColor', [0.8 0.8 0.8], 'width', CONTROL_WIDTH,   'height', CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET+4*CONTROL_WIDTH, 'vpos', CONTROL_VOFFSET+CONTROL_HEIGHT);
+ft_uilayout(fig, 'tag', 'rz',       'BackgroundColor', [0.8 0.8 0.8], 'width', CONTROL_WIDTH,   'height', CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET+5*CONTROL_WIDTH, 'vpos', CONTROL_VOFFSET+CONTROL_HEIGHT);
 
 % scaleui
 uicontrol('tag', 'scaleui', 'parent', fig, 'units', 'normalized', 'style', 'text', 'string', 'scale', 'callback', [])
-uicontrol('tag', 'sx', 'parent', fig, 'units', 'normalized', 'style', 'edit', 'string', '1', 'callback', @cb_redraw)
-uicontrol('tag', 'sy', 'parent', fig, 'units', 'normalized', 'style', 'edit', 'string', '1', 'callback', @cb_redraw)
-uicontrol('tag', 'sz', 'parent', fig, 'units', 'normalized', 'style', 'edit', 'string', '1', 'callback', @cb_redraw)
-ft_uilayout(fig, 'tag', 'scaleui', 'BackgroundColor', [0.8 0.8 0.8], 'width', 2*CONTROL_WIDTH, 'height', CONTROL_HEIGHT/2, 'hpos', CONTROL_HOFFSET,                 'vpos', CONTROL_VOFFSET-CONTROL_HEIGHT);
-ft_uilayout(fig, 'tag', 'sx',      'BackgroundColor', [0.8 0.8 0.8], 'width', CONTROL_WIDTH,   'height', CONTROL_HEIGHT/2, 'hpos', CONTROL_HOFFSET+3*CONTROL_WIDTH, 'vpos', CONTROL_VOFFSET-CONTROL_HEIGHT);
-ft_uilayout(fig, 'tag', 'sy',      'BackgroundColor', [0.8 0.8 0.8], 'width', CONTROL_WIDTH,   'height', CONTROL_HEIGHT/2, 'hpos', CONTROL_HOFFSET+4*CONTROL_WIDTH, 'vpos', CONTROL_VOFFSET-CONTROL_HEIGHT);
-ft_uilayout(fig, 'tag', 'sz',      'BackgroundColor', [0.8 0.8 0.8], 'width', CONTROL_WIDTH,   'height', CONTROL_HEIGHT/2, 'hpos', CONTROL_HOFFSET+5*CONTROL_WIDTH, 'vpos', CONTROL_VOFFSET-CONTROL_HEIGHT);
+uicontrol('tag', 'sx',      'parent', fig, 'units', 'normalized', 'style', 'edit', 'string', '1', 'callback', @cb_redraw)
+uicontrol('tag', 'sy',      'parent', fig, 'units', 'normalized', 'style', 'edit', 'string', '1', 'callback', @cb_redraw)
+uicontrol('tag', 'sz',      'parent', fig, 'units', 'normalized', 'style', 'edit', 'string', '1', 'callback', @cb_redraw)
+ft_uilayout(fig, 'tag', 'scaleui', 'BackgroundColor', [0.8 0.8 0.8], 'width', 2*CONTROL_WIDTH, 'height', CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET,                 'vpos', CONTROL_VOFFSET-0*CONTROL_HEIGHT);
+ft_uilayout(fig, 'tag', 'sx',      'BackgroundColor', [0.8 0.8 0.8], 'width', CONTROL_WIDTH,   'height', CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET+3*CONTROL_WIDTH, 'vpos', CONTROL_VOFFSET-0*CONTROL_HEIGHT);
+ft_uilayout(fig, 'tag', 'sy',      'BackgroundColor', [0.8 0.8 0.8], 'width', CONTROL_WIDTH,   'height', CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET+4*CONTROL_WIDTH, 'vpos', CONTROL_VOFFSET-0*CONTROL_HEIGHT);
+ft_uilayout(fig, 'tag', 'sz',      'BackgroundColor', [0.8 0.8 0.8], 'width', CONTROL_WIDTH,   'height', CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET+5*CONTROL_WIDTH, 'vpos', CONTROL_VOFFSET-0*CONTROL_HEIGHT);
 
 % translateui
 uicontrol('tag', 'translateui', 'parent', fig, 'units', 'normalized', 'style', 'text', 'string', 'translate', 'callback', [])
-uicontrol('tag', 'tx', 'parent', fig, 'units', 'normalized', 'style', 'edit', 'string', '0', 'callback', @cb_redraw)
-uicontrol('tag', 'ty', 'parent', fig, 'units', 'normalized', 'style', 'edit', 'string', '0', 'callback', @cb_redraw)
-uicontrol('tag', 'tz', 'parent', fig, 'units', 'normalized', 'style', 'edit', 'string', '0', 'callback', @cb_redraw)
-ft_uilayout(fig, 'tag', 'translateui', 'BackgroundColor', [0.8 0.8 0.8], 'width', 2*CONTROL_WIDTH, 'height', CONTROL_HEIGHT/2, 'hpos', CONTROL_HOFFSET,                 'vpos', CONTROL_VOFFSET-2*CONTROL_HEIGHT);
-ft_uilayout(fig, 'tag', 'tx',          'BackgroundColor', [0.8 0.8 0.8], 'width', CONTROL_WIDTH,   'height', CONTROL_HEIGHT/2, 'hpos', CONTROL_HOFFSET+3*CONTROL_WIDTH, 'vpos', CONTROL_VOFFSET-2*CONTROL_HEIGHT);
-ft_uilayout(fig, 'tag', 'ty',          'BackgroundColor', [0.8 0.8 0.8], 'width', CONTROL_WIDTH,   'height', CONTROL_HEIGHT/2, 'hpos', CONTROL_HOFFSET+4*CONTROL_WIDTH, 'vpos', CONTROL_VOFFSET-2*CONTROL_HEIGHT);
-ft_uilayout(fig, 'tag', 'tz',          'BackgroundColor', [0.8 0.8 0.8], 'width', CONTROL_WIDTH,   'height', CONTROL_HEIGHT/2, 'hpos', CONTROL_HOFFSET+5*CONTROL_WIDTH, 'vpos', CONTROL_VOFFSET-2*CONTROL_HEIGHT);
+uicontrol('tag', 'tx',          'parent', fig, 'units', 'normalized', 'style', 'edit', 'string', '0', 'callback', @cb_redraw)
+uicontrol('tag', 'ty',          'parent', fig, 'units', 'normalized', 'style', 'edit', 'string', '0', 'callback', @cb_redraw)
+uicontrol('tag', 'tz',          'parent', fig, 'units', 'normalized', 'style', 'edit', 'string', '0', 'callback', @cb_redraw)
+ft_uilayout(fig, 'tag', 'translateui', 'BackgroundColor', [0.8 0.8 0.8], 'width', 2*CONTROL_WIDTH, 'height', CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET,                 'vpos', CONTROL_VOFFSET-1*CONTROL_HEIGHT);
+ft_uilayout(fig, 'tag', 'tx',          'BackgroundColor', [0.8 0.8 0.8], 'width', CONTROL_WIDTH,   'height', CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET+3*CONTROL_WIDTH, 'vpos', CONTROL_VOFFSET-1*CONTROL_HEIGHT);
+ft_uilayout(fig, 'tag', 'ty',          'BackgroundColor', [0.8 0.8 0.8], 'width', CONTROL_WIDTH,   'height', CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET+4*CONTROL_WIDTH, 'vpos', CONTROL_VOFFSET-1*CONTROL_HEIGHT);
+ft_uilayout(fig, 'tag', 'tz',          'BackgroundColor', [0.8 0.8 0.8], 'width', CONTROL_WIDTH,   'height', CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET+5*CONTROL_WIDTH, 'vpos', CONTROL_VOFFSET-1*CONTROL_HEIGHT);
 
 % control buttons
-uicontrol('tag', 'redisplaybtn', 'parent', fig, 'units', 'normalized', 'style', 'pushbutton', 'string', 'redisplay', 'value', [], 'callback', @cb_redraw);
-uicontrol('tag', 'applybtn', 'parent', fig, 'units', 'normalized', 'style', 'pushbutton', 'string', 'apply',     'value', [], 'callback', @cb_apply);
-uicontrol('tag', 'toggle labels', 'parent', fig, 'units', 'normalized', 'style', 'pushbutton', 'string', 'toggle label', 'value', 0, 'callback', @cb_redraw);
-uicontrol('tag', 'toggle axes', 'parent', fig, 'units', 'normalized', 'style', 'pushbutton', 'string', 'toggle axes', 'value', 0, 'callback', @cb_redraw);
-ft_uilayout(fig, 'tag', 'redisplaybtn',  'BackgroundColor', [0.8 0.8 0.8], 'width', 6*CONTROL_WIDTH, 'height', CONTROL_HEIGHT/2, 'vpos', CONTROL_VOFFSET-3*CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET);
-ft_uilayout(fig, 'tag', 'applybtn',      'BackgroundColor', [0.8 0.8 0.8], 'width', 6*CONTROL_WIDTH, 'height', CONTROL_HEIGHT/2, 'vpos', CONTROL_VOFFSET-4*CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET);
-ft_uilayout(fig, 'tag', 'toggle labels', 'BackgroundColor', [0.8 0.8 0.8], 'width', 6*CONTROL_WIDTH, 'height', CONTROL_HEIGHT/2, 'vpos', CONTROL_VOFFSET-5*CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET);
-ft_uilayout(fig, 'tag', 'toggle axes',   'BackgroundColor', [0.8 0.8 0.8], 'width', 6*CONTROL_WIDTH, 'height', CONTROL_HEIGHT/2, 'vpos', CONTROL_VOFFSET-6*CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET);
+uicontrol('tag', 'viewbtn',       'parent', fig, 'units', 'normalized', 'style', 'popup', 'string', 'top|bottom|left|right|front|back', 'value', 1, 'callback', @cb_view);
+uicontrol('tag', 'redisplaybtn',  'parent', fig, 'units', 'normalized', 'style', 'pushbutton', 'string', 'redisplay',    'value', [], 'callback',   @cb_redraw);
+uicontrol('tag', 'applybtn',      'parent', fig, 'units', 'normalized', 'style', 'pushbutton', 'string', 'apply',        'value', [], 'callback',   @cb_apply);
+uicontrol('tag', 'toggle labels', 'parent', fig, 'units', 'normalized', 'style', 'pushbutton', 'string', 'toggle label', 'value', 0,  'callback',   @cb_redraw);
+uicontrol('tag', 'toggle axes',   'parent', fig, 'units', 'normalized', 'style', 'pushbutton', 'string', 'toggle axes',  'value', 0,  'callback',   @cb_redraw);
+uicontrol('tag', 'quitbtn',       'parent', fig, 'units', 'normalized', 'style', 'pushbutton', 'string', 'quit',         'value', 1,  'callback',   @cb_quit);
+ft_uilayout(fig, 'tag', 'viewbtn',       'BackgroundColor', [0.8 0.8 0.8], 'width', 6*CONTROL_WIDTH, 'height', CONTROL_HEIGHT, 'vpos', CONTROL_VOFFSET-2*CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET);
+ft_uilayout(fig, 'tag', 'redisplaybtn',  'BackgroundColor', [0.8 0.8 0.8], 'width', 6*CONTROL_WIDTH, 'height', CONTROL_HEIGHT, 'vpos', CONTROL_VOFFSET-3*CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET);
+ft_uilayout(fig, 'tag', 'applybtn',      'BackgroundColor', [0.8 0.8 0.8], 'width', 6*CONTROL_WIDTH, 'height', CONTROL_HEIGHT, 'vpos', CONTROL_VOFFSET-4*CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET);
+ft_uilayout(fig, 'tag', 'toggle labels', 'BackgroundColor', [0.8 0.8 0.8], 'width', 6*CONTROL_WIDTH, 'height', CONTROL_HEIGHT, 'vpos', CONTROL_VOFFSET-5*CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET);
+ft_uilayout(fig, 'tag', 'toggle axes',   'BackgroundColor', [0.8 0.8 0.8], 'width', 6*CONTROL_WIDTH, 'height', CONTROL_HEIGHT, 'vpos', CONTROL_VOFFSET-6*CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET);
+ft_uilayout(fig, 'tag', 'quitbtn',       'BackgroundColor', [0.8 0.8 0.8], 'width', 6*CONTROL_WIDTH, 'height', CONTROL_HEIGHT, 'vpos', CONTROL_VOFFSET-7*CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET);
 
 % alpha ui (somehow not implemented, facealpha is fixed at 0.7
 uicontrol('tag', 'alphaui', 'parent', fig, 'units', 'normalized', 'style', 'text', 'string', 'alpha', 'value', [], 'callback', []);
-uicontrol('tag', 'alpha',   'parent', fig, 'units', 'normalized', 'style', 'edit', 'string', '0.7',   'value', [], 'callback', @cb_redraw);
-ft_uilayout(fig, 'tag', 'alphaui', 'BackgroundColor', [0.8 0.8 0.8], 'width', 3*CONTROL_WIDTH, 'height', CONTROL_HEIGHT/2, 'vpos', CONTROL_VOFFSET-7*CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET);
-ft_uilayout(fig, 'tag', 'alpha',   'BackgroundColor', [0.8 0.8 0.8], 'width', 3*CONTROL_WIDTH, 'height', CONTROL_HEIGHT/2, 'vpos', CONTROL_VOFFSET-7*CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET+3*CONTROL_WIDTH);
+uicontrol('tag', 'alpha',   'parent', fig, 'units', 'normalized', 'style', 'edit', 'string', '0.6',   'value', [], 'callback', @cb_redraw);
+ft_uilayout(fig, 'tag', 'alphaui', 'BackgroundColor', [0.8 0.8 0.8], 'width', 3*CONTROL_WIDTH, 'height', CONTROL_HEIGHT, 'vpos', CONTROL_VOFFSET-8*CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET);
+ft_uilayout(fig, 'tag', 'alpha',   'BackgroundColor', [0.8 0.8 0.8], 'width', 3*CONTROL_WIDTH, 'height', CONTROL_HEIGHT, 'vpos', CONTROL_VOFFSET-8*CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET+3*CONTROL_WIDTH);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function cb_redraw(hObject, eventdata, handles)
-fig = get(hObject, 'parent');
+
+fig        = get(hObject, 'parent');
 individual = getappdata(fig, 'individual');
-template = getappdata(fig, 'template');
+template   = getappdata(fig, 'template');
+transform  = getappdata(fig, 'transform');
+
 % get the transformation details
-rx = str2num(get(findobj(fig, 'tag', 'rx'), 'string'));
-ry = str2num(get(findobj(fig, 'tag', 'ry'), 'string'));
-rz = str2num(get(findobj(fig, 'tag', 'rz'), 'string'));
-tx = str2num(get(findobj(fig, 'tag', 'tx'), 'string'));
-ty = str2num(get(findobj(fig, 'tag', 'ty'), 'string'));
-tz = str2num(get(findobj(fig, 'tag', 'tz'), 'string'));
-sx = str2num(get(findobj(fig, 'tag', 'sx'), 'string'));
-sy = str2num(get(findobj(fig, 'tag', 'sy'), 'string'));
-sz = str2num(get(findobj(fig, 'tag', 'sz'), 'string'));
+rx = str2double(get(findobj(fig, 'tag', 'rx'), 'string'));
+ry = str2double(get(findobj(fig, 'tag', 'ry'), 'string'));
+rz = str2double(get(findobj(fig, 'tag', 'rz'), 'string'));
+tx = str2double(get(findobj(fig, 'tag', 'tx'), 'string'));
+ty = str2double(get(findobj(fig, 'tag', 'ty'), 'string'));
+tz = str2double(get(findobj(fig, 'tag', 'tz'), 'string'));
+sx = str2double(get(findobj(fig, 'tag', 'sx'), 'string'));
+sy = str2double(get(findobj(fig, 'tag', 'sy'), 'string'));
+sz = str2double(get(findobj(fig, 'tag', 'sz'), 'string'));
+
 R = rotate   ([rx ry rz]);
 T = translate([tx ty tz]);
 S = scale    ([sx sy sz]);
 H = S * T * R;
+% combine the present transform according to the GUI with the one that has been previously applied
+transform = H * transform;
+
 axis vis3d; cla
 xlabel('x')
 ylabel('y')
@@ -215,16 +224,16 @@ hold on
 
 % the "individual" struct is a local copy, so it is safe to change it here
 if ~isempty(individual.vol)
-  individual.vol = ft_transform_vol(H, individual.vol);
+  individual.vol = ft_transform_vol(transform, individual.vol);
 end
 if ~isempty(individual.elec)
-  individual.elec = ft_transform_sens(H, individual.elec);
+  individual.elec = ft_transform_sens(transform, individual.elec);
 end
 if ~isempty(individual.grad)
-  individual.grad = ft_transform_sens(H, individual.grad);
+  individual.grad = ft_transform_sens(transform, individual.grad);
 end
 if ~isempty(individual.headshape)
-  individual.headshape = ft_transform_headshape(H, individual.headshape);
+  individual.headshape = ft_transform_headshape(transform, individual.headshape);
 end
 
 if ~isempty(template.elec)
@@ -301,7 +310,7 @@ if ~isempty(template.headshape)
       lighting gouraud
       material shiny
       camlight
-      alpha(str2num(get(findobj(fig, 'tag', 'alpha'), 'string')));
+      alpha(str2double(get(findobj(fig, 'tag', 'alpha'), 'string')));
     end
     
     if strcmp(template.headshapestyle, 'vertex') || ...
@@ -322,7 +331,7 @@ if ~isempty(individual.headshape)
       lighting gouraud
       material shiny
       camlight
-      alpha(str2num(get(findobj(fig, 'tag', 'alpha'), 'string')));
+      alpha(str2double(get(findobj(fig, 'tag', 'alpha'), 'string')));
     end
     
     if strcmp(individual.headshapestyle, 'vertex') || ...
@@ -347,24 +356,29 @@ else
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function cb_apply(hObject, eventdata, handles);
-fig = get(hObject, 'parent');
+function cb_apply(hObject, eventdata, handles)
+
+fig       = get(hObject, 'parent');
 transform = getappdata(fig, 'transform');
+
 % get the transformation details
-rx = str2num(get(findobj(fig, 'tag', 'rx'), 'string'));
-ry = str2num(get(findobj(fig, 'tag', 'ry'), 'string'));
-rz = str2num(get(findobj(fig, 'tag', 'rz'), 'string'));
-tx = str2num(get(findobj(fig, 'tag', 'tx'), 'string'));
-ty = str2num(get(findobj(fig, 'tag', 'ty'), 'string'));
-tz = str2num(get(findobj(fig, 'tag', 'tz'), 'string'));
-sx = str2num(get(findobj(fig, 'tag', 'sx'), 'string'));
-sy = str2num(get(findobj(fig, 'tag', 'sy'), 'string'));
-sz = str2num(get(findobj(fig, 'tag', 'sz'), 'string'));
+rx = str2double(get(findobj(fig, 'tag', 'rx'), 'string'));
+ry = str2double(get(findobj(fig, 'tag', 'ry'), 'string'));
+rz = str2double(get(findobj(fig, 'tag', 'rz'), 'string'));
+tx = str2double(get(findobj(fig, 'tag', 'tx'), 'string'));
+ty = str2double(get(findobj(fig, 'tag', 'ty'), 'string'));
+tz = str2double(get(findobj(fig, 'tag', 'tz'), 'string'));
+sx = str2double(get(findobj(fig, 'tag', 'sx'), 'string'));
+sy = str2double(get(findobj(fig, 'tag', 'sy'), 'string'));
+sz = str2double(get(findobj(fig, 'tag', 'sz'), 'string'));
+
+% create the transformation matrix;
 R = rotate   ([rx ry rz]);
 T = translate([tx ty tz]);
 S = scale    ([sx sy sz]);
 H = S * T * R;
 transform = H * transform;
+
 set(findobj(fig, 'tag', 'rx'), 'string', 0);
 set(findobj(fig, 'tag', 'ry'), 'string', 0);
 set(findobj(fig, 'tag', 'rz'), 'string', 0);
@@ -374,18 +388,42 @@ set(findobj(fig, 'tag', 'tz'), 'string', 0);
 set(findobj(fig, 'tag', 'sx'), 'string', 1);
 set(findobj(fig, 'tag', 'sy'), 'string', 1);
 set(findobj(fig, 'tag', 'sz'), 'string', 1);
+
 setappdata(fig, 'transform', transform);
 cb_redraw(hObject);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function cb_close(hObject, eventdata, handles);
-% make the current transformation permanent and subsequently allow deleting the figure
-cb_apply(gca);
-% get the updated electrode from the figure
-fig    = hObject;
-% hmmm, this is ugly
-global norm
-norm.m = getappdata(fig, 'transform');
-set(fig, 'CloseRequestFcn', @delete);
-delete(fig);
+function cb_view(h, eventdata)
 
+val = get(h, 'value')
+switch val
+  case 1
+    view([90 90]);
+  case 2
+    view([90 -90]);
+  case 3
+    view([-90 0]);
+  case 4
+    view([90 0]);
+  case 5
+    view([-180 0]);
+  case 6
+    view([0 0]);
+  otherwise
+end
+uiresume;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function cb_quit(h, eventdata)
+
+par = get(h, 'parent');
+if par==0
+  setappdata(h, 'cleanup', true);
+else
+  setappdata(par, 'cleanup', true);
+end
+
+% ensure to apply the current transformation
+cb_apply(h);
+
+uiresume;

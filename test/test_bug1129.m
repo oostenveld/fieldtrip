@@ -1,5 +1,8 @@
 function test_bug1129
 
+% MEM 1500mb
+% WALLTIME 00:10:00
+
 % TEST test_bug1129
 % TEST ft_preprocessing ft_preproc_bandpassfilter ft_preproc_bandstopfilter ft_preproc_lowpassfilter ft_preproc_highpassfilter
 
@@ -77,7 +80,7 @@ for N=[199 432 1000] % test 'firls' option
 end
 
 %% high-level ft_preprocessing
-cd(dccnfilename('/home/common/matlab/fieldtrip/data/test'))
+cd(dccnpath('/home/common/matlab/fieldtrip/data/test'))
 load bug1129.mat
 
 cfg=[];

@@ -9,14 +9,13 @@ function ft_plot_topo3d(pnt, val, varargin)
 % given as Nx1 vector.
 %
 % Optional input arguments should be specified in key-value pairs and can include
-% 'contourstyle'  false  (default), 'black', 'color' makes contours of b/w or colored lines
-% 'isocontour'    'auto' (default - and only - option)
-% 'topostyle'     'color'(default - and only - option)
-
+%   'contourstyle' = string, 'none', 'black', 'color' (default = 'none')
+%   'facealpha'    = scalar, between 0 and 1 (default = 1)
+%   'refine'       = scalar, number of refinement steps for the triangulation, to get a smoother interpolation (default = 0)
 %
 % See also FT_PLOT_TOPO
-%
-% Copyright (C) 2009, Robert Oostenveld
+
+% Copyright (C) 2009-2013, Robert Oostenveld
 %
 % This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
 % for the documentation and details.
@@ -39,9 +38,16 @@ function ft_plot_topo3d(pnt, val, varargin)
 ws = warning('on', 'MATLAB:divideByZero');
 
 % get the optional input arguments
-contourstyle  = ft_getopt(varargin, 'contourstyle', false);
-isocontour    = ft_getopt(varargin, 'isocontour',   'auto');
-topostyle     = ft_getopt(varargin, 'topostyle',    'color');
+contourstyle  = ft_getopt(varargin, 'contourstyle', 'none');
+nrefine       = ft_getopt(varargin, 'refine', 0);
+isocontour    = ft_getopt(varargin, 'isocontour', 'auto');  % FIXME what is the purpose of this option?
+topostyle     = ft_getopt(varargin, 'topostyle', 'color'); % FIXME what is the purpose of this option?
+facealpha     = ft_getopt(varargin, 'facealpha', 1);
+
+if islogical(contourstyle) && contourstyle==false
+  % false was supported up to 18 November 2013, 'none' is more consistent with other plotting options
+  contourstyle = 'none';
+end
 
 % everything is added to the current figure
 holdflag = ishold;
@@ -49,8 +55,28 @@ if ~holdflag
   hold on
 end
 
+if size(val,2)==size(pnt,1)
+  val = val';
+end
+
 % the interpolation requires a triangulation
 tri = projecttri(pnt, 'delaunay');
+
+if nrefine>0,
+  pntorig = pnt;
+  triorig = tri;
+  valorig = val;
+  for k = 1:nrefine
+    [pnt,tri] = refine(pnt, tri);
+  end
+  prjorig = elproj(pntorig);
+  prj     = elproj(pnt);
+  val     = griddata(prjorig(:,1),prjorig(:,2),valorig,prj(:,1),prj(:,2),'v4');
+  if numel(facealpha)==size(pntorig,1)
+    facealpha = griddata(prjorig(:,1),prjorig(:,2),facealpha,prj(:,1),prj(:,2),'v4');
+  end
+end
+
 
 if ~isequal(topostyle, false)
   switch topostyle
@@ -63,13 +89,23 @@ if ~isequal(topostyle, false)
       end
       set(hs, 'EdgeColor', 'none');
       set(hs, 'FaceLighting', 'none');
+      
+      % if facealpha is an array with number of elements equal to the number of vertices
+      if size(pnt,1)==numel(facealpha)
+        set(hs, 'FaceVertexAlphaData', facealpha);
+        set(hs, 'FaceAlpha', 'interp');
+      elseif ~isempty(pnt) && numel(facealpha)==1 && facealpha~=1
+        % the default is 1, so that does not have to be set
+        set(hs, 'FaceAlpha', facealpha);
+      end
+      
     otherwise
       error('unsupported topostyle');
   end % switch contourstyle
 end % plot the interpolated topography
 
 
-if ~isequal(contourstyle, false)
+if ~strcmp(contourstyle, 'none')
   
   if isequal(isocontour, 'auto')
     minval = min(val);
@@ -79,6 +115,8 @@ if ~isequal(contourstyle, false)
     minval = floor(minval/scale)*scale;
     maxval = ceil(maxval/scale)*scale;
     isocontour = minval:scale:maxval;
+  else
+    error('unsupported isocontour');
   end
   
   triangle_val = val(tri);
@@ -184,4 +222,4 @@ if ~holdflag
   hold off
 end
 
-warning(ws); %revert to original state
+warning(ws); % revert to original state

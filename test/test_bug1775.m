@@ -1,5 +1,8 @@
 function test_bug1775
 
+% MEM 2gb
+% WALLTIME 00:10:00
+
 % TEST test_bug1775
 % TEST ft_sourceparcellate ft_checkdata ft_datatype_source ft_datatype_volume ft_datatype_parcellation ft_datatype_segmentation
 
@@ -87,7 +90,7 @@ cfg.grad    = grad;
 cfg.vol     = vol;
 cfg.grid    = grid;
 cfg.method  = 'mne';
-cfg.lambda  = 0;
+cfg.mne.lambda = 0;
 source2 = ft_sourceanalysis(cfg, timelock);
 
 %% make some parcellations

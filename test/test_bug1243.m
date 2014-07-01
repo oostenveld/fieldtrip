@@ -1,9 +1,12 @@
 function test_bug1243
 
+% MEM 1500mb
+% WALLTIME 00:10:00
+
 % TEST test_bug1243
 % TEST ft_topoplotIC
 
-cd(dccnfilename('/home/common/matlab/fieldtrip/data/test'))
+cd(dccnpath('/home/common/matlab/fieldtrip/data/test'))
 load bug1243.mat
 
 figure

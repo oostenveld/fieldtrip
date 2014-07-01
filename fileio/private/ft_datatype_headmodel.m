@@ -50,11 +50,14 @@ function vol = ft_datatype_headmodel(vol, varargin)
 %
 % Revision history:
 %
-% (2012/latest) use consistent names for the volume conductor type
-% in the structure, the documentation and for the actual implementation,
-% e.g. bem_openmeeg -> openmeeg, fem_simbio -> simbio, concentric ->
-% concentricspheres. Deprecated the fields that indicate the index of
-% the innermost and outermost surfaces.
+% (2014/latest) All numeric values are represented in double precision.
+%
+% (2013) Always use the field "cond" for conductivity.
+%
+% (2012) Use consistent names for the volume conductor type in the structure, the
+% documentation and for the actual implementation, e.g. bem_openmeeg -> openmeeg,
+% fem_simbio -> simbio, concentric -> concentricspheres. Deprecated the fields
+% that indicate the index of the innermost and outermost surfaces.
 %
 % See also FT_DATATYPE, FT_DATATYPE_COMP, FT_DATATYPE_DIP, FT_DATATYPE_FREQ,
 % FT_DATATYPE_MVAR, FT_DATATYPE_RAW, FT_DATATYPE_SOURCE, FT_DATATYPE_SPIKE,
@@ -68,7 +71,7 @@ function vol = ft_datatype_headmodel(vol, varargin)
 version = ft_getopt(varargin, 'version', 'latest');
 
 if strcmp(version, 'latest')
-  version = '2012';
+  version = '2014';
 end
 
 if isempty(vol)
@@ -77,6 +80,28 @@ end
 
 switch version
   
+  case '2014'
+    % first make it consistent with the 2013 version that makes a
+    % consistency check with 2012 first
+    vol = ft_datatype_headmodel(vol, 'version', '2013');
+    
+    % ensure that all numbers are represented in double precision
+    vol = ft_struct2double(vol);
+    
+  case '2013'
+    % first make it consistent with the 2012 version
+    vol = ft_datatype_headmodel(vol, 'version', '2012');
+    
+    % then rename (if neccessary the c into cond
+    if isfield(vol, 'c') && ~isfield(vol, 'cond')
+      vol.cond = vol.c;
+      vol = rmfield(vol, 'c');
+    elseif isfield(vol, 'cond') && isfield(vol, 'c') && isequal(vol.cond, vol.c)
+      vol = rmfield(vol, 'c');
+    elseif isfield(vol, 'cond') && isfield(vol, 'c') && ~isequal(vol.cond, vol.c)
+      error('inconsistent specification of conductive properties for %s model', vol.type);
+    end
+    
   case '2012'
     % the following will be determined on the fly in ft_prepare_vol_sens
     if isfield(vol, 'skin_surface'),        vol = rmfield(vol, 'skin_surface');        end
@@ -119,12 +144,12 @@ switch version
     end
     
     if isfield(vol, 'type') && any(strcmp(vol.type, {'concentricspheres', 'singlesphere'}))
-      if strcmp(vol, 'cond') && ~strcmp(vol, 'c')
+      if isfield(vol, 'cond') && ~isfield(vol, 'c')
         vol.c = vol.cond;
         vol = rmfield(vol, 'cond');
-      elseif strcmp(vol, 'cond') && strcmp(vol, 'c') && isequal(vol.cond, vol.c)
+      elseif isfield(vol, 'cond') && isfield(vol, 'c') && isequal(vol.cond, vol.c)
         vol = rmfield(vol, 'cond');
-      elseif strcmp(vol, 'cond') && strcmp(vol, 'c') && ~isequal(vol.cond, vol.c)
+      elseif isfield(vol, 'cond') && isfield(vol, 'c') && ~isequal(vol.cond, vol.c)
         error('inconsistent specification of conductive properties for %s model', vol.type);
       end
     end
@@ -137,5 +162,3 @@ switch version
   otherwise
     error('converting to version "%s" is not supported', version);
 end
-
-

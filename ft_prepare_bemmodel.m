@@ -36,6 +36,11 @@ ft_preamble provenance
 ft_preamble trackconfig
 ft_preamble debug
 
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
+
 % set the defaults
 if ~isfield(cfg, 'tissue'),         cfg.tissue = [8 12 14];                  end
 if ~isfield(cfg, 'numvertices'),    cfg.numvertices = [1 2 3] * 500;         end
@@ -64,9 +69,9 @@ Ncompartment = numel(vol.bnd);
 % assign the conductivity
 if ~isfield(vol,'cond')
   if ~isfield(cfg, 'conductivity')
-    if isfield(mri, 'cond') 
+    if isfield(mri, 'cond')
       vol.cond = mri.cond;
-    elseif isfield(mri, 'c') 
+    elseif isfield(mri, 'c')
       vol.cond = mri.c;
     else
       fprintf('warning: using default values for the conductivity')
@@ -77,7 +82,7 @@ if ~isfield(vol,'cond')
       vol.cond = cfg.conductivity;
     elseif isempty(cfg.conductivity) && Ncompartment==3
       fprintf('warning: using default values for the conductivity')
-      vol.cond = [1 1/80 1] * 0.33;    
+      vol.cond = [1 1/80 1] * 0.33;
     else
       fprintf('warning: using 1 for all conductivities')
       vol.cond = ones(1,Ncompartment);
@@ -100,7 +105,7 @@ fprintf('determining source compartment (%d)\n', vol.source);
 fprintf('determining skin compartment (%d)\n',   vol.skin_surface);
 
 if ~isempty(cfg.isolatedsource)
-  isolatedsource = istrue(cfg.isolatedsource); 
+  isolatedsource = istrue(cfg.isolatedsource);
 else
   isolatedsource = false;
 end
@@ -156,21 +161,21 @@ elseif strcmp(cfg.method, 'bemcp')
       end
     end
   end
-
+  
   if sum(nesting(:))~=(numboundaries*(numboundaries-1)/2)
     error('the compartment nesting cannot be determined');
   end
-
+  
   % for a three compartment model, the nesting matrix should look like
   %    0 1 1     the first is nested inside the 2nd and 3rd, i.e. the inner skull
   %    0 0 1     the second is nested inside the 3rd, i.e. the outer skull
   %    0 0 0     the third is the most outside, i.e. the skin
   [dum, order] = sort(-sum(nesting,2));
-
+  
   fprintf('reordering the boundaries to: ');
   fprintf('%d ', order);
   fprintf('\n');
-
+  
   % update the order of the compartments
   vol.bnd    = vol.bnd(order);
   vol.cond   = vol.cond(order);
@@ -269,17 +274,14 @@ elseif strcmp(cfg.method, 'openmeeg')
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   % this uses an implementation that was contributed by INRIA Odyssee Team
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  if ~ft_hastoolbox('openmeeg');
-    web('http://gforge.inria.fr/frs/?group_id=435')
-    error('OpenMEEG toolbox needs to be installed!')
+  ft_hastoolbox('openmeeg', 1);
+  
+  if size(vol.bnd(1).pnt,1)>10000
+    error('OpenMEEG does not manage meshes with more than 10000 vertices (use reducepatch)')
   else
-    if size(vol.bnd(1).pnt,1)>10000
-      error('OpenMEEG does not manage meshes with more than 10000 vertices (use reducepatch)')
-    else
-      % use the openmeeg wrapper function
-      vol = openmeeg(vol,cfg.isolatedsource);
-      vol.type = 'openmeeg';
-    end
+    % use the openmeeg wrapper function
+    vol = openmeeg(vol,cfg.isolatedsource);
+    vol.type = 'openmeeg';
   end
   
 else

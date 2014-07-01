@@ -1,20 +1,23 @@
 function test_bug1984_2187
 
+% MEM 1500mb
+% WALLTIME 00:10:00
+
 % TEST test_bug1984_2187
 % TEST ft_appendfreq ft_freqgrandaverage ft_freqstatistics ft_prepare_neighbours
 
-cd(dccnfilename('/home/common/matlab/fieldtrip/data/test'));
-load bug1984_2187.mat
+load(dccnpath('/home/common/matlab/fieldtrip/data/test/bug1984_2187.mat'));
 
 %% first: test rpt concatenation
-cfg=[];
+cfg = [];
 cfg.parameter='powspctrm';
 freq = ft_appendfreq(cfg,s,s,s);
+
 if ~isfield(freq,'freq');
-  error('freq field is not appeneded: see bugs 1984 and 2187');
+  error('freq field is not appended: see bugs 1984 and 2187');
 end
 
-%% first: check functionality when using ft_freqstatistis using ft_freqgrandaverage before
+%% second: check functionality when using ft_freqstatistis using ft_freqgrandaverage before
 cfg = [];
 cfg.keepindividual = 'yes';
 c1 = ft_freqgrandaverage(cfg,cond1{:});
@@ -25,7 +28,7 @@ cfg.channel          = {'MEG'};
 cfg.latency          = [1.8 2.1];
 cfg.frequency        = [60 90];
 cfg.method           = 'montecarlo';
-cfg.statistic        = 'depsamplesT';
+cfg.statistic        = 'ft_statfun_depsamplesT';
 cfg.correctm         = 'cluster';
 cfg.clusteralpha     = 0.05;
 cfg.clusterstatistic = 'maxsum'; 
@@ -59,13 +62,15 @@ cfg.avgovertime      = 'yes';
 cfg.parameter        = 'powspctrm';
 
 stat = ft_freqstatistics(cfg, c1, c2);
+
 if ~isfield(stat,'freq');
-  error('freq field is not appeneded: might be related with ft_appendfreq bugs 1984 and 2187');
+  error('freq field is not appended: might be related with ft_appendfreq bugs 1984 and 2187');
 end
 
-%% second: check functionality when using ft_freqstatistis using the varargin
+%% third: check functionality when using ft_freqstatistis using the varargin
 stat = ft_freqstatistics(cfg, cond1{:}, cond2{:});
+
 if ~isfield(stat,'freq');
-  error('freq field is not appeneded: might be related with ft_appendfreq bugs 1984 and 2187');
+  error('freq field is not appended: might be related with ft_appendfreq bugs 1984 and 2187');
 end
 

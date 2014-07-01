@@ -165,7 +165,16 @@ enum {
 	FT_CHUNK_SIEMENS_AP = 6,
 	
 	/** FT_CHUNK_CTF_RES4 contains a .res4 file as written by the CTF MEG acquisition software (binary) */
-	FT_CHUNK_CTF_RES4 = 7
+	FT_CHUNK_CTF_RES4 = 7,
+	
+	/** FT_CHUNK_NEUROMAG_HEADER contains a .fif file as written by the Neuromag MEG acquisition software (binary) */
+	FT_CHUNK_NEUROMAG_HEADER = 8,
+	
+	/** FT_CHUNK_NEUROMAG_ISOTRAK contains a .fif file as written by the Neuromag MEG acquisition software (binary) */
+	FT_CHUNK_NEUROMAG_ISOTRAK = 9,
+	
+	/** FT_CHUNK_NEUROMAG_HPIRESULT contains a .fif file as written by the Neuromag MEG acquisition software (binary) */
+	FT_CHUNK_NEUROMAG_HPIRESULT = 10
 };
 
 #pragma pack(push,1)

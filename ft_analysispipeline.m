@@ -42,7 +42,7 @@ function [pipeline] = ft_analysispipeline(cfg, data)
 % This function uses the nested cfg and cfg.previous that are present in
 % the data structure. It will use the configuration and the nested previous
 % configurations to climb all the way back into the tree. This funtction
-% will print a complete Matlab script to screen (and optionally to file).
+% will print a complete MATLAB script to screen (and optionally to file).
 % Furthermore, it will show an interactive graphical flowchart
 % representation of the steps taken during the pipeline(i). In the flowchart
 % you can click on one of the steps to see the configuration details of
@@ -67,6 +67,11 @@ ft_preamble init
 ft_preamble provenance
 ft_preamble trackconfig
 ft_preamble debug
+
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
 
 % set the defaults
 if ~isfield(cfg, 'filename'),    cfg.filename    = [];                end
@@ -498,18 +503,20 @@ end % for numel(info)
 set(fig, 'WindowButtonUpFcn', @button);
 % set(fig, 'KeyPressFcn', @key);
 
-% add a menu to the figure
+% add a context menu to the figure
 % ftmenu = uicontextmenu; set(gcf, 'uicontextmenu', ftmenu)
+
+% add a regular menu item to the figure
 ftmenu  = uimenu(fig, 'Label', 'FieldTrip');
-ftmenu1 = uimenu(ftmenu, 'Label', 'Save pipeline');
-ftmenu2 = uimenu(ftmenu, 'Label', 'Share pipeline');
+% ftmenu1 = uimenu(ftmenu, 'Label', 'Save pipeline');
+% ftmenu2 = uimenu(ftmenu, 'Label', 'Share pipeline');
 uimenu(ftmenu, 'Label', 'About',  'Separator', 'on', 'Callback', @menu_about);
-uimenu(ftmenu1, 'Label', 'Save as MATLAB script');
-uimenu(ftmenu1, 'Label', 'Save as PSOM pipeline');
-uimenu(ftmenu1, 'Label', 'Save as HTML page');
-uimenu(ftmenu2, 'Label', 'Share within DCCN');
-uimenu(ftmenu2, 'Label', 'Share on PasteBin.com');
-uimenu(ftmenu2, 'Label', 'Share on MyExperiment.org');
+% uimenu(ftmenu1, 'Label', 'Save as MATLAB script');
+% uimenu(ftmenu1, 'Label', 'Save as PSOM pipeline');
+% uimenu(ftmenu1, 'Label', 'Save as HTML page');
+% uimenu(ftmenu2, 'Label', 'Share within DCCN');
+% uimenu(ftmenu2, 'Label', 'Share on PasteBin.com');
+% uimenu(ftmenu2, 'Label', 'Share on MyExperiment.org');
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

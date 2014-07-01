@@ -32,7 +32,8 @@ function [data] = ft_combineplanar(cfg, data)
 % cfg.foilim
 % cfg.trials
 
-% Copyright (C) 2004, Ole Jensen, Robert Oostenveld
+% Copyright (C) 2004, Ole Jensen
+% Copyright (C) 2004-2013, Robert Oostenveld
 %
 % This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
 % for the documentation and details.
@@ -61,6 +62,11 @@ ft_preamble provenance
 ft_preamble trackconfig
 ft_preamble debug
 ft_preamble loadvar data
+
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
 
 % check if the input data is valid for this function
 data = ft_checkdata(data, 'datatype', {'raw', 'freq', 'timelock'}, 'feedback', 'yes', 'senstype', {'ctf151_planar', 'ctf275_planar', 'neuromag122', 'neuromag306', 'bti248_planar', 'bti148_planar', 'itab153_planar', 'yokogawa160_planar', 'yokogawa64_planar', 'yokogawa440_planar'});
@@ -98,7 +104,7 @@ if ~strcmp(cfg.trials, 'all')
 end
 
 % find the combination of horizontal and vertical channels that should be combined
-planar    = planarchannelset(data);
+planar = ft_senslabel(ft_senstype(data), 'output', 'planarcombined');
 [dum, sel_dH]    = match_str(planar(:,1), data.label);  % indices of the horizontal channels
 [dum, sel_dV]    = match_str(planar(:,2), data.label);  % indices of the vertical   channels
 

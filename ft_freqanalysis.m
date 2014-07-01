@@ -17,9 +17,6 @@ function [freq] = ft_freqanalysis(cfg, data)
 %                    'mtmconvol', implements multitaper time-frequency
 %                      transformation based on multiplication in the frequency
 %                      domain.
-%                    'mtmwelch', performs frequency analysis using Welch's
-%                      averaged modified periodogram method of spectral
-%                      estimation.
 %                    'wavelet', implements wavelet time frequency
 %                      transformation (using Morlet wavelets) based on
 %                      multiplication in the frequency domain.
@@ -32,12 +29,6 @@ function [freq] = ft_freqanalysis(cfg, data)
 %                        output will contain a spectral transfer matrix,
 %                        the cross-spectral density matrix, and the
 %                        covariance matrix of the innovatio noise.
-%
-%                    OR, if you want to use the old implementation (not from
-%                      the specest module)
-%                      'mtmfft_old'
-%                      'mtmconvol_old'
-%                      'wltconvol_old'
 %   cfg.output     = 'pow'       return the power-spectra
 %                    'powandcsd' return the power and the cross-spectra
 %                    'fourier'   return the complex Fourier-spectra
@@ -115,17 +106,15 @@ function [freq] = ft_freqanalysis(cfg, data)
 %   cfg.foilim     = [begin end], frequency band of interest
 %   cfg.toi        = vector 1 x numtoi, the times on which the analysis windows
 %                    should be centered (in seconds)
-%   cfg.width      = 'width' of the wavelet, determines the temporal and spectral
-%                    resolution of the analysis (default = 7)
-%                    constant, for a 'classical constant-Q' wavelet analysis
-%                    vector, defining a variable width for each frequency
+%   cfg.width      = 'width', or number of cycles, of the wavelet (default = 7)
 %   cfg.gwidth     = determines the length of the used wavelets in standard deviations
 %                    of the implicit Gaussian kernel and should be choosen
 %                    >= 3; (default = 3)
-%      The standard deviation in the frequency domain (sf) at frequency f0 is
-%      defined as: sf = f0/width
-%      The standard deviation in the temporal domain (st) at frequency f0 is
-%      defined as: st = width/f0 = 1/sf
+% 
+% The standard deviation in the frequency domain (sf) at frequency f0 is
+% defined as: sf = f0/width
+% The standard deviation in the temporal domain (st) at frequency f0 is
+% defined as: st = 1/(2*pi*sf)
 %
 %
 %  TFR
@@ -135,10 +124,7 @@ function [freq] = ft_freqanalysis(cfg, data)
 %   cfg.foi        = vector 1 x numfoi, frequencies of interest
 %       OR
 %   cfg.foilim     = [begin end], frequency band of interest
-%   cfg.width      = 'width' of the wavelet, determines the temporal and spectral
-%                    resolution of the analysis (default = 7)
-%                    constant, for a 'classical constant-Q' wavelet analysis
-%                    vector, defining a variable width for each frequency
+%   cfg.width      = 'width', or number of cycles, of the wavelet (default = 7)
 %   cfg.gwidth     = determines the length of the used wavelets in standard deviations
 %                    of the implicit Gaussian kernel and should be choosen
 %                    >= 3; (default = 3)
@@ -209,25 +195,21 @@ ft_preamble trackconfig
 ft_preamble debug
 ft_preamble loadvar data
 
-% defaults for optional input/ouputfile and feedback
-cfg.feedback   = ft_getopt(cfg, 'feedback',   'text');
-cfg.inputlock  = ft_getopt(cfg, 'inputlock',  []);  % this can be used as mutex when doing distributed computation
-cfg.outputlock = ft_getopt(cfg, 'outputlock', []);  % this can be used as mutex when doing distributed computation
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
+
+% ensure that the required options are present
+cfg.feedback    = ft_getopt(cfg, 'feedback',   'text');
+cfg.inputlock   = ft_getopt(cfg, 'inputlock',  []);  % this can be used as mutex when doing distributed computation
+cfg.outputlock  = ft_getopt(cfg, 'outputlock', []);  % this can be used as mutex when doing distributed computation
+cfg.trials      = ft_getopt(cfg, 'trials',     'all');
 
 % check if the input data is valid for this function
-data = ft_checkdata(data, 'datatype', {'raw', 'comp', 'mvar'}, 'feedback', cfg.feedback, 'hassampleinfo', 'yes');
-
-% select trials of interest
-cfg.trials = ft_getopt(cfg, 'trials', 'all');
-if ~strcmp(cfg.trials, 'all')
-  fprintf('selecting %d trials\n', length(cfg.trials));
-  data = ft_selectdata(data, 'rpt', cfg.trials);
-end
+data = ft_checkdata(data, 'datatype', {'raw', 'raw+comp', 'mvar'}, 'feedback', cfg.feedback, 'hassampleinfo', 'yes');
 
 % check if the input cfg is valid for this function
-if ~isfield(cfg, 'method')
-  error('you must specify a method in cfg.method');
-end
 cfg = ft_checkconfig(cfg, 'renamed',     {'label', 'channel'});
 cfg = ft_checkconfig(cfg, 'renamed',     {'sgn',   'channel'});
 cfg = ft_checkconfig(cfg, 'renamed',     {'labelcmb', 'channelcmb'});
@@ -237,6 +219,13 @@ cfg = ft_checkconfig(cfg, 'renamedval',  {'method', 'fft',    'mtmfft'});
 cfg = ft_checkconfig(cfg, 'renamedval',  {'method', 'convol', 'mtmconvol'});
 cfg = ft_checkconfig(cfg, 'forbidden',   {'latency'}); % see bug 1376 and 1076
 cfg = ft_checkconfig(cfg, 'renamedval',  {'method', 'wltconvol', 'wavelet'});
+
+% select trials of interest
+tmpcfg = [];
+tmpcfg.trials = cfg.trials;
+data = ft_selectdata(tmpcfg, data);
+% restore the provenance information
+[cfg, data] = rollback_provenance(cfg, data);
 
 % switch over method and do some of the method specfic checks and defaulting
 switch cfg.method
@@ -290,7 +279,11 @@ switch cfg.method
     if ~isfield(cfg, 'width'),            cfg.width         = 1;            end
     
   case 'mvar'
-    freq = feval(@ft_freqanalysis_mvar,cfg,data);
+    if isfield(cfg, 'inputfile')
+      freq = feval(@ft_freqanalysis_mvar,cfg);
+    else
+      freq = feval(@ft_freqanalysis_mvar,cfg,data);
+    end
     return
     
   otherwise
@@ -467,6 +460,7 @@ end
 
 ft_progress('init', cfg.feedback, 'processing trials');
 for itrial = 1:ntrials
+    
   %disp(['processing trial ' num2str(itrial) ': ' num2str(size(data.trial{itrial},2)) ' samples']);
   fbopt.i = itrial;
   fbopt.n = ntrials;
@@ -814,29 +808,35 @@ if csdflg
   freq.labelcmb  = cfg.channelcmb;
   freq.crsspctrm = crsspctrm;
 end
-if strcmp(cfg.calcdof,'yes');
+if strcmp(cfg.calcdof, 'yes');
   freq.dof = 2 .* dof;
 end;
-if strcmp(cfg.method,'mtmfft') && (keeprpt == 2 || keeprpt == 4)
+if strcmp(cfg.method, 'mtmfft') && (keeprpt == 2 || keeprpt == 4)
   freq.cumsumcnt = trllength';
 end
-if exist('cumtapcnt','var')
+if exist('cumtapcnt', 'var') && (keeprpt == 2 || keeprpt == 4)
   freq.cumtapcnt = cumtapcnt;
 end
 
 % backwards compatability of foilim
 if ~isempty(cfg.foilim)
-  cfg = rmfield(cfg,'foi');
+  cfg = rmfield(cfg, 'foi');
 else
-  cfg = rmfield(cfg,'foilim');
+  cfg = rmfield(cfg, 'foilim');
 end
 
-if isfield(data, 'grad'),
-  freq.grad = data.grad;
-end   % remember the gradiometer array
-if isfield(data, 'elec'),
-  freq.elec = data.elec;
-end   % remember the electrode array
+% some fields from the input should be copied over in the output
+copyfield = {'grad', 'elec', 'topo', 'topolabel', 'unmixing'};
+for i=1:length(copyfield)
+  if isfield(data, copyfield{i})
+    freq.(copyfield{i}) = data.(copyfield{i});
+  end
+end
+
+if isfield(data, 'trialinfo') && strcmp(cfg.keeptrials, 'yes')
+  % copy the trialinfo into the output, but not the sampleinfo
+  freq.trialinfo = data.trialinfo;
+end
 
 % do the general cleanup and bookkeeping at the end of the function
 ft_postamble debug
@@ -844,11 +844,4 @@ ft_postamble trackconfig
 ft_postamble provenance
 ft_postamble previous data
 ft_postamble history freq
-
-
-% copy the trial specific information into the output
-if isfield(cfg, 'keeptrials') && strcmp(cfg.keeptrials, 'yes') && isfield(data, 'trialinfo'),
-  freq.trialinfo = data.trialinfo;
-end
-
 ft_postamble savevar freq

@@ -73,6 +73,11 @@ ft_preamble trackconfig
 ft_preamble debug
 ft_preamble loadvar data
 
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
+
 cfg = ft_checkconfig(cfg, 'required', {'method' 'parameter'});
 
 cfg.threshold = ft_getopt(cfg, 'threshold', []);
@@ -166,7 +171,7 @@ switch cfg.method
     elseif strcmp(data.dimord(1:4), 'chan')
       dimord = data.dimord(6:end);
     end
-  case {'distance' 'edge_betweennness'}
+  case {'distance' 'edge_betweenness'}
     % 1 value per node pair
     outsiz = [size(input) 1];
     output = zeros(outsiz);

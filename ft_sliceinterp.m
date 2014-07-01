@@ -113,6 +113,11 @@ ft_preamble trackconfig
 ft_preamble debug
 ft_preamble loadvar ininterp
 
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
+
 % check if the input data is valid for this function
 ininterp = ft_checkdata(ininterp, 'datatype', 'volume', 'feedback', 'yes');
 
@@ -361,7 +366,7 @@ end
 % merge anatomy, functional data and mask
 fprintf('constructing overlay...');
 if ischar(cfg.colormap)
-  % replace string by colormap using standard Matlab function
+  % replace string by colormap using standard MATLAB function
   cfg.colormap = colormap(cfg.colormap);
 end
 cmap = cfg.colormap;

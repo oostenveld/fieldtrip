@@ -1,7 +1,7 @@
 % FieldTrip
 % Version unknown fieldtriptoolbox.org DD-MM-YYYY
 %
-% FieldTrip is the Matlab toolbox for MEG and EEG analysis that is being developed at
+% FieldTrip is the MATLAB toolbox for MEG and EEG analysis that is being developed at
 % the Centre for Cognitive Neuroimaging of the Donders Institute for Brain, Cognition
 % and Behaviour together with collaborating institutes. The FieldTrip software is
 % released as open source under the GNU general public license.
@@ -12,7 +12,7 @@
 % supports the data formats of all major MEG systems (CTF, Neuromag, BTi) and of the
 % most popular EEG systems, and new formats can be added easily. FieldTrip contains
 % high-level functions that you can use to construct your own analysis protocol in
-% Matlab. Furthermore, it easily allows developers to incorporate low-level algorithms
+% MATLAB. Furthermore, it easily allows developers to incorporate low-level algorithms
 % for new EEG/MEG analysis methods.
 %
 % The FieldTrip software is free but copyrighted software, distributed under the terms
@@ -38,10 +38,10 @@
 %   Lilla Magyari, MPI, DCCN
 %   and others ...
 %
-% Copyrights (C) 2008-2013, Donders Institute for Brain, Cognition and Behaviour, Radboud University Nijmegen, The Netherlands (DCCN, DCC, DCN)
-% Copyrights (C) 2007-2013, University College London, United Kingdom (UCL)
+% Copyrights (C) 2008-2014, Donders Institute for Brain, Cognition and Behaviour, Radboud University Nijmegen, The Netherlands (DCCN, DCC, DCN)
+% Copyrights (C) 2007-2014, University College London, United Kingdom (UCL)
+% Copyrights (C) 2011-2014, Max Planck Institute for Psycholynguistics, Nijmegen, The Netherlands (MPI)
 % Copyrights (C) 2008-2010, Centre for Cognitive Neuroimaging, Glasgow, United Kingdom (CCNi)
-% Copyrights (C) 2011-2013, Max Planck Institute for Psycholynguistics, Nijmegen, The Netherlands (MPI)
 % Copyrights (C) 2003-2008, F.C. Donders Centre, Radboud University Nijmegen, The Netherlands (FCDC)
 % Copyrights (C) 2004-2007, Nijmegen Institute for Cognition and Information, Radboud University Nijmegen, The Netherlands (NICI)
 % Copyrights (C) 2004-2005, Universitatsklinikum Hamburg-Eppendorf, Germany (UKE)
@@ -58,7 +58,7 @@
 % the GPL is not allowed!
 %
 % Below is an overview of the most important FieldTrip functions, sorted by category.
-% You can get more details on a function by typing "help functionname" in Matlab.
+% You can get more details on a function by typing "help functionname" in MATLAB.
 %
 % Preprocessing and reading data
 %   ft_definetrial

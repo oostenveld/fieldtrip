@@ -1,5 +1,8 @@
 function test_bug1637
 
+% MEM 1500mb
+% WALLTIME 00:10:00
+
 % TEST test_bug1637
 % TEST megplanar_sincos channelconnectivity ft_prepare_neighbours ft_channelselection
 
@@ -15,7 +18,7 @@ cfg.method = 'template';
 cfg.template = 'CTF275_neighb';
 neighbours = ft_prepare_neighbours(cfg);
 
-cd(dccnfilename('/home/common/matlab/fieldtrip/data/test'))
+cd(dccnpath('/home/common/matlab/fieldtrip/data/test'))
 load bug1637_hdr.mat
 load bug1637_grad.mat
 

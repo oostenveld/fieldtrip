@@ -104,6 +104,12 @@ for i = 1:orig.nchan;
   nEEG = nEEG +(orig.chs(i).kind==2);
 end
 
+% % how many IAS (internal active shielding) channels?
+% nIAS = 0;
+% for i = 1:orig.nchan;
+%   nIAS = nIAS + ~isempty(strmatch('IAS', orig.chs(i).ch_name));
+% end
+
 % how many sensors in total?
 nSensors = nPlaGrad + nMag + nAxGrad;
 
@@ -185,7 +191,7 @@ for n = 1:orig.nchan
     grad.label{kChan}=deblank(orig.ch_names{n});
     grad.chantype{kChan,1}='megaxial';
     kChan=kChan+1;
-    
+        
   else
     % do nothing - either an EEG channel or something else such as a stim channel
   end
@@ -222,7 +228,12 @@ if nEEG>0
     if nEEG<=60
       elec.elecpos(kChan,1:3) = orig.chs(n).eeg_loc(1:3);
     else
-      elec.elecpos(kChan,1:3) = orig.dig(dig_eeg(kChan)).r;
+      if kChan<=numel(dig_eeg)
+        elec.elecpos(kChan,1:3) = orig.dig(dig_eeg(kChan)).r;
+      else
+        warning_once('not all EEG channel positions have been digitized');
+        elec.elecpos(kChan,1:3) = nan;
+      end
     end
     elec.label{kChan} = deblank(orig.ch_names{n});
   end

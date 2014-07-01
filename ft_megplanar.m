@@ -82,6 +82,11 @@ ft_preamble trackconfig
 ft_preamble debug
 ft_preamble loadvar data
 
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
+
 % store the original input representation of the data, this is used later on to convert it back
 isfreq = ft_datatype(data, 'freq');
 israw  = ft_datatype(data, 'raw');
@@ -109,6 +114,7 @@ cfg.feedback     = ft_getopt(cfg, 'feedback',     'text');
 % check if the input cfg is valid for this function
 if ~strcmp(cfg.planarmethod, 'sourceproject')
   cfg = ft_checkconfig(cfg, 'required', {'neighbours'});
+  cfg.neighbours = struct(cfg.neighbours);
 end
 
 if isfield(cfg, 'headshape') && isa(cfg.headshape, 'config')
@@ -116,9 +122,12 @@ if isfield(cfg, 'headshape') && isa(cfg.headshape, 'config')
   cfg.headshape = struct(cfg.headshape);
 end
 
-% put the low-level options pertaining to the dipole grid in their own field
-cfg = ft_checkconfig(cfg, 'createsubcfg',  {'grid'});
 cfg = ft_checkconfig(cfg, 'renamedvalue',  {'headshape', 'headmodel', []});
+
+% put the low-level options pertaining to the dipole grid in their own field
+cfg = ft_checkconfig(cfg, 'renamed', {'tightgrid', 'tight'}); % this is moved to cfg.grid.tight by the subsequent createsubcfg
+cfg = ft_checkconfig(cfg, 'renamed', {'sourceunits', 'unit'}); % this is moved to cfg.grid.unit by the subsequent createsubcfg
+cfg = ft_checkconfig(cfg, 'createsubcfg',  {'grid'});
 
 % select trials of interest
 if ~strcmp(cfg.trials, 'all')
@@ -230,8 +239,17 @@ if strcmp(cfg.planarmethod, 'sourceproject')
 else
   
   sens = ft_convert_units(data.grad);
-  if any(isnan(sens.chanpos(:)))
-    error('The channel positions contain NaNs; this prohibits correct behavior of the function. Please replace the input channel definition with one that contains valid channel positions');
+  chanposnans = any(isnan(sens.chanpos(:))) || any(isnan(sens.chanori(:)));
+  if chanposnans
+    if isfield(sens, 'chanposorg')
+      % temporarily replace chanpos and chanorig with the original values
+      sens.chanpos = sens.chanposorg;
+      sens.chanori = sens.chanoriorg;
+      sens.label = sens.labelorg;
+      sens = rmfield(sens, {'chanposorg', 'chanoriorg', 'labelorg'});
+    else
+      error('The channel positions (and/or orientations) contain NaNs; this prohibits correct behavior of the function. Please replace the input channel definition with one that contains valid channel positions');
+    end
   end
   cfg.channel = ft_channelselection(cfg.channel, sens.label);
   cfg.channel = ft_channelselection(cfg.channel, data.label);
@@ -239,6 +257,7 @@ else
   % ensure channel order according to cfg.channel (there might be one check
   % too much in here somewhere or in the subfunctions, but I don't care.
   % Better one too much than one too little - JMH @ 09/19/12
+  cfg = struct(cfg);
   [neighbsel] = match_str({cfg.neighbours.label}, cfg.channel);
   cfg.neighbours = cfg.neighbours(neighbsel);
   cfg.neighbsel = channelconnectivity(cfg);
@@ -247,7 +266,7 @@ else
   fprintf('average number of neighbours is %.2f\n', mean(sum(cfg.neighbsel)));
   
   Ngrad = length(sens.label);
-  cfg.distance = zeros(Ngrad,Ngrad);
+  distance = zeros(Ngrad,Ngrad);
   
   for i=1:size(cfg.neighbsel,1)
     j=find(cfg.neighbsel(i, :));
@@ -272,11 +291,14 @@ else
   
   switch cfg.planarmethod
     case 'sincos'
-      planarmontage = megplanar_sincos(cfg, data.grad);
+      planarmontage = megplanar_sincos(cfg, sens);
     case 'orig'
-      planarmontage = megplanar_orig(cfg, data.grad);
+      % method specific info that is needed
+      cfg.distance  = distance;
+      
+      planarmontage = megplanar_orig(cfg, sens);
     case 'fitplane'
-      planarmontage = megplanar_fitplane(cfg, data.grad);
+      planarmontage = megplanar_fitplane(cfg, sens);
     otherwise
       fun = ['megplanar_' cfg.planarmethod];
       if ~exist(fun, 'file')
@@ -289,12 +311,12 @@ else
   interp = ft_apply_montage(data, planarmontage, 'keepunused', 'yes', 'feedback', cfg.feedback);
   
   % also apply the linear transformation to the gradiometer definition
-  interp.grad = ft_apply_montage(data.grad, planarmontage, 'balancename', 'planar', 'keepunused', 'yes');
+  interp.grad = ft_apply_montage(sens, planarmontage, 'balancename', 'planar', 'keepunused', 'yes');
   
   % ensure there is a type string describing the gradiometer definition
   if ~isfield(interp.grad, 'type')
     % put the original gradiometer type in (will get _planar appended)
-    interp.grad.type = ft_senstype(data.grad);
+    interp.grad.type = ft_senstype(sens);
   end
   interp.grad.type = [interp.grad.type '_planar'];
   
@@ -305,8 +327,18 @@ else
       tmplabel{k} = tmplabel{k}(1:end-3);
     end
   end
-  [ix,iy] = match_str(tmplabel, data.grad.label);
-  interp.grad.chanpos(ix,:) = data.grad.chanpos(iy,:);
+  [ix,iy] = match_str(tmplabel, sens.label);
+  interp.grad.chanpos(ix,:) = sens.chanpos(iy,:);
+  
+  % if the original chanpos contained nans, make sure to put nans in the
+  % updated one as well, and move the updated chanpos values to chanposorg
+  if chanposnans
+    interp.grad.chanposorg = sens.chanpos;
+    interp.grad.chanoriorg = sens.chanori;
+    interp.grad.labelorg = sens.label;
+    interp.grad.chanpos = nan(size(interp.grad.chanpos));
+    interp.grad.chanori = nan(size(interp.grad.chanori));
+  end
 end
 
 if istlck

@@ -48,6 +48,11 @@ ft_preamble provenance varargin
 ft_preamble trackconfig
 ft_preamble debug
 
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
+
 % check if the input data is valid for this function
 for i=1:length(varargin)
   varargin{i} = ft_checkdata(varargin{i}, 'datatype', 'timelock', 'feedback', 'yes', 'hassampleinfo', 'ifmakessense');
@@ -174,7 +179,9 @@ switch cfg.appenddim
           varargin{m}.trial = reorderdim(varargin{m}.trial, 2, b);
         else % .avg and .var will be recomputed anyway if .trial exists
           varargin{m}.avg = reorderdim(varargin{m}.avg, 1, b);
-          varargin{m}.var = reorderdim(varargin{m}.var, 1, b);
+          if isfield(varargin{m}, 'var')
+            varargin{m}.var = reorderdim(varargin{m}.var, 1, b);
+          end
         end
       end
     end

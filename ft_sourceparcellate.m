@@ -20,6 +20,7 @@ function parcel = ft_sourceparcellate(cfg, source, parcellation)
 % The values within a parcel or parcel-combination can be combined using
 % the following methods:
 %   'mean'      compute the mean
+%   'median'    compute the median (unsupported for fields that are represented in a cell-array)
 %   'eig'       compute the largest eigenvector
 %   'min'       take the minimal value
 %   'max'       take the maximal value
@@ -55,6 +56,11 @@ ft_preamble trackconfig
 ft_preamble debug
 ft_preamble loadvar source
 
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
+
 % get the defaults
 cfg.parcellation = ft_getopt(cfg, 'parcellation');
 cfg.parameter    = ft_getopt(cfg, 'parameter', 'all');
@@ -77,6 +83,11 @@ parcellation = ft_checkdata(parcellation, 'datatype', 'parcellation', 'parcellat
 % ensure it is a source, not a volume
 source       = ft_checkdata(source, 'datatype', 'source', 'inside', 'logical', 'sourcerepresentation', 'new');
 
+% ensure that the source and the parcellation are anatomically consistent
+if ~isequal(source.pos, parcellation.pos)
+  error('the source positions are not consistent with the parcellation, please use FT_SOURCEINTERPOLATE');
+end
+
 if isempty(cfg.parcellation)
   % determine the first field that can be used for the parcellation
   fn = fieldnames(parcellation);
@@ -93,51 +104,14 @@ if isempty(cfg.parcellation)
   error('you should specify the field containing the parcellation');
 end
 
-if isfield(source, 'dimord')
-  % determine the size of fields that are consistent with the general dimord
-  tok = tokenize(source.dimord, '_');
-  siz = nan(size(tok));
-  for i=1:length(tok)
-    switch tok{i}
-      case 'pos'
-        siz(i) = size(source.pos,1);
-      case 'time'
-        siz(i) = length(source.time);
-      case 'freq'
-        siz(i) = length(source.freq);
-      otherwise
-        error('cannot determine the dimensions for "%s"', tok{i});
-    end % switch
-  end
-  if numel(siz)==1
-    % the size function always returns 2 or more elements
-    siz(2) = 1;
-  end
-else
-  % this will cause a failure further down in the code
-  siz = nan;
-end
-
-fn     = fieldnames(source);
-sel    = false(size(fn));
+% determine the fields and corresponding dimords to work on
+fn = fieldnames(source);
+fn = setdiff(fn, {'pos', 'tri', 'inside', 'outside', 'time', 'freq', 'dim', 'transform', 'unit', 'coordsys', 'cfg'}); % remove fields that do not represent the data
+fn = fn(cellfun(@isempty, regexp(fn, 'dimord'))); % remove dimord fields
 dimord = cell(size(fn));
 for i=1:numel(fn)
-  tmp = source.(fn{i});
-  if isfield(source, [fn{i} 'dimord'])
-    sel(i)    = true;
-    dimord{i} = source.([fn{i} 'dimord']); % a specific dimord
-  elseif iscell(tmp) && numel(tmp)==size(source.pos,1)
-    sel(i)    = true;
-    dimord{i} = '{pos}';
-  elseif ~iscell(tmp) && isequal(size(tmp), siz)
-    sel(i)    = true;
-    dimord{i} = source.dimord; % the general dimord
-  end
+  dimord{i} = getdimord(source, fn{i});
 end
-
-% these two will now contain the fields and corresponding dimord to work on
-fn     = fn(sel);
-dimord = dimord(sel);
 
 if any(strcmp(cfg.parameter, 'all'))
   cfg.parameter = fn;
@@ -168,7 +142,6 @@ nseg     = length(seglabel);
 
 if isfield(source, 'inside')
   % determine the conjunction of the parcellation and the inside source points
-  % points that are
   n0 = numel(source.inside);
   n1 = sum(source.inside(:));
   n2 = sum(seg(:)~=0);
@@ -207,6 +180,8 @@ for i=1:numel(fn)
         switch cfg.method
           case 'mean'
             tmp{j1,j2} = cellmean2(dat(seg==j1,seg==j2,:));
+          case 'median'
+            error('taking the median from data in a cell-array is not yet implemented');
           case 'min'
             tmp{j1,j2} = cellmin2(dat(seg==j1,seg==j2,:));
           case 'max'
@@ -229,6 +204,8 @@ for i=1:numel(fn)
       switch cfg.method
         case 'mean'
           tmp{j} = cellmean1(dat(seg==j));
+        case 'median'
+          error('taking the median from data in a cell-array is not yet implemented');
         case 'min'
           tmp{j} = cellmin1(dat(seg==j));
         case 'max'
@@ -253,10 +230,12 @@ for i=1:numel(fn)
     for j1=1:numel(seglabel)
       for j2=1:numel(seglabel)
         k = k + 1;
-        ft_progress(k/K, 'computing parcellation for parameter %s combined with %s', seglabel{j1}, seglabel{j2});
+        ft_progress(k/K, 'computing parcellation for %s combined with %s', seglabel{j1}, seglabel{j2});
         switch cfg.method
           case 'mean'
             tmp(j1,j2,:) = arraymean2(dat(seg==j1,seg==j2,:));
+          case 'median'
+            tmp(j1,j2,:) = arraymedian2(dat(seg==j1,seg==j2,:));
           case 'min'
             tmp(j1,j2,:) = arraymin2(dat(seg==j1,seg==j2,:));
           case 'max'
@@ -281,6 +260,20 @@ for i=1:numel(fn)
       switch cfg.method
         case 'mean'
           tmp(j,:) = arraymean1(dat(seg==j,:));
+        case 'mean_thresholded'
+          cfg.mean = ft_getopt(cfg, 'mean', struct('threshold', []));
+          if isempty(cfg.mean.threshold),
+            error('when cfg.method = ''mean_thresholded'', you should specify a cfg.mean.threshold');
+          end
+          if numel(cfg.mean.threshold)==size(dat,1)
+            % assume one threshold per vertex
+            threshold = cfg.mean.threshold(seg==j,:);
+          else
+            threshold = cfg.mean.threshold;
+          end
+          tmp(j,:) = arraymean1(dat(seg==j,:), threshold); 
+        case 'median'
+          tmp(j,:) = arraymedian1(dat(seg==j,:));
         case 'min'
           tmp(j,:) = arraymin1(dat(seg==j,:));
         case 'max'
@@ -326,8 +319,27 @@ ft_postamble savevar parcel
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SUBFUNCTIONS to complute something over the first dimension
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function y = arraymean1(x)
-y = mean(x,1);
+function y = arraymean1(x, threshold)
+
+if nargin==1
+  y = mean(x,1);
+else
+  if numel(threshold)==1
+    % scalar comparison is possible
+  elseif size(threshold,1) == size(x,1)
+    % assume threshold to be column vector
+    threshold = repmat(threshold, [1, size(x,2)]);
+  end
+  sel = sum(x>threshold,2);
+  if ~isempty(sel)
+    y   = mean(x(sel>0,:),1);
+  else
+    y   = nan+zeros(1,size(x,2));
+  end
+end
+
+function y = arraymedian1(x)
+y = median(x,1);
 
 function y = arraymin1(x)
 y = min(x,[], 1);
@@ -349,6 +361,11 @@ function y = arraymean2(x)
 siz = size(x);
 x = reshape(x, [siz(1)*siz(2) siz(3:end) 1]); % simplify it into a single dimension
 y = arraymean1(x);
+
+function y = arraymedian2(x)
+siz = size(x);
+x = reshape(x, [siz(1)*siz(2) siz(3:end) 1]); % simplify it into a single dimension
+y = arraymedian1(x);
 
 function y = arraymin2(x)
 siz = size(x);

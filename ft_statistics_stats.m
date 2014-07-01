@@ -15,7 +15,7 @@ function [stat, cfg] = ft_statistics_stats(cfg, dat, design)
 % FT_FREQGRANDAVERAGE or FT_SOURCEGRANDAVERAGE respectively and with
 % cfg.method = 'montecarlo'
 %
-%  This function uses the Matlab statistics toolbox to perform various
+%  This function uses the MATLAB statistics toolbox to perform various
 %  statistical tests on timelock, frequency or source data. Supported
 %  configuration options are
 %   cfg.alpha     = number, critical value for rejecting the null-hypothesis (default = 0.05)
@@ -82,6 +82,7 @@ case {'ttest', 'ttest_samples_vs_const'}
 
   h = zeros(Nobs, 1);
   p = zeros(Nobs, 1);
+  s = zeros(Nobs, 1);
   ci = zeros(Nobs, 2);
   fprintf('number of observations %d\n', Nobs);
   fprintf('number of replications %d\n', Nrepl);
@@ -89,7 +90,8 @@ case {'ttest', 'ttest_samples_vs_const'}
   ft_progress('init', cfg.feedback);
   for chan = 1:Nobs
     ft_progress(chan/Nobs, 'Processing observation %d/%d\n', chan, Nobs);
-    [h(chan), p(chan), ci(chan, :)] = ttest(dat(chan, :), cfg.constantvalue, cfg.alpha, cfg.tail);
+    [h(chan), p(chan), ci(chan, :), stats] = ttest(dat(chan, :), cfg.constantvalue, cfg.alpha, cfg.tail);
+    s(chan) = stats.tstat;
   end
   ft_progress('close');
 
@@ -114,6 +116,7 @@ case {'ttest2', 'ttest_2samples_by_timepoint'}
 
   h = zeros(Nobs, 1);
   p = zeros(Nobs, 1);
+  s = zeros(Nobs, 1);
   ci = zeros(Nobs, 2);
   fprintf('number of observations %d\n', Nobs);
   fprintf('number of replications %d and %d\n', Nrepl(1), Nrepl(2));
@@ -150,6 +153,7 @@ case {'paired-ttest'}
 
   h = zeros(Nobs, 1);
   p = zeros(Nobs, 1);
+  s = zeros(Nobs, 1);
   ci = zeros(Nobs, 2);
   fprintf('number of observations %d\n', Nobs);
   fprintf('number of replications %d and %d\n', Nrepl(1), Nrepl(2));
@@ -157,7 +161,8 @@ case {'paired-ttest'}
   ft_progress('init', cfg.feedback);
   for chan = 1:Nobs
     ft_progress(chan/Nobs, 'Processing observation %d/%d\n', chan, Nobs);
-    [h(chan), p(chan), ci(chan, :)] = ttest(dat(chan, selA)-dat(chan, selB), 0, cfg.alpha, cfg.tail);
+    [h(chan), p(chan), ci(chan, :), stats] = ttest(dat(chan, selA)-dat(chan, selB), 0, cfg.alpha, cfg.tail);
+    s(chan) = stats.tstat;
   end
   ft_progress('close');
 
@@ -173,7 +178,6 @@ case {'anova1'}
 
   h = zeros(Nobs, 1);
   p = zeros(Nobs, 1);
-  ci = zeros(Nobs, 2);
   fprintf('number of observations %d\n', Nobs);
   fprintf('number of replications %d\n', Nrepl);
   fprintf('number of levels %d\n', Ncond);
@@ -197,7 +201,6 @@ case {'kruskalwallis'}
 
   h = zeros(Nobs, 1);
   p = zeros(Nobs, 1);
-  ci = zeros(Nobs, 2);
   fprintf('number of observations %d\n', Nobs);
   fprintf('number of replications %d\n', Nrepl);
   fprintf('number of levels %d\n', Ncond);

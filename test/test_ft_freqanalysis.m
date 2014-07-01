@@ -1,5 +1,8 @@
 function test_ft_freqanalysis(datainfo, writeflag, version)
 
+% MEM 3250mb
+% WALLTIME 00:30:00
+
 % TEST test_ft_freqanalysis 
 % TEST ft_freqanalysis ref_datasets
 
@@ -28,9 +31,9 @@ for k = 1:numel(datainfo)
   datanew = rmfield(datanew, 'cfg'); % these are per construction different if writeflag = 0;
   freq    = rmfield(freq,    'cfg');
   
-  [ok,msg] = identical(freq, datanew,'reltol',eps*1e6);
+  [ok,msg] = identical(freq, datanew,'reltol',1e-6);
   if ~ok
-    error('stored and computed data not identical: %s', msg);
+    error('stored and computed data not identical: %s', msg{:});
   end
 end
 
@@ -48,7 +51,7 @@ for k = 1:numel(datainfo)
   
   [ok,msg] = identical(freq, datanew,'reltol',eps*1e6);
   if ~ok
-    error('stored and computed data not identical: %s', msg);
+    error('stored and computed data not identical: %s', msg{:});
   end
 end
 

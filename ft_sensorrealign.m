@@ -19,12 +19,6 @@ function [elec_realigned] = ft_sensorrealign(cfg, elec_original)
 % non-linear search to minimize the distance between the input sensor
 % positions and the corresponding template sensors.
 %
-% HEADSHAPE - You can apply a spatial transformation/deformation that
-% automatically minimizes the distance between the electrodes and the head
-% surface. The warping methods use a non-linear search to minimize the
-% distance between the input sensor positions and the projection of the
-% electrodes on the head surface.
-%
 % INTERACTIVE - You can display the skin surface together with the
 % electrode or gradiometer positions, and manually (using the graphical
 % user interface) adjust the rotation, translation and scaling parameters,
@@ -32,6 +26,12 @@ function [elec_realigned] = ft_sensorrealign(cfg, elec_original)
 %
 % MANUAL - You can display the skin surface and manually determine the
 % electrode positions by clicking on the skin surface.
+%
+% HEADSHAPE - You can apply a spatial transformation/deformation that
+% automatically minimizes the distance between the electrodes and the head
+% surface. The warping methods use a non-linear search to minimize the
+% distance between the input sensor positions and the projection of the
+% electrodes on the head surface.
 %
 % Use as
 %   [sensor] = ft_sensorrealign(cfg) or
@@ -43,9 +43,9 @@ function [elec_realigned] = ft_sensorrealign(cfg, elec_original)
 %   cfg.method         = string representing the method for aligning or placing the electrodes
 %                        'fiducial'        realign using three fiducials (e.g. NAS, LPA and RPA)
 %                        'template'        realign the sensors to match a template set
-%                        'headshape'       realign the sensors to fit the head surface
 %                        'interactive'     realign manually using a graphical user interface
 %                        'manual'          manual positioning of the electrodes by clicking in a graphical user interface
+%                        'headshape'       realign the sensors to fit the head surface
 %   cfg.warp          = string describing the spatial transformation for the template method
 %                        'rigidbody'       apply a rigid-body warp (default)
 %                        'globalrescale'   apply a rigid-body warp with global rescaling
@@ -121,6 +121,11 @@ ft_preamble provenance
 ft_preamble trackconfig
 ft_preamble debug
 
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
+
 % the interactive method uses a global variable to get the data from the figure when it is closed
 global norm
 
@@ -176,13 +181,15 @@ end % switch cfg.method
 if nargin==1
   try % try to get the description from the cfg
     elec_original = ft_fetch_sens(cfg);
-  catch lasterr
+  catch
+    % the "catch me" syntax is broken on MATLAB74, this fixes it
+    me = lasterror;
     % start with an empty set of electrodes, this is useful for manual positioning
     elec_original = [];
     elec_original.pnt    = zeros(0,3);
     elec_original.label  = cell(0,1);
     elec_original.unit   = 'mm';
-    warning(lasterr.message, lasterr.identifier);
+    warning(me.message, me.identifier);
   end
 elseif nargin>1
   % the input electrodes were specified as second input argument
@@ -303,7 +310,7 @@ if strcmp(cfg.method, 'template')
   average = ft_average_sens(template);
   
   fprintf('warping electrodes to average template... '); % the newline comes later
-  [norm.chanpos, norm.m] = warp_optim(elec.chanpos, average.chanpos, cfg.warp);
+  [norm.chanpos, norm.m] = ft_warp_optim(elec.chanpos, average.chanpos, cfg.warp);
   norm.label = elec.label;
   
   dpre  = mean(sqrt(sum((average.chanpos - elec.chanpos).^2, 2)));
@@ -338,11 +345,11 @@ elseif strcmp(cfg.method, 'headshape')
   elec.chanpos = elec.chanpos(datsel,:);
   
   fprintf('warping electrodes to skin surface... '); % the newline comes later
-  [norm.chanpos, norm.m] = warp_optim(elec.chanpos, headshape, cfg.warp);
+  [norm.chanpos, norm.m] = ft_warp_optim(elec.chanpos, headshape, cfg.warp);
   norm.label = elec.label;
   
-  dpre  = warp_error([],     elec.chanpos, headshape, cfg.warp);
-  dpost = warp_error(norm.m, elec.chanpos, headshape, cfg.warp);
+  dpre  = ft_warp_error([],     elec.chanpos, headshape, cfg.warp);
+  dpost = ft_warp_error(norm.m, elec.chanpos, headshape, cfg.warp);
   fprintf('mean distance prior to warping %f, after warping %f\n', dpre, dpost);
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -423,14 +430,14 @@ elseif strcmp(cfg.method, 'fiducial')
   templ_rpa = mean(templ_rpa,1);
   
   % realign both to a common coordinate system
-  elec2common  = headcoordinates(elec_nas, elec_lpa, elec_rpa);
-  templ2common = headcoordinates(templ_nas, templ_lpa, templ_rpa);
+  elec2common  = ft_headcoordinates(elec_nas, elec_lpa, elec_rpa);
+  templ2common = ft_headcoordinates(templ_nas, templ_lpa, templ_rpa);
   
   % compute the combined transform and realign the electrodes to the template
-  norm       = [];
-  norm.m     = elec2common * inv(templ2common);
-  norm.chanpos   = warp_apply(norm.m, elec.chanpos, 'homogeneous');
-  norm.label = elec.label;
+  norm         = [];
+  norm.m       = elec2common * inv(templ2common);
+  norm.chanpos = ft_warp_apply(norm.m, elec.chanpos, 'homogeneous');
+  norm.label   = elec.label;
   
   nas_indx = match_str(lower(elec.label), lower(cfg.fiducial{1}));
   lpa_indx = match_str(lower(elec.label), lower(cfg.fiducial{2}));
@@ -537,7 +544,7 @@ switch cfg.method
     catch
       % the previous section will fail for nonlinear transformations
       elec_realigned.label   = elec_original.label;
-      elec_realigned.chanpos = warp_apply(norm.m, elec_original.chanpos, cfg.warp);
+      elec_realigned.chanpos = ft_warp_apply(norm.m, elec_original.chanpos, cfg.warp);
     end
     % remember the transformation
     elec_realigned.(cfg.warp) = norm.m;

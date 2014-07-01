@@ -33,10 +33,14 @@ function [type, dimord] = ft_datatype(data, desired)
 %
 % $Id$
 
+if nargin<2
+  desired = [];
+end
+
 % determine the type of input data, this can be raw, freq, timelock, comp, spike, source, volume, dip, segmentation, parcellation
 israw          =  isfield(data, 'label') && isfield(data, 'time') && isa(data.time, 'cell') && isfield(data, 'trial') && isa(data.trial, 'cell') && ~isfield(data,'trialtime');
 isfreq         = (isfield(data, 'label') || isfield(data, 'labelcmb')) && isfield(data, 'freq') && ~isfield(data,'trialtime') && ~isfield(data,'origtrial'); %&& (isfield(data, 'powspctrm') || isfield(data, 'crsspctrm') || isfield(data, 'cohspctrm') || isfield(data, 'fourierspctrm') || isfield(data, 'powcovspctrm'));
-istimelock     =  isfield(data, 'label') && isfield(data, 'time') && ~isfield(data, 'freq') && ~isfield(data,'trialtime'); %&& ((isfield(data, 'avg') && isnumeric(data.avg)) || (isfield(data, 'trial') && isnumeric(data.trial) || (isfield(data, 'cov') && isnumeric(data.cov))));
+istimelock     =  isfield(data, 'label') && isfield(data, 'time') && ~isfield(data, 'freq') && ~isfield(data,'timestamp') && ~isfield(data,'trialtime') && ~(isfield(data, 'trial') && iscell(data.trial)); %&& ((isfield(data, 'avg') && isnumeric(data.avg)) || (isfield(data, 'trial') && isnumeric(data.trial) || (isfield(data, 'cov') && isnumeric(data.cov))));
 iscomp         =  isfield(data, 'label') && isfield(data, 'topo') || isfield(data, 'topolabel');
 isvolume       =  isfield(data, 'transform') && isfield(data, 'dim');
 issource       =  isfield(data, 'pos');
@@ -48,7 +52,7 @@ issegmentation = check_segmentation(data);
 isparcellation = check_parcellation(data);
 
 if ~isfreq
-  % this applies to a ferq structure from 2003 up to early 2006
+  % this applies to a freq structure from 2003 up to early 2006
   isfreq = all(isfield(data, {'foi', 'label', 'dimord'})) && ~isempty(strfind(data.dimord, 'frq'));
 end
 
@@ -59,14 +63,21 @@ spk_hasorig       = isfield(data,'origtrial') && isfield(data,'origtime'); % for
 isspike           = isfield(data, 'label') && (spk_hastimestamp || spk_hastrials || spk_hasorig);
 
 % check if it is a sensor array
-isgrad = isfield(data, 'label') && isfield(data, 'coilpos') && isfield(data, 'chanpos') && isfield(data, 'coilori');
-iselec = isfield(data, 'label') && isfield(data, 'elecpos') && isfield(data, 'chanpos');
+isgrad = isfield(data, 'label') && isfield(data, 'coilpos') && isfield(data, 'coilori');
+iselec = isfield(data, 'label') && isfield(data, 'elecpos');
 
-if iscomp
-  % comp should conditionally go before raw, otherwise the returned ft_datatype will be raw
-  type = 'comp';
+if isspike
+  type = 'spike';
+elseif israw && iscomp
+  type = 'raw+comp';
+elseif istimelock && iscomp
+  type = 'timelock+comp';
+elseif isfreq && iscomp
+    type = 'freq+comp';
 elseif israw
   type = 'raw';
+elseif iscomp
+  type = 'comp';
 elseif isfreqmvar
   % freqmvar should conditionally go before freq, otherwise the returned ft_datatype will be freq in the case of frequency mvar data
   type = 'freqmvar';
@@ -79,8 +90,6 @@ elseif isdip
   type = 'dip';
 elseif istimelock
   type = 'timelock';
-elseif isspike
-  type = 'spike';
 elseif issegmentation
   % a segmentation data structure is a volume data structure, but in general not vice versa
   % segmentation should conditionally go before volume, otherwise the returned ft_datatype will be volume
@@ -108,7 +117,13 @@ if nargin>1
   % return a boolean value
   switch desired
     case 'raw'
-      type = any(strcmp(type, {'raw', 'comp'}));
+      type = any(strcmp(type, {'raw', 'raw+comp'}));
+    case 'timelock'
+      type = any(strcmp(type, {'timelock', 'timelock+comp'}));
+    case 'freq'
+      type = any(strcmp(type, {'freq', 'freq+comp'}));
+    case 'comp'
+      type = any(strcmp(type, {'comp', 'raw+comp', 'timelock+comp', 'freq+comp'}));
     case 'volume'
       type = any(strcmp(type, {'volume', 'segmentation'}));
     case 'source'
@@ -121,6 +136,7 @@ if nargin>1
 end
 
 if nargout>1
+  % FIXME this should be replaced with getdimord in the calling code
   % also return the dimord of the input data
   if isfield(data, 'dimord')
     dimord = data.dimord;
@@ -170,7 +186,6 @@ end
 if ~isempty(isboolean)
   res = all(isboolean);
 end
-
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

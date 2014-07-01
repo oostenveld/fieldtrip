@@ -14,17 +14,17 @@ function [norm] = ft_electroderealign(cfg)
 % Different methods for aligning the input electrodes to the subjects head
 % are implemented, which are described in detail below:
 %
+% FIDUCIAL - You can apply a rigid body realignment based on three fiducial
+% locations. Realigning using the fiducials only ensures that the fiducials
+% (typically nose, left and right ear) are along the same axes in the input
+% eectrode set as in the template electrode set.
+%
 % TEMPLATE - You can apply a spatial transformation/deformation that
 % automatically minimizes the distance between the electrodes and the
 % template or standard electrode set. The warping methods use a non-linear
 % search to minimize the error between the input electrodes and
 % corresponding template electrodes or between the input electrodes and a
 % head surface.
-%
-% FIDUCIAL - You can apply a rigid body realignment based on three fiducial
-% locations. Realigning using the fiducials only ensures that the fiducials
-% (typically nose, left and right ear) are along the same axes in the input
-% eectrode set as in the template electrode set.
 %
 % INTERACTIVE - You can display the skin surface together with the
 % electrode position, and manually (using the graphical user interface)
@@ -36,8 +36,8 @@ function [norm] = ft_electroderealign(cfg)
 %
 % The configuration can contain the following options
 %   cfg.method         = string representing the method for aligning or placing the electrodes
-%                        'template'        realign the electrodes to a template electrode set
 %                        'fiducial'        realign using the NAS, LPA and RPA fiducials
+%                        'template'        realign the electrodes to a template electrode set
 %                        'interactive'     realign manually using a graphical user interface
 %                        'manual'          manual positioning of the electrodes by clicking in a graphical user interface
 %   cfg.warp          = string describing the spatial transformation for the template method
@@ -115,6 +115,11 @@ ft_preamble provenance
 ft_preamble trackconfig
 ft_preamble debug
 
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
+
 % text output
 disp('Close the figure to output new sensor positions');
 
@@ -144,9 +149,9 @@ if nargin==1
   catch lasterr
     % start with an empty set of electrodes, this is useful for manual positioning
     elec = [];
-    elec.pnt    = zeros(0,3);
-    elec.label  = cell(0,1);
-    elec.unit   = 'mm';
+    elec.chanpos = zeros(0,3);
+    elec.label   = cell(0,1);
+    elec.unit    = 'mm';
     warning(lasterr.message, lasterr.identifier);
   end
 elseif nargin>1
@@ -158,8 +163,7 @@ elec = ft_convert_units(elec); % ensure that the units are specified
 elec = ft_datatype_sens(elec);
 
 % ensure that channel and electrode positions are the same
-assert(isequal(elec.elecpos,elec.chanpos),'This function requires same electrode and channel positions.'); 
-
+assert(isequalwithequalnans(elec.elecpos,elec.chanpos),'This function requires same electrode and channel positions.'); 
 
 usetemplate  = isfield(cfg, 'template')  && ~isempty(cfg.template);
 useheadshape = isfield(cfg, 'headshape') && ~isempty(cfg.headshape);
@@ -171,10 +175,10 @@ if usetemplate
   end
   Ntemplate = length(cfg.template);
   for i=1:Ntemplate
-    if isstruct(cfg.template{i})
-      template(i) = cfg.template{i};
-    else
+    if ischar(cfg.template{i})
       template(i) = ft_read_sens(cfg.template{i});
+    else
+      template(i) = cfg.template{i};
     end
   end
   
@@ -274,7 +278,7 @@ if strcmp(cfg.method, 'template') && usetemplate
   stderr = std(all, [], 3);
   
   fprintf('warping electrodes to template... '); % the newline comes later
-  [norm.chanpos, norm.m] = warp_optim(elec.chanpos, avg, cfg.warp);
+  [norm.chanpos, norm.m] = ft_warp_optim(elec.chanpos, avg, cfg.warp);
   norm.label = elec.label;
   
   dpre  = mean(sqrt(sum((avg - elec.chanpos).^2, 2)));
@@ -327,11 +331,11 @@ elseif strcmp(cfg.method, 'template') && useheadshape
   elec.chanpos   = elec.chanpos(datsel,:);
   
   fprintf('warping electrodes to head shape... '); % the newline comes later
-  [norm.chanpos, norm.m] = warp_optim(elec.chanpos, headshape, cfg.warp);
+  [norm.chanpos, norm.m] = ft_warp_optim(elec.chanpos, headshape, cfg.warp);
   norm.label = elec.label;
   
-  dpre  = warp_error([],     elec.chanpos, headshape, cfg.warp);
-  dpost = warp_error(norm.m, elec.chanpos, headshape, cfg.warp);
+  dpre  = ft_warp_error([],     elec.chanpos, headshape, cfg.warp);
+  dpost = ft_warp_error(norm.m, elec.chanpos, headshape, cfg.warp);
   fprintf('mean distance prior to warping %f, after warping %f\n', dpre, dpost);
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -400,14 +404,14 @@ elseif strcmp(cfg.method, 'fiducial')
   templ_rpa = mean(templ_rpa,1);
   
   % realign both to a common coordinate system
-  elec2common  = headcoordinates(elec_nas, elec_lpa, elec_rpa);
-  templ2common = headcoordinates(templ_nas, templ_lpa, templ_rpa);
+  elec2common  = ft_headcoordinates(elec_nas, elec_lpa, elec_rpa);
+  templ2common = ft_headcoordinates(templ_nas, templ_lpa, templ_rpa);
   
   % compute the combined transform and realign the electrodes to the template
-  norm       = [];
-  norm.m     = elec2common * inv(templ2common);
-  norm.chanpos   = warp_apply(norm.m, elec.chanpos, 'homogeneous');
-  norm.label = elec.label;
+  norm         = [];
+  norm.m       = elec2common * inv(templ2common);
+  norm.chanpos = ft_warp_apply(norm.m, elec.chanpos, 'homogeneous');
+  norm.label   = elec.label;
   
   nas_indx = match_str(lower(elec.label), lower(cfg.fiducial{1}));
   lpa_indx = match_str(lower(elec.label), lower(cfg.fiducial{2}));
@@ -497,10 +501,10 @@ end
 % electrode and channel positions
 switch cfg.method
   case 'template'
-    norm.chanpos   = warp_apply(norm.m, orig.chanpos, cfg.warp);
+    norm.chanpos   = ft_warp_apply(norm.m, orig.chanpos, cfg.warp);
     norm.elecpos   = norm.chanpos;
   case {'fiducial' 'interactive'}
-    norm.chanpos   = warp_apply(norm.m, orig.chanpos);
+    norm.chanpos   = ft_warp_apply(norm.m, orig.chanpos);
     norm.elecpos   = norm.chanpos;
   case 'manual'
     % the positions are already assigned in correspondence with the mesh
@@ -514,6 +518,7 @@ if isfield(orig, 'label')
   norm.label = orig.label;
 end
 
+% update it to the latest version
 norm = ft_datatype_sens(norm);
 
 % do the general cleanup and bookkeeping at the end of the function
@@ -536,7 +541,7 @@ for i=1:size(xyzB,1)
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function cb_creategui(hObject, eventdata, handles);
+function cb_creategui(hObject, eventdata, handles)
 % define the position of each GUI element
 fig = get(hObject, 'parent');
 % constants
@@ -591,7 +596,7 @@ ft_uilayout(fig, 'tag', 'alphaui', 'BackgroundColor', [0.8 0.8 0.8], 'width', 3*
 ft_uilayout(fig, 'tag', 'alpha',   'BackgroundColor', [0.8 0.8 0.8], 'width', 3*CONTROL_WIDTH, 'height', CONTROL_HEIGHT/2, 'vpos', CONTROL_VOFFSET-7*CONTROL_HEIGHT, 'hpos', CONTROL_HOFFSET+3*CONTROL_WIDTH);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function cb_redraw(hObject, eventdata, handles);
+function cb_redraw(hObject, eventdata, handles)
 fig = get(hObject, 'parent');
 headshape = getappdata(fig, 'headshape');
 bnd.pnt = headshape.pnt; %ft_plot_mesh wants headshape in bnd fields
@@ -662,7 +667,7 @@ hold on
 ft_plot_sens(elec,'label',cfg.label);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function cb_apply(hObject, eventdata, handles);
+function cb_apply(hObject, eventdata, handles)
 fig = get(hObject, 'parent');
 elec      = getappdata(fig, 'elec');
 transform = getappdata(fig, 'transform');
@@ -696,7 +701,7 @@ setappdata(fig, 'transform', transform);
 cb_redraw(hObject);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function cb_close(hObject, eventdata, handles);
+function cb_close(hObject, eventdata, handles)
 % make the current transformation permanent and subsequently allow deleting the figure
 cb_apply(gca);
 % get the updated electrode from the figure

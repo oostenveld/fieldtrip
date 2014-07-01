@@ -27,7 +27,7 @@ function [stat] = ft_freqstatistics(cfg, varargin)
 %   cfg.method       = different methods for calculating the significance probability and/or critical value
 %                    'montecarlo'    get Monte-Carlo estimates of the significance probabilities and/or critical values from the permutation distribution,
 %                    'analytic'      get significance probabilities and/or critical values from the analytic reference distribution (typically, the sampling distribution under the null hypothesis),
-%                    'stats'         use a parametric test from the Matlab statistics toolbox,
+%                    'stats'         use a parametric test from the MATLAB statistics toolbox,
 %                    'crossvalidate' use crossvalidation to compute predictive performance
 %
 %   cfg.design       = Nxnumobservations: design matrix (for examples/advice, please see the Fieldtrip wiki,
@@ -80,6 +80,11 @@ ft_preamble provenance
 ft_preamble trackconfig
 ft_preamble debug
 ft_preamble loadvar varargin
+
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
 
 % check if the input cfg is valid for this function
 cfg = ft_checkconfig(cfg, 'renamed',     {'approach',   'method'});
@@ -221,37 +226,26 @@ if ~ischar(cfg.trials)
   end
 end
 
+% concatenate into one data structure
+data = ft_appendfreq(cfg, varargin{:});
+
 % intersect the data and combine it into one structure
 tmpcfg = [];
-tmpcfg.parameter = cfg.parameter;
+tmpcfg.parameter  = cfg.parameter;
+tmpcfg.avgoverrpt = false;
+tmpcfg.frequency  = cfg.frequency;
+tmpcfg.avgoverfreq = cfg.avgoverfreq;
 
+% specify some additional stuff
 if hastime
-  if haschan
-    data = ft_appendfreq(cfg, varargin{:});
-    data =  ft_selectdata(data, 'param', cfg.parameter, 'avgoverrpt', false, ...
-      'toilim', cfg.latency, 'avgovertime', cfg.avgovertime, ...
-      'foilim',  cfg.frequency, 'avgoverfreq', cfg.avgoverfreq, ...
-      'channel', cfg.channel, 'avgoverchan', cfg.avgoverchan);
-  else
-    data = ft_appendfreq(cfg, varargin{:});
-    data =  ft_selectdata(data, 'param', cfg.parameter, 'avgoverrpt', false, ...
-    'toilim', cfg.latency, 'avgovertime', cfg.avgovertime, ...
-    'foilim',  cfg.frequency, 'avgoverfreq', cfg.avgoverfreq, ...
-    'avgoverchan', cfg.avgoverchan);
-  end
-else
-  if haschan
-    data = ft_appendfreq(cfg, varargin{:});
-    data =  ft_selectdata(data, 'param', cfg.parameter, 'avgoverrpt', false, ...
-      'foilim',  cfg.frequency, 'avgoverfreq', cfg.avgoverfreq, ...
-      'channel', cfg.channel, 'avgoverchan', cfg.avgoverchan);
-  else
-    data = ft_appendfreq(cfg, varargin{:});
-    data =  ft_selectdata(data, 'param', cfg.parameter, 'avgoverrpt', false, ...
-      'foilim',  cfg.frequency, 'avgoverfreq', cfg.avgoverfreq, ...
-      'avgoverchan', cfg.avgoverchan);
-  end
+  tmpcfg.latency     = cfg.latency;
+  tmpcfg.avgovertime = cfg.avgovertime;
+end  
+if haschan
+  tmpcfg.channel     = cfg.channel;
+  tmpcfg.avgoverchan = cfg.avgoverchan;
 end
+data = ft_selectdata(tmpcfg, data);
 
 % after the append step above, make sure cfg.channel is in the order of our
 % appended data structure (this is used by the lower-level functions to
@@ -292,6 +286,7 @@ for k = 1:numel(reduceddim)
   cfg.dimord = [cfg.dimord, '_', dimtok{reduceddim(k)}];
 end
 cfg.dimord = cfg.dimord(2:end); % store the dimord of the output in the cfg
+cfg.channel = data.label; % store the labels of the channels in the cfg
 
 if size(cfg.design,2)~=size(dat,2)
   error('the number of observations in the design does not match the number of observations in the data');
@@ -329,7 +324,7 @@ if isstruct(stat)
   statfield = fieldnames(stat);
 else
   % only the probability was returned as a single matrix, reformat into a structure
-  dum = stat; stat = []; % this prevents a Matlab warning that appears from release 7.0.4 onwards
+  dum = stat; stat = []; % this prevents a MATLAB warning that appears from release 7.0.4 onwards
   stat.prob = dum;
   statfield = fieldnames(stat);
 end

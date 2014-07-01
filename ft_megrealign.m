@@ -1,9 +1,9 @@
 function [data] = ft_megrealign(cfg, data)
 
-% FT_MEGREALIGN interpolates MEG data towards standard gradiometer locations
-% by projecting the individual timelocked data towards a coarse source
-% reconstructed representation and computing the magnetic field on
-% the standard gradiometer locations.
+% FT_MEGREALIGN interpolates MEG data towards standard gradiometer locations by
+% projecting the individual timelocked data towards a coarse source reconstructed
+% representation and computing the magnetic field on the standard gradiometer
+% locations.
 %
 % Use as
 %   [interp] = ft_megrealign(cfg, data)
@@ -73,7 +73,7 @@ function [data] = ft_megrealign(cfg, data)
 %
 % See also FT_PREPARE_LOCALSPHERES, FT_PREPARE_SINGLESHELL
 
-% Copyright (C) 2004-2007, Robert Oostenveld
+% Copyright (C) 2004-2014, Robert Oostenveld
 %
 % This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
 % for the documentation and details.
@@ -103,6 +103,11 @@ ft_preamble trackconfig
 ft_preamble debug
 ft_preamble loadvar data
 
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
+
 % check if the input cfg is valid for this function
 cfg = ft_checkconfig(cfg, 'renamed',     {'plot3d',      'feedback'});
 cfg = ft_checkconfig(cfg, 'renamedval',  {'headshape',   'headmodel', []});
@@ -128,7 +133,14 @@ data = ft_checkdata(data, 'datatype', 'raw', 'feedback', 'yes', 'hassampleinfo',
 pertrial = all(ismember({'nasX';'nasY';'nasZ';'lpaX';'lpaY';'lpaZ';'rpaX';'rpaY';'rpaZ'}, data.label));
 
 % put the low-level options pertaining to the dipole grid in their own field
+cfg = ft_checkconfig(cfg, 'renamed', {'tightgrid', 'tight'}); % this is moved to cfg.grid.tight by the subsequent createsubcfg
+cfg = ft_checkconfig(cfg, 'renamed', {'sourceunits', 'unit'}); % this is moved to cfg.grid.unit by the subsequent createsubcfg
 cfg = ft_checkconfig(cfg, 'createsubcfg',  {'grid'});
+
+if isstruct(cfg.template)
+  % this should be a cell-array
+  cfg.template = {cfg.template};
+end
 
 % select trials of interest
 if ~strcmp(cfg.trials, 'all')
@@ -227,13 +239,11 @@ tmpcfg.grad = data.grad;
 try, tmpcfg.grid        = cfg.grid;         end
 try, tmpcfg.mri         = cfg.mri;          end
 try, tmpcfg.headshape   = cfg.headshape;    end
-try, tmpcfg.tightgrid   = cfg.tightgrid;    end
 try, tmpcfg.symmetry    = cfg.symmetry;     end
 try, tmpcfg.smooth      = cfg.smooth;       end
 try, tmpcfg.threshold   = cfg.threshold;    end
 try, tmpcfg.spheremesh  = cfg.spheremesh;   end
 try, tmpcfg.inwardshift = cfg.inwardshift;  end
-try, tmpcfg.sourceunits = cfg.sourceunits;  end
 grid = ft_prepare_sourcemodel(tmpcfg);
 pos = grid.pos;
 
@@ -269,7 +279,7 @@ for i=1:Ntrials
       error('only one position per trial is at present allowed');
     else
       %M    = rigidbodyJM(hmdat(:,1))
-      M    = headcoordinates(hmdat(1:3,1),hmdat(4:6,1),hmdat(7:9,1));
+      M    = ft_headcoordinates(hmdat(1:3,1),hmdat(4:6,1),hmdat(7:9,1));
       grad = ft_transform_sens(M, data.grad);
     end
     

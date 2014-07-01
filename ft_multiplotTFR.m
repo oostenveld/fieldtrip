@@ -15,14 +15,14 @@ function [cfg] = ft_multiplotTFR(cfg, data)
 %   cfg.parameter        = field to be represented as color (default depends on data.dimord)
 %                          'powspctrm' or 'cohspctrm' 
 %   cfg.maskparameter    = field in the data to be used for opacity masking of data
-%   cfg.maskstyle        = style used to masking, 'opacity' or 'saturation' (default = 'opacity')
-%                          use 'saturation' when saving to vector-format (like *.eps) to avoid all 
+%   cfg.maskstyle        = style used to masking, 'opacity', 'saturation' or 'outline' (default = 'opacity')
+%                          use 'saturation' or 'outline' when saving to vector-format (like *.eps) to avoid all 
 %                          sorts of image-problems (currently only possible with a white backgroud)
 %   cfg.maskalpha        = alpha value between 0 (transparant) and 1 (opaque) used for masking areas dictated by cfg.maskparameter (default = 1)
 %   cfg.masknans         = 'yes' or 'no' (default = 'yes')
 %   cfg.xlim             = 'maxmin' or [xmin xmax] (default = 'maxmin')
 %   cfg.ylim             = 'maxmin' or [ymin ymax] (default = 'maxmin')
-%   cfg.zlim             = 'maxmin','maxabs' or [zmin zmax] (default = 'maxmin')
+%   cfg.zlim             = 'maxmin','maxabs', 'zeromin','zeromax', or [zmin zmax] (default = 'maxmin')
 %   cfg.gradscale        = number, scaling to apply to the MEG gradiometer channels prior to display
 %   cfg.magscale         = number, scaling to apply to the MEG magnetometer channels prior to display
 %   cfg.channel          = Nx1 cell-array with selection of channels (default = 'all'), see FT_CHANNELSELECTION for details
@@ -130,6 +130,11 @@ ft_preamble trackconfig
 ft_preamble debug
 ft_preamble loadvar data
 
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
+
 % check if the input data is valid for this function
 data = ft_checkdata(data, 'datatype', 'freq');
 
@@ -174,6 +179,11 @@ if ~isfield(cfg,'box')
     cfg.box = 'no';
   end
 end
+if numel(findobj(gcf, 'type', 'axes', '-not', 'tag', 'ft-colorbar')) > 1 && strcmp(cfg.interactive,'yes')
+  warning('using cfg.interactive = ''yes'' in subplots is not supported, setting cfg.interactive = ''no''')
+  cfg.interactive = 'no';
+end
+
 
 dimord = data.dimord;
 dimtok = tokenize(dimord, '_');
@@ -223,7 +233,7 @@ if hasrpt,
     tempdata.freq      = data.freq;
     tempdata.label     = data.label;
     tempdata.powspctrm = data.(cfg.parameter);
-    tempdata.cfg       = data.cfg;
+    if isfield(data, 'cfg') tempdata.cfg = data.cfg; end
     tempdata           = ft_freqdescriptives(tmpcfg, tempdata);
     data.(cfg.parameter)  = tempdata.powspctrm;
     clear tempdata
@@ -267,7 +277,7 @@ isfull  = length(selchan)>1;
 % Check for bivariate metric with a labelcmb
 haslabelcmb = isfield(data, 'labelcmb');
 
-if (isfull || haslabelcmb) && isfield(data, cfg.parameter)
+if (isfull || haslabelcmb) && (isfield(data, cfg.parameter) && ~strcmp(cfg.parameter, 'powspctrm'))
   % A reference channel is required:
   if ~isfield(cfg, 'refchannel')
     error('no reference channel is specified');
@@ -297,6 +307,7 @@ if (isfull || haslabelcmb) && isfield(data, cfg.parameter)
     info.x     = lay.pos(:,1);
     info.y     = lay.pos(:,2);
     info.label = lay.label;
+    info.dataname = '';
     guidata(h, info);
     %set(gcf, 'WindowButtonUpFcn', {@ft_select_channel, 'callback', {@select_topoplotER, cfg, data}});
     set(gcf, 'WindowButtonUpFcn',     {@ft_select_channel, 'multiple', true, 'callback', {@select_multiplotTFR, cfg, data}, 'event', 'WindowButtonUpFcn'});
@@ -324,7 +335,7 @@ if (isfull || haslabelcmb) && isfield(data, cfg.parameter)
     data.(cfg.parameter) = data.(cfg.parameter)([sel1;sel2],:,:);
     data.label     = [data.labelcmb(sel1,1);data.labelcmb(sel2,2)];
     data.labelcmb  = data.labelcmb([sel1;sel2],:);
-    data           = rmfield(data, 'labelcmb');
+    %data           = rmfield(data, 'labelcmb');
   else
     % General case
     sel               = match_str(data.label, cfg.refchannel);
@@ -489,6 +500,12 @@ if strcmp(cfg.zlim,'maxmin')
 elseif strcmp(cfg.zlim,'maxabs')
   zmin = -max(abs(datsel(:)));
   zmax = max(abs(datsel(:)));
+elseif strcmp(cfg.zlim,'zeromax')
+  zmin = 0;
+  zmax = max(datsel(:));
+elseif strcmp(cfg.zlim,'minzero')
+  zmin = min(datsel(:));
+  zmax = 0;
 else
   zmin = cfg.zlim(1);
   zmax = cfg.zlim(2);
@@ -497,7 +514,7 @@ end
 % set colormap
 if isfield(cfg,'colormap')
   if size(cfg.colormap,2)~=3, error('multiplotTFR(): Colormap must be a n x 3 matrix'); end
-  set(gca,'colormap',cfg.colormap);
+  set(gcf,'colormap',cfg.colormap);
 end;
 
 % Plot channels:
@@ -654,7 +671,8 @@ ft_postamble provenance
 ft_postamble previous data
 
 % add a menu to the figure
-% ftmenu = uicontextmenu; set(gcf, 'uicontextmenu', ftmenu)
+% also, delete any possibly existing previous menu, this is safe because delete([]) does nothing
+delete(findobj(gcf, 'type', 'uimenu', 'label', 'FieldTrip'));
 ftmenu = uimenu(gcf, 'Label', 'FieldTrip');
 uimenu(ftmenu, 'Label', 'Show pipeline',  'Callback', {@menu_pipeline, cfg});
 uimenu(ftmenu, 'Label', 'About',  'Callback', @menu_about);

@@ -45,6 +45,11 @@ ft_preamble provenance
 ft_preamble trackconfig
 ft_preamble debug
 
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
+
 isspike = zeros(size(varargin));
 for i=1:length(varargin)
   % this is a quick test, more rigourous checking is done later
@@ -54,6 +59,7 @@ end
 if all(isspike)
   spike = {};
   for i=1:length(varargin)
+    % check if the input data is valid for this function
     spike{i} = ft_checkdata(varargin{i}, 'datatype', 'spike');
   end
   
@@ -93,7 +99,12 @@ else
     error('not all channel labels are unique');
   end
   
-  trl = ft_findcfg(data.cfg, 'trl');
+  if isfield(data, 'cfg')
+    trl = ft_findcfg(data.cfg, 'trl');
+  else
+    trl = [];
+  end
+
   if isempty(trl);
     error('could not find the trial information in the continuous data');
   end

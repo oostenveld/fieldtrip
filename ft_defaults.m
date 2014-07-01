@@ -126,7 +126,7 @@ if ~isdeployed
   end
 
   try
-    % this directory contains various functions that were obtained from elsewere, e.g. Matlab file exchange
+    % this directory contains various functions that were obtained from elsewere, e.g. MATLAB file exchange
     ft_hastoolbox('fileexchange', 3, 1); % not required
   end
   
@@ -134,10 +134,13 @@ if ~isdeployed
     % this directory contains the backward compatibility wrappers for the ft_xxx function name change
     ft_hastoolbox('compat', 3, 1); % not required
   end
-  
+    
   try
-    % this directory contains the backward compatibility wrappers for the fieldtrip/utilities functions
-    ft_hastoolbox('utilities/compat', 3, 1);
+    % these directories contain functions that were added to MATLAB in
+    % recent versions to replace an older function.
+    if matlabversion(-Inf, '2011b')
+      ft_hastoolbox('compat/matlablt2012a', 2, 1);
+    end
   end
   
   try
@@ -163,19 +166,16 @@ if ~isdeployed
   try
     % this contains the low-level reading functions
     ft_hastoolbox('fileio', 1, 1);
-    ft_hastoolbox('fileio/compat', 3, 1); % not required
   end
   
   try
     % this is for filtering time-series data
     ft_hastoolbox('preproc', 1, 1);
-    ft_hastoolbox('preproc/compat', 3, 1); % not required
   end
   
   try
     % this contains forward models for the EEG and MEG volume conduction problem
     ft_hastoolbox('forward', 1, 1);
-    ft_hastoolbox('forward/compat', 3, 1); % not required
   end
   
   try
@@ -186,7 +186,6 @@ if ~isdeployed
   try
     % this contains intermediate-level plotting functions, e.g. multiplots and 3-d objects
     ft_hastoolbox('plotting', 1, 1);
-    ft_hastoolbox('plotting/compat', 1, 1);
   end
   
   try

@@ -1,6 +1,6 @@
 function str = printstruct(name, val)
 
-% PRINTSTRUCT converts a MATLAB structure int a multi-line string that can be
+% PRINTSTRUCT converts a MATLAB structure into a multi-line string that can be
 % interpreted by MATLAB, resulting in the original structure.
 %
 % Use as
@@ -44,6 +44,12 @@ function str = printstruct(name, val)
 if nargin==1
   val  = name;
   name = inputname(1);
+end
+
+if isa(val, 'config')
+  % this is fieldtrip specific: the @config object resembles a structure but tracks the
+  % access to each field.  In this case it is to be treated as a normal structure.
+  val = struct(val);
 end
 
 str = '';
@@ -103,21 +109,12 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function str = printcell(name, val)
-str = [];
 siz = size(val);
 if isempty(val)
   str = sprintf('%s = {};\n', name);
   return;
 end
-for i=1:prod(siz)
-  typ{i} = class(val{i});
-end
-for i=2:prod(siz)
-  if ~strcmp(typ{i}, typ{1})
-    warning('different elements in cell array');
-    % return
-  end
-end
+typ = cellfun(@class, val(:), 'UniformOutput', false);
 if all(size(val)==1)
   str = sprintf('%s = { %s };\n', name, printval(val{1}));
 else
@@ -140,8 +137,14 @@ if prod(siz)==0
   str = sprintf('%s = [];\n', name);
 elseif prod(siz)==1
   str = sprintf('%s = %s;\n', name, printval(val));
+elseif numel(siz)==2 && siz(1)==1
+    str = '';
+    for col=1:siz(2)
+      str = sprintf('%s %s', str, printval(val(1,col)));
+    end
+   str = sprintf('%s = [%s ];\n', name, str);
 elseif numel(siz)==2
-  str = sprintf('%s = [\n', name);
+    str = sprintf('%s = [\n', name);
   for row=1:siz(1)
     for col=1:siz(2)
       str = sprintf('%s %s', str, printval(val(row,col)));
@@ -155,7 +158,6 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function str = printstr(name, val)
-str = [];
 siz = size(val);
 if siz(1)>1
   str = sprintf('%s = \n', name);
@@ -177,7 +179,6 @@ str = str(1:end-1); % remove the last space
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function str = printval(val)
-str = '';
 siz = size(val);
 switch class(val)
   case 'char'
@@ -189,26 +190,38 @@ switch class(val)
     elseif all(siz==1)
       str = sprintf('%s', printbool(val));
     elseif length(siz)==2
+      str = [];
       for i=1:siz(1);
         str = [ str sprintf('%s ', printbool(val(i,:))) '; ' ];
       end
       str = sprintf('[ %s ]', str(1:end-3));
     else
-      error('multidimensional arrays are not supported');
+      warning('multidimensional arrays are not supported');
+      str = '''FIXME: printing multidimensional logical arrays is not supported''';
     end
     
   case {'single' 'double'}
     if all(siz==0)
       str = '[]';
     elseif all(siz==1)
-      str = sprintf('%g', val);
+      if isinteger(val)
+        str = sprintf('%d', val);
+      else
+        str = sprintf('%g', val);
+      end
     elseif length(siz)==2
+      str = [];
       for i=1:siz(1);
-        str = [ str sprintf('%g ', val(i,:)) '; ' ];
+        if all(isinteger(val(i,:)))
+          str = [ str sprintf('%d ', val(i,:)) '; ' ];
+        else
+          str = [ str sprintf('%g ', val(i,:)) '; ' ];
+        end
       end
       str = sprintf('[ %s ]', str(1:end-3));
     else
       warning('multidimensional arrays are not supported');
+      str = '''FIXME: printing multidimensional single and double arrays is supported''';
     end
     
   case {'int8' 'int16' 'int32' 'int64' 'uint8' 'uint16' 'uint32' 'uint64'}
@@ -216,12 +229,14 @@ switch class(val)
     if all(siz==1)
       str = sprintf('%d', val);
     elseif length(siz)==2
+      str = [];
       for i=1:siz(1);
         str = [ str sprintf('%d ', val(i,:)) '; ' ];
       end
       str = sprintf('[ %s ]', str(1:end-3));
     else
-      error('multidimensional arrays are not supported');
+      warning('multidimensional arrays are not supported');
+      str = '''FIXME: printing multidimensional int/uint arrays is not supported''';
     end
     
   case 'function_handle'
@@ -229,9 +244,15 @@ switch class(val)
     
   case 'struct'
     warning('cannot print structure at this level');
-    str = '''FIXME''';
+    str = '''FIXME: printing structures at this level is not supported''';
     
   otherwise
     warning('cannot print unknown object at this level');
-    str = '''FIXME''';
+    str = '''FIXME: printing unknown objects is not supported''';
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% helper function to determine whether a floating point value contains an integer number
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function y = isinteger(x)
+y = (x==round(x));

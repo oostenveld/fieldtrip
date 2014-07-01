@@ -23,7 +23,7 @@ function [cfg] = ft_topoplotER(cfg, varargin)
 %                            'maxmin' or [xmin xmax] (default = 'maxmin')
 %   cfg.ylim               = selection boundaries over second dimension in data (e.g., freq)
 %                            'maxmin' or [xmin xmax] (default = 'maxmin')
-%   cfg.zlim               = plotting limits for color dimension, 'maxmin', 'maxabs' or [zmin zmax] (default = 'maxmin')
+%   cfg.zlim               = plotting limits for color dimension, 'maxmin', 'maxabs', 'zeromax', 'minzero', or [zmin zmax] (default = 'maxmin')
 %   cfg.channel            = Nx1 cell-array with selection of channels (default = 'all'), see FT_CHANNELSELECTION for details
 %   cfg.refchannel         = name of reference channel for visualising connectivity, can be 'gui'
 %   cfg.baseline           = 'yes','no' or [time1 time2] (default = 'no'), see FT_TIMELOCKBASELINE or FT_FREQBASELINE
@@ -85,7 +85,7 @@ function [cfg] = ft_topoplotER(cfg, varargin)
 %   cfg.layout             = specify the channel layout for plotting using one of
 %                            the supported ways (see below).
 %   cfg.interpolatenan     = string 'yes', 'no' (default = 'yes')
-%                            interpolate over channels containing NaNs 
+%                            interpolate over channels containing NaNs
 %
 % For the plotting of directional connectivity data the cfg.directionality
 % option determines what is plotted. The default value and the supported
@@ -150,10 +150,15 @@ ft_defaults
 ft_preamble init
 ft_preamble provenance
 
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
+
 % this is just a wrapper function around the common code that does all the hard work
 % the reason for this wrapper function is to have a placeholder for ER-specific documentation
 
-if nargin > 1
+if nargin > 1 && ~isfield(cfg, 'dataname')
   cfg.dataname = {inputname(2)};
   for k = 3:nargin
     cfg.dataname{end+1} = inputname(k);
@@ -169,7 +174,7 @@ cfg.funcname = mfilename;
 cfg = topoplot_common(cfg, varargin{:});
 
 % remove it again
-cfg = rmfield(cfg, 'funcname');
+if isfield(cfg, 'funcname'), cfg = rmfield(cfg, 'funcname'); end
 
 % do the general cleanup and bookkeeping at the end of the function
 % this will replace the ft_topoplotTFR callinfo with that of ft_topoplotER

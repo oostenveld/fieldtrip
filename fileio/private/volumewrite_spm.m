@@ -8,8 +8,6 @@ function [Va] = volumewrite_spm(filename, data, transform, spmversion)
 
 % Copyright (C) 2006, Robert Oostenveld
 % Copyright (C) 2011, Jan-Mathijs Schoffelen
-%
-% Subversion does not use the Log keyword, use 'svn log <filename>' or 'svn -v log | less' to get detailled information
 
 if nargin<4,
     spmversion = 'SPM8';
@@ -90,7 +88,7 @@ switch lower(spmversion)
                 error('Invalid output dimensions');
         end
                                
-        Va = spm_vol(spm_select('ExtList', '.', N.dat.fname ,Inf));        
+        Va = spm_vol(N.dat.fname);        
     otherwise
         error('unsupported version of spm requested');
 end

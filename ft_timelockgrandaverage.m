@@ -25,6 +25,7 @@ function [grandavg] = ft_timelockgrandaverage(cfg, varargin)
 % average. This is useful when averaging across subjects. The
 % variance-field will contain the variance across the parameter of
 % interest, and the dof-field will contain the number of input arguments.
+%
 % If cfg.method = 'within', a weighted average is performed, i.e. the
 % requested parameter in each input argument is weighted according to the
 % dof-field. This is useful when averaging across blocks within subjects.
@@ -40,7 +41,7 @@ function [grandavg] = ft_timelockgrandaverage(cfg, varargin)
 % input/output structure. For this particular function, the input should be
 % structured as a cell array.
 %
-% See also FT_TIMELOCKANALYSIS, FT_TIMELOCKSTATISTICS
+% See also FT_TIMELOCKANALYSIS, FT_TIMELOCKSTATISTICS, FT_TIMELOCKBASELINE
 
 % Copyright (C) 2003-2006, Jens Schwarzbach
 % Copyright (C) 2013, Burkhard Maess
@@ -73,6 +74,11 @@ ft_preamble trackconfig
 ft_preamble debug
 ft_preamble loadvar varargin
 
+% the abort variable is set to true or false in ft_preamble_init
+if abort
+  return
+end
+
 % return immediately after distributed execution
 if ~isempty(ft_getopt(cfg, 'distribute'))
   return
@@ -102,7 +108,7 @@ Nsubj    = length(varargin);
 dimord   = varargin{1}.dimord;
 hastime  = ~isempty(strfind(varargin{1}.dimord, 'time'));
 hasrpt   = ~isempty(strfind(varargin{1}.dimord, 'rpt'));
-
+hasdof   = isfield(varargin{1}, 'dof');
 % check whether the input data is suitable
 if hasrpt
   fprintf('ignoring the single-subject repetition dimension\n');
@@ -142,6 +148,12 @@ for i=1:Nsubj
     timesel = nearest(varargin{i}.time, cfg.latency(1)):nearest(varargin{i}.time, cfg.latency(2));
     varargin{i}.time = varargin{i}.time(timesel);
   end
+  
+  if hasdof
+    timesel = nearest(varargin{i}.time, cfg.latency(1)):nearest(varargin{i}.time, cfg.latency(2));
+    varargin{i}.dof = varargin{i}.dof(chansel,timesel);
+  end
+  
   % select the overlapping samples in the data matrix
   switch dimord
     case 'chan'
@@ -152,15 +164,15 @@ for i=1:Nsubj
       varargin{i}.(cfg.parameter) = varargin{i}.(cfg.parameter)(chansel);
       varargin{i}.dimord = 'chan';
     case {'rpt_chan_time' 'subj_chan_time'}
-      varargin{i}.(cfg.parameter) = varargin{i}.(cfg.parameter)(chansel,timesel);
-      varargin{i}.dimord = 'chan_time';
+      varargin{i}.(cfg.parameter) = varargin{i}.(cfg.parameter)(:,chansel,timesel);
+      varargin{i}.dimord = 'rpt_chan_time';
     otherwise
       error('unsupported dimord');
   end
 end % for i = subject
 
 % determine the size of the data to be averaged
-%dim = cell(1,numel(cfg.parameter));
+% dim = cell(1,numel(cfg.parameter));
 dim{1} = size(varargin{1}.(cfg.parameter));
 
 % give some feedback on the screen
@@ -176,38 +188,43 @@ end
 
 % allocate memory to hold the data and collect it
 avgmat = zeros([Nsubj, dim{1}]);
+
 if strcmp(cfg.keepindividual, 'yes')
   for s=1:Nsubj
     avgmat(s, :, :) = varargin{s}.(cfg.parameter);
   end
   grandavg.individual = avgmat;         % Nsubj x Nchan x Nsamples
+
 else % ~strcmp(cfg.keepindividual, 'yes')
   avgdof  = ones([Nsubj, dim{1}]);
   avgvar  = zeros([Nsubj, dim{1}]);
   for s=1:Nsubj
-    if strcmp(cfg.method, 'across')
-      avgmat(s, :, :) = varargin{s}.(cfg.parameter);
-      avgvar(s, :, :) = varargin{s}.(cfg.parameter) .^2;     % preparing the computation of the variance
-    else % cfg.method = 'within'
-      avgmat(s, :, :) = varargin{s}.(cfg.parameter).*varargin{s}.dof;
-      avgdof(s, :, :) = varargin{s}.dof;
-      if min(varargin{s}.dof(:))>1 % otherwise the variance is not valid
-        avgvar(s, :, :) = (varargin{s}.(cfg.parameter).^2).*varargin{s}.dof;
-        % avgvar(s, :, :) = varargin{s}.var .* (varargin{s}.dof-1); % reversing the last div in ft_timelockanalysis
-      else
-        avgvar(s, :, :) = zeros([dim{1}]); % shall we remove the .var field from the structure under these conditions ?
-      end
-    end
+    switch cfg.method
+      case 'across'
+        avgmat(s, :, :, :) = varargin{s}.(cfg.parameter);
+        avgvar(s, :, :, :) = varargin{s}.(cfg.parameter) .^2;     % preparing the computation of the variance
+      case 'within'
+        avgmat(s, :, :, :) = varargin{s}.(cfg.parameter).*varargin{s}.dof;
+        avgdof(s, :, :, :) = varargin{s}.dof;
+        if min(varargin{s}.dof(:))>1 % otherwise the variance is not valid
+          avgvar(s, :, :, :) = (varargin{s}.(cfg.parameter).^2).*varargin{s}.dof;
+          % avgvar(s, :, :, :) = varargin{s}.var .* (varargin{s}.dof-1); % reversing the last div in ft_timelockanalysis
+        else
+          avgvar(s, :, :, :) = zeros([dim{1}]); % shall we remove the .var field from the structure under these conditions ?
+        end
+      otherwise
+        error('unsupported value for cfg.method')
+    end % switch
   end
   % average across subject dimension
   ResultDOF      = reshape(sum(avgdof, 1), dim{1});
   grandavg.avg   = reshape(sum(avgmat, 1), dim{1})./ResultDOF; % computes both means (plain and weighted)
   % Nchan x Nsamples, skips the singleton
-  %if strcmp(cfg.method, 'across')
+  % if strcmp(cfg.method, 'across')
   ResultVar      = reshape(sum(avgvar,1), dim{1})-reshape(sum(avgmat,1), dim{1}).^2./ResultDOF;
-  %else  % cfg.method = 'within'
-    %ResultVar      = squeeze(sum(avgvar,1)); % subtraction of means was done for each block already
-  %end
+  % else  % cfg.method = 'within'
+    % ResultVar      = squeeze(sum(avgvar,1)); % subtraction of means was done for each block already
+  % end
   switch cfg.normalizevar
     case 'N-1'
       ResultVar = ResultVar./(ResultDOF-1);
