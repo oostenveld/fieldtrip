@@ -109,10 +109,8 @@ switch (cfg.filetype)
       cfg.filename = cat(2, cfg.filename, '.nii');
     end
     
-    % this is a bit of a kludge, but ft_write_headshape can write cifti including data and the parcellation
-    % note that the low-level function requires quite some details
-    ft_write_headshape(cfg.filename, source, 'parameter', cfg.parameter, 'parcellation', cfg.parcellation, 'format', 'cifti');
-    
+    ft_write_cifti(cfg.filename, source, 'parameter', cfg.parameter, 'parcellation', cfg.parcellation);
+
   otherwise
     error('unsupported output format (%s)', cfg.filetype);
 end % switch filetype
