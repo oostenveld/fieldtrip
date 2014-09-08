@@ -34,6 +34,9 @@ parcellation = ft_getopt(varargin, 'parcellation');
 parameter    = ft_getopt(varargin, 'parameter');
 precision    = ft_getopt(varargin, 'precision', 'double');
 
+% ensure that the external toolbox is present, this adds gifti/@xmltree
+ft_hastoolbox('gifti', 1);
+
 if ~isempty(parcellation)
   assert(ft_datatype(source, 'parcellation') || ft_datatype(source, 'segmentation'), 'the input structure does not define a parcellation');
 end

@@ -27,7 +27,6 @@ function ft_write_headshape(filename, bnd, varargin)
 %   'vista'
 %   'tetgen'
 %   'gifti'
-%   'cifti'
 %   'stl'           STereoLithography file format, for use with CAD and generic 3D mesh editing programs
 %   'vtk'           Visualization ToolKit file format, for use with Paraview
 %   'ply'           Stanford Polygon file format, for use with Paraview or Meshlab
@@ -57,8 +56,6 @@ function ft_write_headshape(filename, bnd, varargin)
 
 fileformat    = ft_getopt(varargin, 'format', 'unknown');
 data          = ft_getopt(varargin, 'data');         % can be stored in a gifti file
-parcellation  = ft_getopt(varargin, 'parcellation'); % can be represented in a cifti file
-parameter     = ft_getopt(varargin, 'parameter');    % required for cifti
 
 if ~isfield(bnd, 'pnt') && isfield(bnd, 'pos')
   bnd.pnt = bnd.pos;
@@ -186,13 +183,6 @@ switch fileformat
   case 'freesurfer'
     ft_hastoolbox('freesurfer', 1);
     write_surf(filename, bnd.pnt, bnd.tri);
-    
-  case 'cifti'
-    % in contrast to the gifti writer, the low-level function for cifti
-    % needs a lot of details on the geometrical and functional
-    % data/connectivity representations, hence the whole structure is
-    % passed down
-    write_cifti(filename, bnd, 'parameter', parameter, 'parcellation', parcellation)
     
   case []
     error('you must specify the output format');
