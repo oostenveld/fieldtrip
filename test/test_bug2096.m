@@ -185,3 +185,34 @@ for i=1:length(filename)
   title(datafield{i});
 end
 
+%%
+p = '/Users/roboos/Desktop/TestParcelsForMEG';
+cd(p);
+
+filename = {
+  '3T_Q1-Q6related468_MSMsulc_d100_ts2_Znet2.pconn.nii'
+  '3T_Q1-Q6related468_MSMsulc_d100_ts3_Znet2.pconn.nii'
+  '3T_Q1-Q6related468_MSMsulc_d25_ts2_Znet2.pconn.nii'
+  '3T_Q1-Q6related468_MSMsulc_d25_ts3_Znet2.pconn.nii'
+  'HCP_Q1-Q6_R210mgtr_MSMRSN_R468_MSMsulc_d25_melodic_IC_ftb.32k_fs_LR.pconn.nii'
+%   'Q1-Q6_R440.L.midthickness.32k_fs_LR.surf.gii'
+%   'Q1-Q6_R440.L.very_inflated.32k_fs_LR.surf.gii'
+%   'Q1-Q6_R440.R.midthickness.32k_fs_LR.surf.gii'
+%   'Q1-Q6_R440.R.very_inflated.32k_fs_LR.surf.gii'
+  'Q1-Q6_R440.sulc.32k_fs_LR.dscalar.nii'
+  'Q1-Q6_RelatedParcellation210_mgtr_MSMRSNOrig3_d26_DR_DeDrift_Q1-Q6related468_MSMsulc_d25_melodic_IC_ftb_thr200sqmm_distance9.0.32k_fs_LR.ptseries.nii'
+  'groupICA_3T_Q1-Q6related468_MSMsulc_d25_melodic_IC_ftb_thr200sqmm_distance9.0.dlabel.nii'
+  'melodic_IC_ftb.dlabel.nii'
+%   'Q1-Q6_R440_ForMEG-Parcels.32k_fs_LR.wb.spec'
+%   'R468_pconn_31aug14.scene'
+  };
+
+for i=1:length(filename)
+  disp(filename{i});
+  source = ft_read_cifti(filename{i}, 'representation', 'source');
+end
+
+
+
+
+

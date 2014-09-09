@@ -7,7 +7,7 @@ function cii = ft_read_cifti(filename, varargin)
 %   cii = ft_read_cifti(filename, ...)
 % where additional input arguments should be specified as key-value pairs
 % and can include
-%   representation = string, can be 'tree', 'struct' or 'source'
+%   representation = string, can be 'char', 'tree', 'struct' or 'source'
 %   readdata       = boolean, can be false or true
 %
 % See also FT_WRITE_CIFTI, READ_NIFTI2_HDR, WRITE_NIFTI2_HDR
@@ -33,10 +33,13 @@ function cii = ft_read_cifti(filename, varargin)
 % $Id$
 
 representation = ft_getopt(varargin, 'representation', 'source');
-readdata       = ft_getopt(varargin, 'readdata', []); % default depends on file size
+readdata       = ft_getopt(varargin, 'readdata', []); % the default depends on file size, see below
 
 % convert 'yes'/'no' into boolean
 readdata = istrue(readdata);
+
+% ensure that the external toolbox is present, this adds gifti/@xmltree
+ft_hastoolbox('gifti', 1);
 
 % read the header section
 hdr = read_nifti2_hdr(filename);
@@ -54,7 +57,7 @@ fseek(fid, 0, 'bof');
 % set the default for readdata
 if isempty(readdata)
   if filesize>1e9
-    warning('filesize>1GB, not reading data by default. Please specify ''readdata'' option.');
+    warning('filesize>1GB, not reading data by default. Please specify the ''readdata'' option.');
     readdata = false;
   else
     readdata = true;
@@ -123,7 +126,6 @@ cii.hdr = hdr;
 if readdata
   % read the voxel data section
   fseek(fid, hdr.vox_offset, 'bof');
-  fprintf('reading grayordinate data...\n');
   switch hdr.datatype
     case   2, [voxdata, nitemsread] = fread(fid, inf, 'uchar');   assert(nitemsread>0);
     case   4, [voxdata, nitemsread] = fread(fid, inf, 'short');   assert(nitemsread>0);
@@ -134,7 +136,6 @@ if readdata
     case 768, [voxdata, nitemsread] = fread(fid, inf, 'uint');    assert(nitemsread>0);
     otherwise, error('unsupported datatype');
   end
-  fprintf('finished reading grayordinate data\n');
   cii.data = squeeze(reshape(voxdata, hdr.dim(2:end)));
 end
 fclose(fid);
@@ -232,47 +233,48 @@ Bfilelist = {
   };
 
 
-if all(ismember({'CIFTI_STRUCTURE_CORTEX_LEFT', 'CIFTI_STRUCTURE_CORTEX_RIGHT'}, cii.BrainStructurelabel))
-  for i=1:length(Lfilelist)
-    Lfilename = fullfile(p, Lfilelist{i});
-    Rfilename = fullfile(p, Rfilelist{i});
-    
-    if exist(Lfilename, 'file') && exist(Rfilename, 'file')
-      warning('reading left hemisphere geometry from %s',  Lfilename);
-      meshL = ft_read_headshape(Lfilename);
-      warning('reading right hemisphere geometry from %s',  Rfilename);
-      meshR = ft_read_headshape(Rfilename);
+if isfield(cii, 'BrainStructurelabel')
+  if all(ismember({'CIFTI_STRUCTURE_CORTEX_LEFT', 'CIFTI_STRUCTURE_CORTEX_RIGHT'}, cii.BrainStructurelabel))
+    for i=1:length(Lfilelist)
+      Lfilename = fullfile(p, Lfilelist{i});
+      Rfilename = fullfile(p, Rfilelist{i});
       
-      indexL = find(cii.BrainStructure==find(strcmp(cii.BrainStructurelabel, 'CIFTI_STRUCTURE_CORTEX_LEFT')));
-      indexR = find(cii.BrainStructure==find(strcmp(cii.BrainStructurelabel, 'CIFTI_STRUCTURE_CORTEX_RIGHT')));
-      
-      cii.pos(indexL,:) = meshL.pnt;
-      cii.pos(indexR,:) = meshR.pnt;
-      
-      cii.tri = [
-        indexL(meshL.tri)
-        indexR(meshR.tri)
-        ];
-      
-      break % only read a single pair of meshes
+      if exist(Lfilename, 'file') && exist(Rfilename, 'file')
+        warning('reading left hemisphere geometry from %s',  Lfilename);
+        meshL = ft_read_headshape(Lfilename);
+        warning('reading right hemisphere geometry from %s',  Rfilename);
+        meshR = ft_read_headshape(Rfilename);
+        
+        indexL = find(cii.BrainStructure==find(strcmp(cii.BrainStructurelabel, 'CIFTI_STRUCTURE_CORTEX_LEFT')));
+        indexR = find(cii.BrainStructure==find(strcmp(cii.BrainStructurelabel, 'CIFTI_STRUCTURE_CORTEX_RIGHT')));
+        
+        cii.pos(indexL,:) = meshL.pnt;
+        cii.pos(indexR,:) = meshR.pnt;
+        
+        cii.tri = [
+          indexL(meshL.tri)
+          indexR(meshR.tri)
+          ];
+        
+        break % only read a single pair of meshes
+      end
     end
-  end
-elseif ismember({'CIFTI_STRUCTURE_CORTEX'}, cii.BrainStructurelabel)
-  for i=1:length(Bfilelist)
-    Bfilename = fullfile(p, Bfilelist{i});
-    
-    if exist(Bfilename, 'file')
-      warning('reading surface geometry from %s',  Bfilename);
-      meshB   = ft_read_headshape(Bfilename);
-      indexB  = find(cii.BrainStructure==find(strcmp(cii.BrainStructurelabel, 'CIFTI_STRUCTURE_CORTEX')));
-      cii.pos(indexB,:) = meshB.pnt;
-      cii.tri = indexB(meshB.tri);
+  elseif ismember({'CIFTI_STRUCTURE_CORTEX'}, cii.BrainStructurelabel)
+    for i=1:length(Bfilelist)
+      Bfilename = fullfile(p, Bfilelist{i});
+      
+      if exist(Bfilename, 'file')
+        warning('reading surface geometry from %s',  Bfilename);
+        meshB   = ft_read_headshape(Bfilename);
+        indexB  = find(cii.BrainStructure==find(strcmp(cii.BrainStructurelabel, 'CIFTI_STRUCTURE_CORTEX')));
+        cii.pos(indexB,:) = meshB.pnt;
+        cii.tri = indexB(meshB.tri);
+      end
+      
+      break % only read a single mesh
     end
-    
-    break % only read a single mesh
   end
 end
-
 
 
 if readdata
@@ -296,14 +298,14 @@ return % function
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function Cifti = tree2struct(tree)
 
-numericAttributeTypes = {'NumberOfMatrices', 'AppliesToMatrixDimension', 'IndexOffset', 'IndexCount', 'SurfaceNumberOfNodes', 'VolumeDimensions', 'SurfaceNumberOfVertices', 'SeriesStart', 'SeriesStep', 'NumberOfSeriesPoints', 'SeriesExponent'};
+numericAttributeTypes = {'NumberOfMatrices', 'AppliesToMatrixDimension', 'IndexOffset', 'IndexCount', 'SurfaceNumberOfNodes', 'VolumeDimensions', 'SurfaceNumberOfVertices', 'SeriesStart', 'SeriesStep', 'NumberOfSeriesPoints', 'SeriesExponent', 'Vertices'};
 
 Cifti            = struct(); % the parent of the XML tree, it only contains version info
-MatrixIndicesMap = struct(); % this is the interesting content
+Cifti.MatrixIndicesMap = struct(); % this is the interesting content
 
 attr = attributes(tree, 'get', 1);
 if ~iscell(attr), attr = {attr}; end % treat one attribute just like multiple attributes
-for j=1:length(attr)
+for j=1:numel(attr)
   if any(strcmp(attr{j}.key, numericAttributeTypes))
     Cifti.(attr{j}.key) = str2num(attr{j}.val);
   else
@@ -311,14 +313,13 @@ for j=1:length(attr)
   end
 end
 
-
 uid_MatrixIndicesMap = find(tree,'/CIFTI/Matrix/MatrixIndicesMap');
 for i=1:length(uid_MatrixIndicesMap)
   map = branch(tree, uid_MatrixIndicesMap(i));
   
   % get the attributes of each map
   attr = attributes(map, 'get', 1);
-  for j=1:length(attr)
+  for j=1:numel(attr)
     if any(strcmp(attr{j}.key, numericAttributeTypes))
       MatrixIndicesMap(i).(attr{j}.key) = str2num(attr{j}.val);
     else
@@ -332,7 +333,7 @@ for i=1:length(uid_MatrixIndicesMap)
     volume = branch(tree, uid_Volume);
     attr = attributes(volume, 'get', 1); % there should only be one attribute here
     if ~iscell(attr), attr = {attr}; end % treat one attribute just like multiple attributes
-    for j=1:length(attr)
+    for j=1:numel(attr)
       if any(strcmp(attr{j}.key, numericAttributeTypes))
         Volume.(attr{j}.key) = str2num(attr{j}.val);
       else
@@ -344,7 +345,7 @@ for i=1:length(uid_MatrixIndicesMap)
       transform = branch(volume, uid_Transform);
       attr = attributes(transform, 'get', 1);
       if isstruct(attr), attr = {attr}; end % treat one attribute just like multiple attributes
-      for j=1:length(attr)
+      for j=1:numel(attr)
         if any(strcmp(attr{j}.key, numericAttributeTypes))
           Volume.(attr{j}.key) = str2num(attr{j}.val);
         else
@@ -358,34 +359,103 @@ for i=1:length(uid_MatrixIndicesMap)
     Volume = [];
   end
   
+  uid_Surface = find(map, '/MatrixIndicesMap/Surface');
+  if ~isempty(uid_Surface)
+    for j=1:length(uid_Surface)
+      surface = branch(map, uid_Surface(j));
+      
+      % get the attributes of each surface
+      attr = attributes(surface, 'get', 1);
+      if isstruct(attr), attr = {attr}; end % treat one attribute just like multiple attributes
+      for k=1:numel(attr)
+        if any(strcmp(attr{k}.key, numericAttributeTypes))
+          Surface(j).(attr{k}.key) = str2num(attr{k}.val);
+        else
+          Surface(j).(attr{k}.key) = attr{k}.val;
+        end
+      end % for
+      
+    end
+  else
+    Surface = [];
+  end
+  
+  uid_Parcel = find(map, '/MatrixIndicesMap/Parcel');
+  if ~isempty(uid_Parcel)
+    for j=1:length(uid_Parcel)
+      parcel = branch(map, uid_Parcel(j));
+      
+      % get the attributes of each parcel
+      attr = attributes(parcel, 'get', 1);
+      if isstruct(attr), attr = {attr}; end % treat one attribute just like multiple attributes
+      for k=1:numel(attr)
+        if any(strcmp(attr{k}.key, numericAttributeTypes))
+          Parcel(j).(attr{k}.key) = str2num(attr{k}.val);
+        else
+          Parcel(j).(attr{k}.key) = attr{k}.val;
+        end
+      end % for
+      
+      uid_VoxelIndicesIJK = find(parcel, '/Parcel/VoxelIndicesIJK');
+      if ~isempty(uid_VoxelIndicesIJK)
+        Parcel(j).VoxelIndicesIJK = str2num(get(parcel, 3, 'value')); % FIXME hardcoded
+      else
+        Parcel(j).VoxelIndicesIJK = [];
+      end
+      
+      uid_Vertices = find(parcel, '/Parcel/Vertices');
+      for k=1:length(uid_Vertices)
+        vertices = branch(parcel, uid_Vertices(k));
+        
+        attr = attributes(vertices, 'get', 1);
+        if isstruct(attr), attr = {attr}; end % treat one attribute just like multiple attributes
+        for l=1:numel(attr)
+          switch attr{l}.key
+            case 'BrainStructure'
+              Parcel(j).BrainStructure{k} = attr{l}.val;
+          end
+        end % for
+        
+        Parcel(j).Vertices{k} = str2num(get(vertices, 2, 'value'));  % FIXME hardcoded
+      end
+    end
+  else
+    Parcel = [];
+  end
+  
   uid_NamedMap = find(map, '/MatrixIndicesMap/NamedMap');
-  for j=1:length(uid_NamedMap)
-    namedmap = branch(map, uid_NamedMap(j));
-    MatrixIndicesMap(i).NamedMap(j).MapName = get(namedmap, children(namedmap, find(namedmap, '/NamedMap/MapName')), 'value');
-    uid_LabelTable = find(namedmap, '/NamedMap/LabelTable');
-    for k=1:length(uid_LabelTable);
-      labeltable = branch(namedmap, uid_LabelTable(k));
-      uid_Label = find(labeltable, '/LabelTable/Label');
-      for l=1:length(uid_Label)
-        % there are also potentially intersting atributes here, but I don't know what to do with them
-        MatrixIndicesMap(i).NamedMap(j).LabelTable.Label{l} = get(labeltable, children(labeltable, uid_Label(l)), 'value');
-        attr = attributes(branch(labeltable, uid_Label(l)), 'get', 1);
-        for m=1:numel(attr)
-          switch attr{m}.key
-            case 'Key'
-              MatrixIndicesMap(i).NamedMap(j).LabelTable.Key(l)   = str2double(attr{m}.val);
-            case 'Red'
-              MatrixIndicesMap(i).NamedMap(j).LabelTable.Red(l)   = str2double(attr{m}.val);
-            case 'Green'
-              MatrixIndicesMap(i).NamedMap(j).LabelTable.Green(l) = str2double(attr{m}.val);
-            case 'Blue'
-              MatrixIndicesMap(i).NamedMap(j).LabelTable.Blue(l)  = str2double(attr{m}.val);
-            case 'Alpha'
-              MatrixIndicesMap(i).NamedMap(j).LabelTable.Alpha(l) = str2double(attr{m}.val);
+  if ~isempty(uid_NamedMap)
+    for j=1:length(uid_NamedMap)
+      namedmap = branch(map, uid_NamedMap(j));
+      NamedMap(j).MapName = get(namedmap, children(namedmap, find(namedmap, '/NamedMap/MapName')), 'value');
+      uid_LabelTable = find(namedmap, '/NamedMap/LabelTable');
+      for k=1:length(uid_LabelTable);
+        labeltable = branch(namedmap, uid_LabelTable(k));
+        uid_Label = find(labeltable, '/LabelTable/Label');
+        for l=1:length(uid_Label)
+          % there are also potentially intersting atributes here, but I don't know what to do with them
+          NamedMap(j).LabelTable.Label{l} = get(labeltable, children(labeltable, uid_Label(l)), 'value');
+          attr = attributes(branch(labeltable, uid_Label(l)), 'get', 1);
+          if isstruct(attr), attr = {attr}; end % treat one attribute just like multiple attributes
+          for m=1:numel(attr)
+            switch attr{m}.key
+              case 'Key'
+                NamedMap(j).LabelTable.Key(l)   = str2double(attr{m}.val);
+              case 'Red'
+                NamedMap(j).LabelTable.Red(l)   = str2double(attr{m}.val);
+              case 'Green'
+                NamedMap(j).LabelTable.Green(l) = str2double(attr{m}.val);
+              case 'Blue'
+                NamedMap(j).LabelTable.Blue(l)  = str2double(attr{m}.val);
+              case 'Alpha'
+                NamedMap(j).LabelTable.Alpha(l) = str2double(attr{m}.val);
+            end
           end
         end
       end
     end
+  else
+    NamedMap = [];
   end
   
   uid_BrainModel = find(map, '/MatrixIndicesMap/BrainModel');
@@ -394,7 +464,8 @@ for i=1:length(uid_MatrixIndicesMap)
     
     % get the attributes of each model
     attr = attributes(brainmodel, 'get', 1);
-    for k=1:length(attr)
+    if isstruct(attr), attr = {attr}; end % treat one attribute just like multiple attributes
+    for k=1:numel(attr)
       if any(strcmp(attr{k}.key, numericAttributeTypes))
         MatrixIndicesMap(i).BrainModel(j).(attr{k}.key) = str2num(attr{k}.val);
       else
@@ -424,9 +495,12 @@ for i=1:length(uid_MatrixIndicesMap)
   end % for each BrainModel
 end % for each MatrixIndicesMap
 
-% add it to the main structure
+% add the relevant sections to the main structure
 Cifti.MatrixIndicesMap = MatrixIndicesMap;
 Cifti.Volume           = Volume;
+Cifti.NamedMap         = NamedMap;
+Cifti.Surface          = Surface;
+Cifti.Parcel           = Parcel;
 
 return % function
 
@@ -435,20 +509,20 @@ return % function
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function source = struct2source(Cifti)
 
-MatrixIndicesMap = Cifti.MatrixIndicesMap;
 dimord = cell(size(Cifti.MatrixIndicesMap));
+hasbrainmodel = false;
 
-for i=1:length(MatrixIndicesMap)
-  switch MatrixIndicesMap(i).IndicesMapToDataType
+for i=1:length(Cifti.MatrixIndicesMap)
+  switch Cifti.MatrixIndicesMap(i).IndicesMapToDataType
     case 'CIFTI_INDEX_TYPE_BRAIN_MODELS'
-      dimord(MatrixIndicesMap(i).AppliesToMatrixDimension+1) = {'pos'};
+      dimord(Cifti.MatrixIndicesMap(i).AppliesToMatrixDimension+1) = {'pos'};
       
-      IndexOffset         = [MatrixIndicesMap(i).BrainModel(:).IndexOffset];
-      IndexCount          = [MatrixIndicesMap(i).BrainModel(:).IndexCount];
-      ModelType           = nan(length(MatrixIndicesMap(i).BrainModel),1);
-      ModelTypelabel      = cell(length(MatrixIndicesMap(i).BrainModel),1);
-      BrainStructure      = nan(length(MatrixIndicesMap(i).BrainModel),1);
-      BrainStructurelabel = cell(length(MatrixIndicesMap(i).BrainModel),1);
+      IndexOffset         = [Cifti.MatrixIndicesMap(i).BrainModel(:).IndexOffset];
+      IndexCount          = [Cifti.MatrixIndicesMap(i).BrainModel(:).IndexCount];
+      ModelType           = nan(length(Cifti.MatrixIndicesMap(i).BrainModel),1);
+      ModelTypelabel      = cell(length(Cifti.MatrixIndicesMap(i).BrainModel),1);
+      BrainStructure      = nan(length(Cifti.MatrixIndicesMap(i).BrainModel),1);
+      BrainStructurelabel = cell(length(Cifti.MatrixIndicesMap(i).BrainModel),1);
       
       tmp = cumsum([0 IndexCount]);
       if ~isequal(IndexOffset, tmp(1:end-1))
@@ -462,33 +536,34 @@ for i=1:length(MatrixIndicesMap)
       Cifti.pos = nan(0,3);
       
       % concatenate all greynode positions
-      for j=1:length(MatrixIndicesMap(i).BrainModel)
+      for j=1:length(Cifti.MatrixIndicesMap(i).BrainModel)
+        hasbrainmodel = true;
         
-        switch MatrixIndicesMap(i).BrainModel(j).ModelType
+        switch Cifti.MatrixIndicesMap(i).BrainModel(j).ModelType
           case 'CIFTI_MODEL_TYPE_SURFACE'
             switch Cifti.Version
               case {'1' '1.0'}
                 posbeg = geomCount + 1;
-                posend = geomCount + MatrixIndicesMap(i).BrainModel(j).SurfaceNumberOfNodes;
-                geomCount = geomCount + MatrixIndicesMap(i).BrainModel(j).SurfaceNumberOfNodes; % increment with the number of vertices in the (external) surface
+                posend = geomCount + Cifti.MatrixIndicesMap(i).BrainModel(j).SurfaceNumberOfNodes;
+                geomCount = geomCount + Cifti.MatrixIndicesMap(i).BrainModel(j).SurfaceNumberOfNodes; % increment with the number of vertices in the (external) surface
                 Cifti.pos(posbeg:posend,:) = nan;
                 Cifti.dataIndex{j}         = IndexOffset(j) + (1:IndexCount(j));  % these are indices in the data
                 Cifti.greynodeIndex{j}     = posbeg:posend;                       % these are indices in the greynodes (vertices or subcortical voxels)
-                if isfield(MatrixIndicesMap(i).BrainModel(j), 'NodeIndices')
+                if isfield(Cifti.MatrixIndicesMap(i).BrainModel(j), 'NodeIndices')
                   % data is only present on a subset of vertices
-                  Cifti.greynodeIndex{j} = Cifti.greynodeIndex{j}(MatrixIndicesMap(i).BrainModel(j).NodeIndices+1);
+                  Cifti.greynodeIndex{j} = Cifti.greynodeIndex{j}(Cifti.MatrixIndicesMap(i).BrainModel(j).NodeIndices+1);
                 end
                 
               case {'2' '2.0'}
                 posbeg = geomCount + 1;
-                posend = geomCount + MatrixIndicesMap(i).BrainModel(j).SurfaceNumberOfVertices;
-                geomCount = geomCount + MatrixIndicesMap(i).BrainModel(j).SurfaceNumberOfVertices; % increment with the number of vertices in the (external) surface
+                posend = geomCount + Cifti.MatrixIndicesMap(i).BrainModel(j).SurfaceNumberOfVertices;
+                geomCount = geomCount + Cifti.MatrixIndicesMap(i).BrainModel(j).SurfaceNumberOfVertices; % increment with the number of vertices in the (external) surface
                 Cifti.pos(posbeg:posend,:) = nan;
                 Cifti.dataIndex{j}         = IndexOffset(j) + (1:IndexCount(j));  % these are indices in the data
                 Cifti.greynodeIndex{j}     = posbeg:posend;                       % these are indices in the greynodes (vertices or subcortical voxels)
-                if isfield(MatrixIndicesMap(i).BrainModel(j), 'VertexIndices')
+                if isfield(Cifti.MatrixIndicesMap(i).BrainModel(j), 'VertexIndices')
                   % data is only present on a subset of vertices
-                  Cifti.greynodeIndex{j} = Cifti.greynodeIndex{j}(MatrixIndicesMap(i).BrainModel(j).VertexIndices+1);
+                  Cifti.greynodeIndex{j} = Cifti.greynodeIndex{j}(Cifti.MatrixIndicesMap(i).BrainModel(j).VertexIndices+1);
                 end
                 
               otherwise
@@ -501,7 +576,7 @@ for i=1:length(MatrixIndicesMap)
             posend = geomCount + IndexCount(j);
             geomCount = geomCount + IndexCount(j); % increment with the number of vertices in the subcortical structure
             
-            Cifti.pos(posbeg:posend,:) = reshape(MatrixIndicesMap(i).BrainModel(j).VoxelIndicesIJK, 3, IndexCount(j))';
+            Cifti.pos(posbeg:posend,:) = reshape(Cifti.MatrixIndicesMap(i).BrainModel(j).VoxelIndicesIJK, 3, IndexCount(j))';
             Cifti.dataIndex{j}         = IndexOffset(j) + (1:IndexCount(j));  % these are indices in the data
             Cifti.greynodeIndex{j}     = posbeg:posend;                       % these are indices in the greynodes (vertices or subcortical voxels)
             
@@ -513,58 +588,58 @@ for i=1:length(MatrixIndicesMap)
         assert(numel(Cifti.dataIndex{j})==numel(Cifti.greynodeIndex{j}));
         
         ModelType(posbeg:posend) = j; % indexed representation, see ft_datatype_parcellation
-        ModelTypelabel{j} = MatrixIndicesMap(i).BrainModel(j).ModelType;
+        ModelTypelabel{j} = Cifti.MatrixIndicesMap(i).BrainModel(j).ModelType;
         
         BrainStructure(posbeg:posend) = j; % indexed representation, see ft_datatype_parcellation
-        BrainStructurelabel{j} = MatrixIndicesMap(i).BrainModel(j).BrainStructure;
+        BrainStructurelabel{j} = Cifti.MatrixIndicesMap(i).BrainModel(j).BrainStructure;
         
       end % for all BrainModels
       
     case 'CIFTI_INDEX_TYPE_SCALARS'
-      dimord{MatrixIndicesMap(i).AppliesToMatrixDimension+1} = []; % scalars are not explicitly represented
-      if isfield(MatrixIndicesMap(i), 'NamedMap')
-        for j=1:length(MatrixIndicesMap(i).NamedMap)
-          Cifti.mapname{j} = fixname(MatrixIndicesMap(i).NamedMap(j).MapName);
+      dimord{Cifti.MatrixIndicesMap(i).AppliesToMatrixDimension+1} = []; % scalars are not explicitly represented
+      if isfield(Cifti.MatrixIndicesMap(i), 'NamedMap')
+        for j=1:length(NamedMap)
+          Cifti.mapname{j} = fixname(NamedMap(j).MapName);
         end
       end
       
     case 'CIFTI_INDEX_TYPE_LABELS'
-      dimord{MatrixIndicesMap(i).AppliesToMatrixDimension+1} = []; % labels are not explicitly represented
-      for j=1:length(MatrixIndicesMap(i).NamedMap)
-        key = MatrixIndicesMap(i).NamedMap(j).LabelTable.Key;
-        lab = MatrixIndicesMap(i).NamedMap(j).LabelTable.Label;
+      dimord{Cifti.MatrixIndicesMap(i).AppliesToMatrixDimension+1} = []; % labels are not explicitly represented
+      for j=1:length(Cifti.NamedMap)
+        key = Cifti.NamedMap(j).LabelTable.Key;
+        lab = Cifti.NamedMap(j).LabelTable.Label;
         sel = key>0;
         Cifti.labeltable{j}(key(sel)) = lab(sel);
-        Cifti.mapname{j} = fixname(MatrixIndicesMap(i).NamedMap(j).MapName);
+        Cifti.mapname{j} = fixname(Cifti.NamedMap(j).MapName);
       end
       
     case 'CIFTI_INDEX_TYPE_SERIES'
       % this only applies to cifti version 2
-      switch MatrixIndicesMap(i).SeriesUnit
+      switch Cifti.MatrixIndicesMap(i).SeriesUnit
         case 'SECOND'
-          dimord(MatrixIndicesMap(i).AppliesToMatrixDimension+1) = {'time'};
-          Cifti.time = (((1:MatrixIndicesMap(i).NumberOfSeriesPoints)-1) * MatrixIndicesMap(i).SeriesStep + MatrixIndicesMap(i).SeriesStart) * 10^MatrixIndicesMap(i).SeriesExponent;
+          dimord(Cifti.MatrixIndicesMap(i).AppliesToMatrixDimension+1) = {'time'};
+          Cifti.time = (((1:Cifti.MatrixIndicesMap(i).NumberOfSeriesPoints)-1) * Cifti.MatrixIndicesMap(i).SeriesStep + Cifti.MatrixIndicesMap(i).SeriesStart) * 10^Cifti.MatrixIndicesMap(i).SeriesExponent;
         case 'HZ'
-          dimord(MatrixIndicesMap(i).AppliesToMatrixDimension+1) = {'freq'};
-          Cifti.freq = (((1:MatrixIndicesMap(i).NumberOfSeriesPoints)-1) * MatrixIndicesMap(i).SeriesStep + MatrixIndicesMap(i).SeriesStart) * 10^MatrixIndicesMap(i).SeriesExponent;
+          dimord(Cifti.MatrixIndicesMap(i).AppliesToMatrixDimension+1) = {'freq'};
+          Cifti.freq = (((1:Cifti.MatrixIndicesMap(i).NumberOfSeriesPoints)-1) * Cifti.MatrixIndicesMap(i).SeriesStep + Cifti.MatrixIndicesMap(i).SeriesStart) * 10^Cifti.MatrixIndicesMap(i).SeriesExponent;
         otherwise
           error('unsupported SeriesUnit');
       end % switch
       
-      
     case 'CIFTI_INDEX_TYPE_TIME_POINTS'
       % this only applies to cifti version 1
-      dimord(MatrixIndicesMap(i).AppliesToMatrixDimension+1) = {'time'};
-      switch MatrixIndicesMap(i).TimeStepUnits
+      dimord(Cifti.MatrixIndicesMap(i).AppliesToMatrixDimension+1) = {'time'};
+      switch Cifti.MatrixIndicesMap(i).TimeStepUnits
         case 'NIFTI_UNITS_SEC'
-          Cifti.fsample = 1/str2double(MatrixIndicesMap(i).TimeStep);
+          Cifti.fsample = 1/str2double(Cifti.MatrixIndicesMap(i).TimeStep);
         otherwise
           % other units should be trivial to implement
           error('unsupported TimeStepUnits');
       end
       
-      % case 'CIFTI_INDEX_TYPE_PARCELS'
-      %   error('not yet implemented');
+    case 'CIFTI_INDEX_TYPE_PARCELS'
+      dimord(Cifti.MatrixIndicesMap(i).AppliesToMatrixDimension+1) = {'chan'};
+      source.channel = {Cifti.Parcel(:).Name};
       
       % case 'CIFTI_INDEX_TYPE_FIBERS'
       %   error('not yet implemented');
@@ -578,21 +653,33 @@ dimord = dimord(~cellfun(@isempty, dimord));
 source.dimord = sprintf('%s_', dimord{:});
 source.dimord(end) = [];
 
-source.pos = Cifti.pos;
-Ngreynodes = size(source.pos,1);
-
-if issubfield(Cifti, 'Volume.Transform')
-  % this only applies to the voxel coordinates, not to surface vertices which are NaN
-  source.pos = ft_warp_apply(Cifti.Volume.Transform, source.pos);
+if hasbrainmodel
+  source.pos                  = Cifti.pos;
+  source.BrainStructure       = BrainStructure;
+  source.BrainStructurelabel  = BrainStructurelabel;
+  if ~isempty(Cifti.Volume)
+    % this only applies to the voxel coordinates, not to surface vertices which are NaN
+    source.pos        = ft_warp_apply(Cifti.Volume.Transform, source.pos);
+    source.dim        = Cifti.Volume.VolumeDimensions;
+    source.transform  = Cifti.Volume.Transform;
+  end
+  Ngreynodes = size(source.pos,1);
 end
 
 if isfield(Cifti, 'data')
-  % make the data consistent with the graynode positions
-  dataIndex     = [Cifti.dataIndex{:}];
-  greynodeIndex = [Cifti.greynodeIndex{:}];
+  if hasbrainmodel
+    % make the data consistent with the graynode positions
+    dataIndex     = [Cifti.dataIndex{:}];
+    greynodeIndex = [Cifti.greynodeIndex{:}];
+  else
+    % the data is defined on parcels
+    Ngreynodes    = length(Cifti.Parcel);
+    dataIndex     = 1:Ngreynodes;
+    greynodeIndex = 1:Ngreynodes;
+  end
   
   switch source.dimord
-    case 'pos'
+    case {'pos' 'chan'}
       [m, n] = size(Cifti.data);
       if m>n
         dat = nan(Ngreynodes,n);
@@ -601,10 +688,10 @@ if isfield(Cifti, 'data')
         dat = nan(Ngreynodes,m);
         dat(greynodeIndex(dataIndex),:) = transpose(Cifti.data);
       end
-    case 'pos_pos'
+    case {'pos_pos' 'chan_chan'}
       dat = nan(Ngreynodes,Ngreynodes);
       dat(greynodeIndex(dataIndex),greynodeIndex(dataIndex)) = Cifti.data;
-    case 'pos_time'
+    case {'pos_time' 'chan_time'}
       Ntime = size(Cifti.data,2);
       dat = nan(Ngreynodes,Ntime);
       dat(greynodeIndex(dataIndex),:) = Cifti.data;
@@ -613,6 +700,11 @@ if isfield(Cifti, 'data')
       dat = nan(Ngreynodes,Ntime);
       dat(greynodeIndex(dataIndex),:) = transpose(Cifti.data);
       source.dimord = 'pos_time';
+    case 'time_chan'
+      Ntime = size(Cifti.data,1);
+      dat = nan(Ngreynodes,Ntime);
+      dat(greynodeIndex(dataIndex),:) = transpose(Cifti.data);
+      source.dimord = 'chan_time';
     otherwise
       error('unsupported dimord');
   end % switch
@@ -633,13 +725,5 @@ if isfield(Cifti, 'data')
 end % if data
 
 source = copyfields(Cifti, source, {'time', 'freq'});
-
-if ~isempty(Cifti.Volume)
-  source.dim        = Cifti.Volume.VolumeDimensions;
-  source.transform  = Cifti.Volume.Transform;
-end
-
-source.BrainStructure      = BrainStructure;
-source.BrainStructurelabel = BrainStructurelabel;
 
 return % function
