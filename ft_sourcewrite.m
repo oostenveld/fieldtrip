@@ -105,9 +105,11 @@ switch (cfg.filetype)
     ft_write_headshape(cfg.filename, source, 'data', getsubfield(source, cfg.parameter), 'format', 'gifti');
     
   case 'cifti'
-    if numel(cfg.filename)<=4 || ~strcmp(cfg.filename(end-3:end), '.nii');
-      cfg.filename = cat(2, cfg.filename, '.nii');
+    [p, f, x] = fileparts(cfg.filename);
+    if isequal(x, '.nii')
+      cfg.filename = fullfile(p, f); % strip the extension
     end
+    cfg.filename = [cfg.filename '.' cfg.parameter '.nii'];
     
     ft_write_cifti(cfg.filename, source, 'parameter', cfg.parameter, 'parcellation', cfg.parcellation);
 

@@ -8,25 +8,102 @@
 
 % load(dccnpath('/home/common/matlab/fieldtrip/data/test/bug2096.mat'));
 
+%%
 source = [];
 source.dim = [5 6 7];
 [X Y Z] = ndgrid(1:source.dim(1), 1:source.dim(2), 1:source.dim(3));
 source.transform = eye(4);
-source.pos  = ft_warp_apply(source.transform, [X(:) Y(:) Z(:)]);
-source.conn = randn(prod(source.dim));
-source.conndimord = 'pos_pos';
+source.pos    = ft_warp_apply(source.transform, [X(:) Y(:) Z(:)]);
+source.pow    = (1:prod(source.dim))';
+source.dimord = 'pos';
 
 cfg = [];
-cfg.filetype = 'cifti';
-cfg.parameter = 'conn';
-cfg.filename = 'test_bug2096';
+cfg.filetype  = 'cifti';
+cfg.parameter = 'pow';
+cfg.filename  = 'test_bug2096';
 ft_sourcewrite(cfg, source);
 
+source1 = ft_read_cifti('test_bug2096.pow.dscalar.nii')
+
+cfg = [];
+cfg.filetype  = 'cifti';
+cfg.parameter = 'pow';
+cfg.filename  = 'test_bug2096b';
+ft_sourcewrite(cfg, source1);
+
+source2 = ft_read_cifti('test_bug2096b.pow.dscalar.nii')
+
+% assert(isequal(source , source1)); % source1 has more details
+assert(isequal(source1, source2));
+
+%%
+[pnt, tri] = icosahedron;
+
+source = [];
+source.pos    = pnt;
+source.tri    = tri;
+source.pow    = (1:size(pnt,1))';
+source.dimord = 'pos';
+% source.BrainStructure = ones(1, size(pnt,1));
+% source.BrainStructurelabel = {'CIFTI_STRUCTURE_CORTEX'};
+source.BrainStructure = [1 1 1 1 1 1 2 2 2 2 2 2];
+source.BrainStructurelabel = {'CIFTI_STRUCTURE_CORTEX_LEFT', 'CIFTI_STRUCTURE_CORTEX_RIGHT'};
+
+cfg = [];
+cfg.filetype  = 'cifti';
+cfg.parameter = 'pow';
+cfg.filename  = 'test_bug2096';
+ft_sourcewrite(cfg, source);
+
+source1 = ft_read_cifti('test_bug2096.pow.dscalar.nii')
+
+cfg = [];
+cfg.filetype  = 'cifti';
+cfg.parameter = 'pow';
+cfg.filename  = 'test_bug2096b';
+ft_sourcewrite(cfg, source1);
+
+source2 = ft_read_cifti('test_bug2096b.pow.dscalar.nii')
+
+% assert(isequal(source , source1));
+% assert(isequal(source1, source2));
+
+
+%%
 source = [];
 source.dim = [5 6 7];
 [X Y Z] = ndgrid(1:source.dim(1), 1:source.dim(2), 1:source.dim(3));
 source.transform = eye(4);
-source.pos = warp_apply(source.transform, [X(:) Y(:) Z(:)]);
+source.pos     = ft_warp_apply(source.transform, [X(:) Y(:) Z(:)]);
+source.imagcoh = randn(prod(source.dim));
+source.dimord  = 'pos_pos';
+
+cfg = [];
+cfg.filetype  = 'cifti';
+cfg.parameter = 'imagcoh';
+cfg.filename  = 'test_bug2096';
+ft_sourcewrite(cfg, source);
+
+source1 = ft_read_cifti('test_bug2096.imagcoh.dconn.nii');
+
+cfg = [];
+cfg.filetype  = 'cifti';
+cfg.parameter = 'imagcoh';
+cfg.filename  = 'test_bug2096b';
+ft_sourcewrite(cfg, source1);
+
+source2 = ft_read_cifti('test_bug2096b.imagcoh.dconn.nii')
+
+% assert(isequal(source , source1));
+% assert(isequal(source2, source1));
+
+
+%%
+source = [];
+source.dim = [5 6 7];
+[X Y Z] = ndgrid(1:source.dim(1), 1:source.dim(2), 1:source.dim(3));
+source.transform = eye(4);
+source.pos = ft_warp_apply(source.transform, [X(:) Y(:) Z(:)]);
 source.time = 1:10;
 source.timeseries = randn(prod(source.dim), length(source.time));
 source.timeseriesdimord = 'pos_time';

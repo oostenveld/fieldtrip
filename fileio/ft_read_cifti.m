@@ -12,7 +12,7 @@ function cii = ft_read_cifti(filename, varargin)
 %
 % See also FT_WRITE_CIFTI, READ_NIFTI2_HDR, WRITE_NIFTI2_HDR
 
-% Copyright (C) 2014, Robert Oostenveld
+% Copyright (C) 2013-2014, Robert Oostenveld
 %
 % This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
 % for the documentation and details.
@@ -33,15 +33,10 @@ function cii = ft_read_cifti(filename, varargin)
 % $Id$
 
 representation = ft_getopt(varargin, 'representation', 'source');
-geometry       = ft_getopt(varargin, 'geometry', {'midthickness', 'pial', 'white', 'inflated', 'very_inflated', 'sphere'});
 readdata       = ft_getopt(varargin, 'readdata', []); % default depends on file size
 
 % convert 'yes'/'no' into boolean
 readdata = istrue(readdata);
-
-if ~iscell(geometry)
-  geometry = {geometry};
-end
 
 % read the header section
 hdr = read_nifti2_hdr(filename);
@@ -59,7 +54,7 @@ fseek(fid, 0, 'bof');
 % set the default for readdata
 if isempty(readdata)
   if filesize>1e9
-    warning('filesize>1GB, not reading data by default');
+    warning('filesize>1GB, not reading data by default. Please specify ''readdata'' option.');
     readdata = false;
   else
     readdata = true;
@@ -139,7 +134,7 @@ if readdata
     case 768, [voxdata, nitemsread] = fread(fid, inf, 'uint');    assert(nitemsread>0);
     otherwise, error('unsupported datatype');
   end
-  fprintf('finished reading grayordinate data\n')
+  fprintf('finished reading grayordinate data\n');
   cii.data = squeeze(reshape(voxdata, hdr.dim(2:end)));
 end
 fclose(fid);
@@ -154,11 +149,17 @@ end
 [p, f, x] = fileparts(filename);
 t = tokenize(f, '.');
 
+subject  = 'unknown';
+dataname = 'unknown';
+geomodel = '';
+
 if length(t)==2
-  subject = t{1};
+  subject  = t{1};
   dataname = t{2};
-  warning('cannot decipher the file name, not reading geometry');
-  geometry = {};
+elseif length(t)==3
+  subject  = t{1};
+  dataname = t{2};
+  content  = t{3};
 elseif length(t)==4
   subject  = t{1};
   dataname = t{2};
@@ -170,35 +171,109 @@ elseif length(t)==5
   geomodel = t{4};
   content  = t{5};
 else
-  subject = 'unknown';
-  dataname = 'unknown';
-  warning('cannot decipher the file name, not reading geometry');
-  geometry = {};
+  error('cannot parse file name');
 end
 
-for i=1:length(geometry)
-  Lfilename = fullfile(p, [subject '.L.' geometry{i} '.' geomodel '.surf.gii']);
-  Rfilename = fullfile(p, [subject '.R.' geometry{i} '.' geomodel '.surf.gii']);
-  if exist(Lfilename, 'file') && exist(Rfilename, 'file')
-    warning('reading left hemisphere geometry from %s',  Lfilename);
-    meshL = ft_read_headshape(Lfilename);
-    warning('reading right hemisphere geometry from %s',  Rfilename);
-    meshR = ft_read_headshape(Rfilename);
+% the surface anatomy is represented in an external file
+% which can be difficult to match with the data
+
+Lfilelist = {
+  [subject '.L' '.midthickness'  '.' geomodel '.surf.gii']
+  [subject '.L' '.pial'          '.' geomodel '.surf.gii']
+  [subject '.L' '.white'         '.' geomodel '.surf.gii']
+  [subject '.L' '.inflated'      '.' geomodel '.surf.gii']
+  [subject '.L' '.very_inflated' '.' geomodel '.surf.gii']
+  [subject '.L' '.sphere'        '.' geomodel '.surf.gii']
+  [subject '.L' '.'              '.' geomodel '.surf.gii']
+  [subject '.L' '.midthickness'               '.surf.gii']
+  [subject '.L' '.pial'                       '.surf.gii']
+  [subject '.L' '.white'                      '.surf.gii']
+  [subject '.L' '.inflated'                   '.surf.gii']
+  [subject '.L' '.very_inflated'              '.surf.gii']
+  [subject '.L' '.sphere'                     '.surf.gii']
+  [subject '.L'                               '.surf.gii']
+  [subject '.CIFTI_STRUCTURE_CORTEX_LEFT'     '.surf.gii']
+  };
+
+Rfilelist = {
+  [subject '.R' '.midthickness'  '.' geomodel  '.surf.gii']
+  [subject '.R' '.pial'          '.' geomodel  '.surf.gii']
+  [subject '.R' '.white'         '.' geomodel  '.surf.gii']
+  [subject '.R' '.inflated'      '.' geomodel  '.surf.gii']
+  [subject '.R' '.very_inflated' '.' geomodel  '.surf.gii']
+  [subject '.R' '.sphere'        '.' geomodel  '.surf.gii']
+  [subject '.R' '.'              '.' geomodel  '.surf.gii']
+  [subject '.R' '.midthickness'                '.surf.gii']
+  [subject '.R' '.pial'                        '.surf.gii']
+  [subject '.R' '.white'                       '.surf.gii']
+  [subject '.R' '.inflated'                    '.surf.gii']
+  [subject '.R' '.very_inflated'               '.surf.gii']
+  [subject '.R' '.sphere'                      '.surf.gii']
+  [subject '.R'                                '.surf.gii']
+  [subject '.CIFTI_STRUCTURE_CORTEX_RIGHT'     '.surf.gii']
+  };
+
+Bfilelist = {
+  [subject '.midthickness'  '.' geomodel '.surf.gii']
+  [subject '.pial'          '.' geomodel '.surf.gii']
+  [subject '.white'         '.' geomodel '.surf.gii']
+  [subject '.inflated'      '.' geomodel '.surf.gii']
+  [subject '.very_inflated' '.' geomodel '.surf.gii']
+  [subject '.sphere'        '.' geomodel '.surf.gii']
+  [subject                  '.' geomodel '.surf.gii']
+  [subject '.midthickness'               '.surf.gii']
+  [subject '.pial'                       '.surf.gii']
+  [subject '.white'                      '.surf.gii']
+  [subject '.inflated'                   '.surf.gii']
+  [subject '.very_inflated'              '.surf.gii']
+  [subject '.sphere'                     '.surf.gii']
+  [subject                               '.surf.gii']
+  [subject '.CIFTI_STRUCTURE_CORTEX'     '.surf.gii']
+  };
+
+
+if all(ismember({'CIFTI_STRUCTURE_CORTEX_LEFT', 'CIFTI_STRUCTURE_CORTEX_RIGHT'}, cii.BrainStructurelabel))
+  for i=1:length(Lfilelist)
+    Lfilename = fullfile(p, Lfilelist{i});
+    Rfilename = fullfile(p, Rfilelist{i});
     
-    indexL = find(cii.BrainStructure==find(strcmp(cii.BrainStructurelabel, 'CIFTI_STRUCTURE_CORTEX_LEFT')));
-    indexR = find(cii.BrainStructure==find(strcmp(cii.BrainStructurelabel, 'CIFTI_STRUCTURE_CORTEX_RIGHT')));
+    if exist(Lfilename, 'file') && exist(Rfilename, 'file')
+      warning('reading left hemisphere geometry from %s',  Lfilename);
+      meshL = ft_read_headshape(Lfilename);
+      warning('reading right hemisphere geometry from %s',  Rfilename);
+      meshR = ft_read_headshape(Rfilename);
+      
+      indexL = find(cii.BrainStructure==find(strcmp(cii.BrainStructurelabel, 'CIFTI_STRUCTURE_CORTEX_LEFT')));
+      indexR = find(cii.BrainStructure==find(strcmp(cii.BrainStructurelabel, 'CIFTI_STRUCTURE_CORTEX_RIGHT')));
+      
+      cii.pos(indexL,:) = meshL.pnt;
+      cii.pos(indexR,:) = meshR.pnt;
+      
+      cii.tri = [
+        indexL(meshL.tri)
+        indexR(meshR.tri)
+        ];
+      
+      break % only read a single pair of meshes
+    end
+  end
+elseif ismember({'CIFTI_STRUCTURE_CORTEX'}, cii.BrainStructurelabel)
+  for i=1:length(Bfilelist)
+    Bfilename = fullfile(p, Bfilelist{i});
     
-    cii.pos(indexL,:) = meshL.pnt;
-    cii.pos(indexR,:) = meshR.pnt;
-    
-    cii.tri = [
-      indexL(meshL.tri)
-      indexR(meshR.tri)
-      ];
+    if exist(Bfilename, 'file')
+      warning('reading surface geometry from %s',  Bfilename);
+      meshB   = ft_read_headshape(Bfilename);
+      indexB  = find(cii.BrainStructure==find(strcmp(cii.BrainStructurelabel, 'CIFTI_STRUCTURE_CORTEX')));
+      cii.pos(indexB,:) = meshB.pnt;
+      cii.tri = indexB(meshB.tri);
+    end
     
     break % only read a single mesh
   end
 end
+
+
 
 if readdata
   if isfield(cii, 'data')
@@ -227,7 +302,7 @@ Cifti            = struct(); % the parent of the XML tree, it only contains vers
 MatrixIndicesMap = struct(); % this is the interesting content
 
 attr = attributes(tree, 'get', 1);
-if isstruct(attr), attr = {attr}; end % treat one attribute just like multiple attributes
+if ~iscell(attr), attr = {attr}; end % treat one attribute just like multiple attributes
 for j=1:length(attr)
   if any(strcmp(attr{j}.key, numericAttributeTypes))
     Cifti.(attr{j}.key) = str2num(attr{j}.val);
@@ -255,11 +330,14 @@ for i=1:length(uid_MatrixIndicesMap)
   % the following will fail if there are multiple volumes
   if ~isempty(uid_Volume)
     volume = branch(tree, uid_Volume);
-    attr = attributes(volume, 'get', 1); % there is only one attribute here
-    if any(strcmp(attr.key, numericAttributeTypes))
-      Volume.(attr.key) = str2num(attr.val);
-    else
-      Volume.(attr.key) = attr.val;
+    attr = attributes(volume, 'get', 1); % there should only be one attribute here
+    if ~iscell(attr), attr = {attr}; end % treat one attribute just like multiple attributes
+    for j=1:length(attr)
+      if any(strcmp(attr{j}.key, numericAttributeTypes))
+        Volume.(attr{j}.key) = str2num(attr{j}.val);
+      else
+        Volume.(attr{j}.key) = attr{j}.val;
+      end
     end
     uid_Transform = find(volume,'/Volume/TransformationMatrixVoxelIndicesIJKtoXYZ');
     if ~isempty(uid_Transform)
@@ -350,7 +428,6 @@ end % for each MatrixIndicesMap
 Cifti.MatrixIndicesMap = MatrixIndicesMap;
 Cifti.Volume           = Volume;
 
-
 return % function
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -374,7 +451,7 @@ for i=1:length(MatrixIndicesMap)
       BrainStructurelabel = cell(length(MatrixIndicesMap(i).BrainModel),1);
       
       tmp = cumsum([0 IndexCount]);
-      if ~isequal(IndexOffset, tmp)
+      if ~isequal(IndexOffset, tmp(1:end-1))
         % this happens in some of the example cifti1 files
         % and might be a bug in the actual format of the data in those files
         warning('inconsistency between IndexOffset and IndexCount');
@@ -556,6 +633,11 @@ if isfield(Cifti, 'data')
 end % if data
 
 source = copyfields(Cifti, source, {'time', 'freq'});
+
+if ~isempty(Cifti.Volume)
+  source.dim        = Cifti.Volume.VolumeDimensions;
+  source.transform  = Cifti.Volume.Transform;
+end
 
 source.BrainStructure      = BrainStructure;
 source.BrainStructurelabel = BrainStructurelabel;
