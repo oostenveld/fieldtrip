@@ -146,7 +146,7 @@ if strcmp(representation, 'source')
 end
 
 % try to get the geometrical information from a corresponding gifti files
-% the following assumec the convention of the Human Connectome Project
+% the following assumes the HCP convention
 [p, f, x] = fileparts(filename);
 t = tokenize(f, '.');
 
@@ -276,7 +276,6 @@ if isfield(cii, 'BrainStructurelabel')
   end
 end
 
-
 if readdata
   if isfield(cii, 'data')
     % rename the data field
@@ -300,8 +299,13 @@ function Cifti = tree2struct(tree)
 
 numericAttributeTypes = {'NumberOfMatrices', 'AppliesToMatrixDimension', 'IndexOffset', 'IndexCount', 'SurfaceNumberOfNodes', 'VolumeDimensions', 'SurfaceNumberOfVertices', 'SeriesStart', 'SeriesStep', 'NumberOfSeriesPoints', 'SeriesExponent', 'Vertices'};
 
-Cifti            = struct(); % the parent of the XML tree, it only contains version info
+Cifti                  = struct(); % the parent of the XML tree, it only contains version info
 Cifti.MatrixIndicesMap = struct(); % this is the interesting content
+
+Volume    = [];
+Parcel    = [];
+NamedMap  = [];
+Surface   = [];
 
 attr = attributes(tree, 'get', 1);
 if ~iscell(attr), attr = {attr}; end % treat one attribute just like multiple attributes
@@ -355,8 +359,6 @@ for i=1:length(uid_MatrixIndicesMap)
       Volume.Transform = str2num(get(transform, 2, 'value'));
       Volume.Transform = reshape(Volume.Transform, [4 4])'; % it needs to be transposed
     end
-  else
-    Volume = [];
   end
   
   uid_Surface = find(map, '/MatrixIndicesMap/Surface');
@@ -376,8 +378,6 @@ for i=1:length(uid_MatrixIndicesMap)
       end % for
       
     end
-  else
-    Surface = [];
   end
   
   uid_Parcel = find(map, '/MatrixIndicesMap/Parcel');
@@ -398,7 +398,7 @@ for i=1:length(uid_MatrixIndicesMap)
       
       uid_VoxelIndicesIJK = find(parcel, '/Parcel/VoxelIndicesIJK');
       if ~isempty(uid_VoxelIndicesIJK)
-        Parcel(j).VoxelIndicesIJK = str2num(get(parcel, 3, 'value')); % FIXME hardcoded
+        Parcel(j).VoxelIndicesIJK = get(parcel, children(parcel, uid_VoxelIndicesIJK), 'value');
       else
         Parcel(j).VoxelIndicesIJK = [];
       end
@@ -416,18 +416,19 @@ for i=1:length(uid_MatrixIndicesMap)
           end
         end % for
         
-        Parcel(j).Vertices{k} = str2num(get(vertices, 2, 'value'));  % FIXME hardcoded
+        Parcel(j).Vertices{k} = get(vertices, children(vertices, find(vertices, 'Vertices')), 'value');
+        
       end
     end
-  else
-    Parcel = [];
   end
   
   uid_NamedMap = find(map, '/MatrixIndicesMap/NamedMap');
   if ~isempty(uid_NamedMap)
     for j=1:length(uid_NamedMap)
+      
       namedmap = branch(map, uid_NamedMap(j));
       NamedMap(j).MapName = get(namedmap, children(namedmap, find(namedmap, '/NamedMap/MapName')), 'value');
+      
       uid_LabelTable = find(namedmap, '/NamedMap/LabelTable');
       for k=1:length(uid_LabelTable);
         labeltable = branch(namedmap, uid_LabelTable(k));
@@ -452,10 +453,8 @@ for i=1:length(uid_MatrixIndicesMap)
             end
           end
         end
-      end
+      end % for
     end
-  else
-    NamedMap = [];
   end
   
   uid_BrainModel = find(map, '/MatrixIndicesMap/BrainModel');
@@ -597,10 +596,8 @@ for i=1:length(Cifti.MatrixIndicesMap)
       
     case 'CIFTI_INDEX_TYPE_SCALARS'
       dimord{Cifti.MatrixIndicesMap(i).AppliesToMatrixDimension+1} = []; % scalars are not explicitly represented
-      if isfield(Cifti.MatrixIndicesMap(i), 'NamedMap')
-        for j=1:length(NamedMap)
-          Cifti.mapname{j} = fixname(NamedMap(j).MapName);
-        end
+      for j=1:length(Cifti.NamedMap)
+        Cifti.mapname{j} = fixname(Cifti.NamedMap(j).MapName);
       end
       
     case 'CIFTI_INDEX_TYPE_LABELS'
@@ -659,7 +656,7 @@ if hasbrainmodel
   source.BrainStructurelabel  = BrainStructurelabel;
   if ~isempty(Cifti.Volume)
     % this only applies to the voxel coordinates, not to surface vertices which are NaN
-    source.pos        = ft_warp_apply(Cifti.Volume.Transform, source.pos);
+    source.pos        = ft_warp_apply(Cifti.Volume.Transform, source.pos+1); % one offset
     source.dim        = Cifti.Volume.VolumeDimensions;
     source.transform  = Cifti.Volume.Transform;
   end
@@ -727,3 +724,4 @@ end % if data
 source = copyfields(Cifti, source, {'time', 'freq'});
 
 return % function
+

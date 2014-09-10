@@ -67,13 +67,10 @@ else
   dimord = source.dimord;
 end
 
-dimtok = tokenize(dimord, '_');
-if ~strcmp(dimtok{1}, 'pos')
-  error('the first dimension should correspond to positions in the brain')
-end
-
 switch dimord
   case 'pos'
+    dimord = 'scalar_pos';
+    dat = transpose(dat);
     x = '.dscalar.nii';
   case 'pos_time'
     x = '.dtseries.nii';
@@ -86,6 +83,8 @@ switch dimord
   otherwise
     error('unsupported dimord')
 end % switch
+
+dimtok = tokenize(dimord, '_');
 
 [p, f] = fileparts(filename);
 filename = fullfile(p, [f x]);
@@ -119,14 +118,14 @@ if any(strcmp(dimtok, 'time'))
   tree = add(tree, find(tree, 'CIFTI/Matrix'), 'element', 'MatrixIndicesMap');
   branch = find(tree, 'CIFTI/Matrix/MatrixIndicesMap');
   branch = branch(end);
-  tree = attributes(tree, 'add', branch, 'IndicesMapToDataType', 'CIFTI_INDEX_TYPE_SCALARS');
+  tree = attributes(tree, 'add', branch, 'IndicesMapToDataType', 'CIFTI_INDEX_TYPE_SERIES');
   tree = attributes(tree, 'add', branch, 'AppliesToMatrixDimension', sprintf('%d ', find(strcmp(dimtok, 'time'))-1));
   tree = attributes(tree, 'add', branch, 'NumberOfSeriesPoints', num2str(length(source.time)));
   tree = attributes(tree, 'add', branch, 'SeriesExponent', num2str(0));
   tree = attributes(tree, 'add', branch, 'SeriesStart', num2str(source.time(1)));
   tree = attributes(tree, 'add', branch, 'SeriesStep', num2str(median(diff(source.time))));
   tree = attributes(tree, 'add', branch, 'SeriesUnit', 'SECOND');
-end
+end % if time
 
 if any(strcmp(dimtok, 'freq'))
   % construct the MatrixIndicesMap for the frequency axis in the data
@@ -134,84 +133,99 @@ if any(strcmp(dimtok, 'freq'))
   tree = add(tree, find(tree, 'CIFTI/Matrix'), 'element', 'MatrixIndicesMap');
   branch = find(tree, 'CIFTI/Matrix/MatrixIndicesMap');
   branch = branch(end);
-  tree = attributes(tree, 'add', branch, 'IndicesMapToDataType', 'CIFTI_INDEX_TYPE_SCALARS');
   tree = attributes(tree, 'add', branch, 'AppliesToMatrixDimension', sprintf('%d ', find(strcmp(dimtok, 'freq'))-1));
+  tree = attributes(tree, 'add', branch, 'IndicesMapToDataType', 'CIFTI_INDEX_TYPE_SCALARS');
   tree = attributes(tree, 'add', branch, 'NumberOfSeriesPoints', num2str(length(source.freq)));
   tree = attributes(tree, 'add', branch, 'SeriesExponent', num2str(0));
   tree = attributes(tree, 'add', branch, 'SeriesStart', num2str(source.freq(1)));
   tree = attributes(tree, 'add', branch, 'SeriesStep', num2str(median(diff(source.freq)))); % this requires even sampling
   tree = attributes(tree, 'add', branch, 'SeriesUnit', 'HZ');
-end
+end % if freq
+
+if any(strcmp(dimtok, 'scalar'))
+  tree = add(tree, find(tree, 'CIFTI/Matrix'), 'element', 'MatrixIndicesMap');
+  branch = find(tree, 'CIFTI/Matrix/MatrixIndicesMap');
+  branch = branch(end);
+  tree = attributes(tree, 'add', branch, 'AppliesToMatrixDimension', sprintf('%d ', find(strcmp(dimtok, 'scalar'))-1));
+  tree = attributes(tree, 'add', branch, 'IndicesMapToDataType', 'CIFTI_INDEX_TYPE_SCALARS');
+  tree = add(tree, branch, 'element', 'NamedMap');
+  branch = find(tree, 'CIFTI/Matrix/MatrixIndicesMap/NamedMap');
+  branch = branch(end);
+  [tree, uid] = add(tree, branch, 'element', 'MapName');
+  tree        = add(tree, uid, 'chardata', parameter);
+end % if not freq and time
 
 if any(strcmp(dimtok, 'pos'))
   % construct the MatrixIndicesMap for the geometry
   tree = add(tree, find(tree, 'CIFTI/Matrix'), 'element', 'MatrixIndicesMap');
   branch = find(tree, 'CIFTI/Matrix/MatrixIndicesMap');
   branch = branch(end);
-  tree = attributes(tree, 'add', branch, 'IndicesMapToDataType', 'CIFTI_INDEX_TYPE_BRAIN_MODELS');
   tree = attributes(tree, 'add', branch, 'AppliesToMatrixDimension', sprintf('%d ', find(strcmp(dimtok, 'pos'))-1));
+  tree = attributes(tree, 'add', branch, 'IndicesMapToDataType', 'CIFTI_INDEX_TYPE_BRAIN_MODELS');
   if isfield(source, 'dim')
-    tree = add(tree, branch, 'element', 'Volume');
-    tree = attributes(tree, 'add', find(tree, 'CIFTI/Matrix/MatrixIndicesMap/Volume'), 'VolumeDimensions', sprintf('%d ', source.dim));
-    tree = add(tree, find(tree, 'CIFTI/Matrix/MatrixIndicesMap/Volume'), 'element', 'TransformationMatrixVoxelIndicesIJKtoXYZ');
-    tree = add(tree, find(tree, 'CIFTI/Matrix/MatrixIndicesMap/Volume/TransformationMatrixVoxelIndicesIJKtoXYZ'), 'chardata', sprintf('%f ', source.transform));
-    % tree = add(tree, find(tree, 'CIFTI/Matrix/MatrixIndicesMap/Volume/VolumeDimensions'), 'chardata', sprintf('%d ', source.dim));
+    [tree, uid] = add(tree, branch, 'element', 'Volume');
+    tree        = attributes(tree, 'add', uid, 'VolumeDimensions', sprintf('%d ', source.dim));
+    [tree, uid] = add(tree, uid, 'element', 'TransformationMatrixVoxelIndicesIJKtoXYZ');
+    tree        = add(tree, uid, 'chardata', sprintf('%f ', source.transform')); % it needs to be transposed
   end
-end
-
-if isfield(source, brainstructure)
-  brainstructureindex = source.( brainstructure         );
-  brainstructurelabel = source.([brainstructure 'label']);
-else
-  brainstructureindex = ones(1,size(source.pos,1));
-  brainstructurelabel = {'CIFTI_STRUCTURE_CORTEX'};
-end
-
-if isfield(source, 'dim')
-  [X, Y, Z] = ndgrid(1:source.dim(1), 1:source.dim(2), 1:source.dim(3));
-  xyz = ft_warp_apply(source.transform, [X(:) Y(:) Z(:)]);
-  isvolume = isequal(size(source.pos), size(xyz)) && all(sum((source.pos - xyz).^2,2)./sum((source.pos + xyz).^2,2)<eps);
-else
-  isvolume = false;
-end
-
-
-for i=1:length(brainstructurelabel)
   
-  % write one brainstructure for all each group of vertices
+  if isfield(source, brainstructure)
+    brainstructureindex = source.( brainstructure         );
+    brainstructurelabel = source.([brainstructure 'label']);
+  else
+    brainstructureindex = ones(1,size(source.pos,1));
+    brainstructurelabel = {'CIFTI_STRUCTURE_CORTEX'};
+  end
   
-  sel = brainstructureindex==i;
+  if isfield(source, 'dim')
+    [X, Y, Z] = ndgrid(1:source.dim(1), 1:source.dim(2), 1:source.dim(3));
+    xyz = ft_warp_apply(source.transform, [X(:) Y(:) Z(:)]);
+    isvolume = isequal(size(source.pos), size(xyz)) && all(sum((source.pos - xyz).^2,2)./sum((source.pos + xyz).^2,2)<eps);
+  else
+    isvolume = false;
+  end
   
-  IndexCount = sum(sel);
-  IndexOffset = find(sel, 1, 'first') - 1; % zero offset
-  
-  if isvolume
-    % write one brainstructure for all voxels
+  for i=1:length(brainstructurelabel)
+    % write one brainstructure for all each group of vertices
+    
+    sel = (brainstructureindex==i);
+    IndexCount = sum(sel);
+    IndexOffset = find(sel, 1, 'first') - 1; % zero offset
+    
     branch = find(tree, 'CIFTI/Matrix/MatrixIndicesMap');
     branch = branch(end);
     tree = add(tree, branch, 'element', 'BrainModel');
-    tree = attributes(tree, 'add', find(tree, 'CIFTI/Matrix/MatrixIndicesMap/BrainModel'), 'IndexOffset', sprintf('%d ', IndexOffset));
-    tree = attributes(tree, 'add', find(tree, 'CIFTI/Matrix/MatrixIndicesMap/BrainModel'), 'IndexCount', sprintf('%d ', IndexCount));
-    tree = attributes(tree, 'add', find(tree, 'CIFTI/Matrix/MatrixIndicesMap/BrainModel'), 'ModelType', 'CIFTI_MODEL_TYPE_VOXELS');
-    tree = attributes(tree, 'add', find(tree, 'CIFTI/Matrix/MatrixIndicesMap/BrainModel'), 'BrainStructure', brainstructurelabel{i});
-    tree = add(tree, find(tree, 'CIFTI/Matrix/MatrixIndicesMap/BrainModel'), 'element', 'VoxelIndicesIJK');
-    tmp = source.pos(sel,:);
-    tmp = ft_warp_apply(inv(source.transform), tmp);
-    tmp = round(transpose(tmp));
-    tree = add(tree, find(tree, 'CIFTI/Matrix/MatrixIndicesMap/BrainModel/VoxelIndicesIJK'), 'chardata', sprintf('%d ', tmp));
-    
-  else
-    tree = add(tree, find(tree, 'CIFTI/Matrix/MatrixIndicesMap'), 'element', 'BrainModel');
     branch = find(tree, 'CIFTI/Matrix/MatrixIndicesMap/BrainModel');
     branch = branch(end);
-    tree = attributes(tree, 'add', branch, 'IndexOffset', sprintf('%d ', IndexOffset));
-    tree = attributes(tree, 'add', branch, 'IndexCount', sprintf('%d ', IndexCount));
-    tree = attributes(tree, 'add', branch, 'ModelType', 'CIFTI_MODEL_TYPE_SURFACE');
-    tree = attributes(tree, 'add', branch, 'BrainStructure', brainstructurelabel{i});
-    tree = attributes(tree, 'add', branch, 'SurfaceNumberOfVertices', sprintf('%d ', IndexCount));
-  end
+    
+    if isvolume
+      tmp = source.pos(sel,:);
+      tmp = ft_warp_apply(inv(source.transform), tmp);
+      tmp = round(transpose(tmp))-1; % zero offset
+      tree = attributes(tree, 'add', branch, 'IndexOffset', sprintf('%d ', IndexOffset));
+      tree = attributes(tree, 'add', branch, 'IndexCount', sprintf('%d ', IndexCount));
+      tree = attributes(tree, 'add', branch, 'ModelType', 'CIFTI_MODEL_TYPE_VOXELS');
+      tree = attributes(tree, 'add', branch, 'BrainStructure', brainstructurelabel{i});
+      tree = add(tree, branch, 'element', 'VoxelIndicesIJK');
+      branch = find(tree, 'CIFTI/Matrix/MatrixIndicesMap/BrainModel/VoxelIndicesIJK');
+      branch = branch(end);
+      tree = add(tree, branch, 'chardata', sprintf('%d ', tmp));
+    else
+      tmp = find(sel)-IndexOffset-1; % zero offset
+      tree = attributes(tree, 'add', branch, 'IndexOffset', sprintf('%d ', IndexOffset));
+      tree = attributes(tree, 'add', branch, 'IndexCount', sprintf('%d ', IndexCount));
+      tree = attributes(tree, 'add', branch, 'ModelType', 'CIFTI_MODEL_TYPE_SURFACE');
+      tree = attributes(tree, 'add', branch, 'BrainStructure', brainstructurelabel{i});
+      tree = attributes(tree, 'add', branch, 'SurfaceNumberOfVertices', sprintf('%d ', IndexCount));
+      tree = add(tree, branch, 'element', 'VertexIndices');
+      branch = find(tree, 'CIFTI/Matrix/MatrixIndicesMap/BrainModel/VertexIndices');
+      branch = branch(end);
+      tree = add(tree, branch, 'chardata', sprintf('%d ', tmp));
+    end
+    
+  end % for each brainstructurelabel
   
-end
+end % if pos
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -242,24 +256,24 @@ hdr.magic = [110 43 50 0 13 10 26 10];
 switch precision
   case 'uint8'
     hdr.datatype = 2;
-  case 'int8'
-    hdr.datatype = 256;
-  case 'uint16'
-    hdr.datatype = 512;
   case 'int16'
     hdr.datatype = 4;
-  case 'uint32'
-    hdr.datatype = 768;
   case 'int32'
     hdr.datatype = 8;
-  case 'uint64'
-    hdr.datatype = 1280;
-  case 'int64'
-    hdr.datatype = 1024;
   case 'single'
     hdr.datatype = 16;
   case 'double'
     hdr.datatype = 64;
+  case 'int8'
+    hdr.datatype = 256;
+  case 'uint16'
+    hdr.datatype = 512;
+  case 'uint32'
+    hdr.datatype = 768;
+  case 'uint64'
+    hdr.datatype = 1280;
+  case 'int64'
+    hdr.datatype = 1024;
   otherwise
     error('unsupported precision "%s"', precision);
 end
@@ -286,6 +300,8 @@ end
 switch dimord
   case 'pos'
     hdr.dim             = [6 1 1 1 1 size(source.pos,1) 1 1];
+  case 'scalar_pos'
+    hdr.dim             = [6 1 1 1 1 1 size(source.pos,1) 1];
   case 'pos_time'
     hdr.dim             = [6 1 1 1 1 size(source.pos,1)  length(source.time) 1];
   case 'pos_pos'

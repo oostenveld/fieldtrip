@@ -11,6 +11,7 @@ function ft_sourcewrite(cfg, source)
 %
 %  cfg.filename  = string, name of the file
 %  cfg.parameter = string, functional parameter to be written to file
+%  cfg.precision = string, can be 'single', 'double', etc.
 %
 % To facilitate data-handling and distributed computing you can use
 %   cfg.inputfile   =  ...
@@ -111,7 +112,7 @@ switch (cfg.filetype)
     end
     cfg.filename = [cfg.filename '.' cfg.parameter '.nii'];
     
-    ft_write_cifti(cfg.filename, source, 'parameter', cfg.parameter, 'parcellation', cfg.parcellation);
+    ft_write_cifti(cfg.filename, source, 'parameter', cfg.parameter, 'parcellation', cfg.parcellation, 'precision', cfg.precision);
 
   otherwise
     error('unsupported output format (%s)', cfg.filetype);

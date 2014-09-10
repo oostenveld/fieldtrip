@@ -10,8 +10,8 @@
 
 %%
 source = [];
-source.dim = [5 6 7];
-[X Y Z] = ndgrid(1:source.dim(1), 1:source.dim(2), 1:source.dim(3));
+source.dim    = [5 6 7];
+[X Y Z]       = ndgrid(1:source.dim(1), 1:source.dim(2), 1:source.dim(3));
 source.transform = eye(4);
 source.pos    = ft_warp_apply(source.transform, [X(:) Y(:) Z(:)]);
 source.pow    = (1:prod(source.dim))';
@@ -112,6 +112,7 @@ cfg = [];
 cfg.filetype = 'cifti';
 cfg.parameter = 'timeseries';
 cfg.filename = 'test_bug2096';
+cfg.precision = 'single';
 ft_sourcewrite(cfg, source);
 
 %% test reading these files
@@ -123,7 +124,7 @@ ft_sourcewrite(cfg, source);
 p = '/home/common/matlab/fieldtrip/data/test/bug2096';
 p = '/Volumes/Data/roboos/AeroFS/bug2096';
 p = '/Users/robert/Documents - work/previous AeroFS/bug2096';
-p = '/Users/roboos/Desktop/opruimen/previous AeroFS/bug2096/cifti1';
+p = '/Users/roboos/Desktop/bug2096/cifti1';
 cd(p);
 
 cii1 = ft_read_cifti('DenseConnectome.dconn.nii');
@@ -133,7 +134,7 @@ cii4 = ft_read_cifti('BOLD_REST2_LR.dtseries.nii');
 cii5 = ft_read_cifti('BOLD_REST2_LR_Atlas.dtseries.nii');
 
 %% version 2
-p = '/Users/roboos/Desktop/opruimen/previous AeroFS/bug2096/cifti2';
+p = '/Users/roboos/Desktop/bug2096/cifti2';
 cd(p);
 
 cii1 = ft_read_cifti('ones.dscalar.nii');
