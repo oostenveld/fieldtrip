@@ -724,4 +724,3 @@ end % if data
 source = copyfields(Cifti, source, {'time', 'freq'});
 
 return % function
-

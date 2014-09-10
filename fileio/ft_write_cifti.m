@@ -32,7 +32,7 @@ function ft_write_cifti(filename, source, varargin)
 
 brainstructure  = ft_getopt(varargin, 'brainstructure');
 parameter       = ft_getopt(varargin, 'parameter');
-precision       = ft_getopt(varargin, 'precision', 'double');
+precision       = ft_getopt(varargin, 'precision', 'single');
 
 % ensure that the external toolbox is present, this adds gifti/@xmltree
 ft_hastoolbox('gifti', 1);
@@ -73,6 +73,8 @@ switch dimord
     dat = transpose(dat);
     x = '.dscalar.nii';
   case 'pos_time'
+    dimord = 'time_pos';
+    dat = transpose(dat);
     x = '.dtseries.nii';
   case 'pos_pos'
     x = '.dconn.nii';
@@ -118,8 +120,9 @@ if any(strcmp(dimtok, 'time'))
   tree = add(tree, find(tree, 'CIFTI/Matrix'), 'element', 'MatrixIndicesMap');
   branch = find(tree, 'CIFTI/Matrix/MatrixIndicesMap');
   branch = branch(end);
+  tmp = sprintf('%d ', find(strcmp(dimtok, 'time'))-1); tmp = tmp(1:end-1); % remove the trailing comma
+  tree = attributes(tree, 'add', branch, 'AppliesToMatrixDimension', tmp);
   tree = attributes(tree, 'add', branch, 'IndicesMapToDataType', 'CIFTI_INDEX_TYPE_SERIES');
-  tree = attributes(tree, 'add', branch, 'AppliesToMatrixDimension', sprintf('%d ', find(strcmp(dimtok, 'time'))-1));
   tree = attributes(tree, 'add', branch, 'NumberOfSeriesPoints', num2str(length(source.time)));
   tree = attributes(tree, 'add', branch, 'SeriesExponent', num2str(0));
   tree = attributes(tree, 'add', branch, 'SeriesStart', num2str(source.time(1)));
@@ -133,7 +136,8 @@ if any(strcmp(dimtok, 'freq'))
   tree = add(tree, find(tree, 'CIFTI/Matrix'), 'element', 'MatrixIndicesMap');
   branch = find(tree, 'CIFTI/Matrix/MatrixIndicesMap');
   branch = branch(end);
-  tree = attributes(tree, 'add', branch, 'AppliesToMatrixDimension', sprintf('%d ', find(strcmp(dimtok, 'freq'))-1));
+  tmp = sprintf('%d ', find(strcmp(dimtok, 'freq'))-1); tmp = tmp(1:end-1); % remove the trailing comma
+  tree = attributes(tree, 'add', branch, 'AppliesToMatrixDimension', tmp);
   tree = attributes(tree, 'add', branch, 'IndicesMapToDataType', 'CIFTI_INDEX_TYPE_SCALARS');
   tree = attributes(tree, 'add', branch, 'NumberOfSeriesPoints', num2str(length(source.freq)));
   tree = attributes(tree, 'add', branch, 'SeriesExponent', num2str(0));
@@ -146,7 +150,8 @@ if any(strcmp(dimtok, 'scalar'))
   tree = add(tree, find(tree, 'CIFTI/Matrix'), 'element', 'MatrixIndicesMap');
   branch = find(tree, 'CIFTI/Matrix/MatrixIndicesMap');
   branch = branch(end);
-  tree = attributes(tree, 'add', branch, 'AppliesToMatrixDimension', sprintf('%d ', find(strcmp(dimtok, 'scalar'))-1));
+  tmp = sprintf('%d ', find(strcmp(dimtok, 'scalar'))-1); tmp = tmp(1:end-1); % remove the trailing comma
+  tree = attributes(tree, 'add', branch, 'AppliesToMatrixDimension', tmp);
   tree = attributes(tree, 'add', branch, 'IndicesMapToDataType', 'CIFTI_INDEX_TYPE_SCALARS');
   tree = add(tree, branch, 'element', 'NamedMap');
   branch = find(tree, 'CIFTI/Matrix/MatrixIndicesMap/NamedMap');
@@ -160,11 +165,13 @@ if any(strcmp(dimtok, 'pos'))
   tree = add(tree, find(tree, 'CIFTI/Matrix'), 'element', 'MatrixIndicesMap');
   branch = find(tree, 'CIFTI/Matrix/MatrixIndicesMap');
   branch = branch(end);
-  tree = attributes(tree, 'add', branch, 'AppliesToMatrixDimension', sprintf('%d ', find(strcmp(dimtok, 'pos'))-1));
+  tmp = sprintf('%d,', find(strcmp(dimtok, 'pos'))-1); tmp = tmp(1:end-1); % remove the trailing comma
+  tree = attributes(tree, 'add', branch, 'AppliesToMatrixDimension', tmp);
   tree = attributes(tree, 'add', branch, 'IndicesMapToDataType', 'CIFTI_INDEX_TYPE_BRAIN_MODELS');
   if isfield(source, 'dim')
+    tmp = sprintf('%d,', source.dim); tmp = tmp(1:end-1); % remove the trailing comma
     [tree, uid] = add(tree, branch, 'element', 'Volume');
-    tree        = attributes(tree, 'add', uid, 'VolumeDimensions', sprintf('%d ', source.dim));
+    tree        = attributes(tree, 'add', uid, 'VolumeDimensions', tmp);
     [tree, uid] = add(tree, uid, 'element', 'TransformationMatrixVoxelIndicesIJKtoXYZ');
     tree        = add(tree, uid, 'chardata', sprintf('%f ', source.transform')); % it needs to be transposed
   end
@@ -298,12 +305,14 @@ end
 % dim(1) represents the number of dimensions
 % for a normal nifti file, dim(2:4) are x, y, z, dim(5) is time, dim(6:8) are free to choose
 switch dimord
-  case 'pos'
-    hdr.dim             = [6 1 1 1 1 size(source.pos,1) 1 1];
+  case 'pos_scalar'
+    hdr.dim             = [6 1 1 1 1 size(source.pos,1) 1 1]; % only single scalar
   case 'scalar_pos'
-    hdr.dim             = [6 1 1 1 1 1 size(source.pos,1) 1];
+    hdr.dim             = [6 1 1 1 1 1 size(source.pos,1) 1]; % only single scalar
   case 'pos_time'
     hdr.dim             = [6 1 1 1 1 size(source.pos,1)  length(source.time) 1];
+  case 'time_pos'
+    hdr.dim             = [6 1 1 1 1   length(source.time) size(source.pos,1) 1];
   case 'pos_pos'
     hdr.dim             = [6 1 1 1 1 size(source.pos,1)  size(source.pos,1)  1];
   case 'chan_time'

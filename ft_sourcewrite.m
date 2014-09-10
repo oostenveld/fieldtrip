@@ -65,8 +65,9 @@ cfg = ft_checkconfig(cfg, 'required', {'parameter', 'filename'});
 % get the options
 cfg.parameter    = ft_getopt(cfg, 'parameter');
 cfg.filename     = ft_getopt(cfg, 'filename');
-cfg.filetype     = ft_getopt(cfg, 'filetype'); % the default is determined further down
-cfg.parcellation = ft_getopt(cfg, 'parcellation'); % can be used for cifti
+cfg.filetype     = ft_getopt(cfg, 'filetype');      % the default is determined further down
+cfg.parcellation = ft_getopt(cfg, 'parcellation');  % is used for cifti
+cfg.precision    = ft_getopt(cfg, 'precision');     % is used for cifti
 
 if isempty(cfg.filetype)
   if isfield(source, 'dim')

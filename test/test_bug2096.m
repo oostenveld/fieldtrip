@@ -106,7 +106,7 @@ source.transform = eye(4);
 source.pos = ft_warp_apply(source.transform, [X(:) Y(:) Z(:)]);
 source.time = 1:10;
 source.timeseries = randn(prod(source.dim), length(source.time));
-source.timeseriesdimord = 'pos_time';
+source.dimord = 'pos_time';
 
 cfg = [];
 cfg.filetype = 'cifti';
@@ -114,6 +114,56 @@ cfg.parameter = 'timeseries';
 cfg.filename = 'test_bug2096';
 cfg.precision = 'single';
 ft_sourcewrite(cfg, source);
+
+source1 = ft_read_cifti('test_bug2096.timeseries.dtseries.nii');
+
+%%
+[pnt, tri] = icosahedron;
+
+source = [];
+source.pos    = pnt;
+source.tri    = tri;
+source.pow    = (1:size(pnt,1))';
+% source.BrainStructure = ones(1, size(pnt,1));
+% source.BrainStructurelabel = {'CIFTI_STRUCTURE_CORTEX'};
+source.BrainStructure = [1 1 1 1 1 1 1 1 1 1 1 1];
+source.BrainStructurelabel = {'CIFTI_STRUCTURE_CORTEX_LEFT'};
+source.time = 1:10;
+source.timeseries = zeros(size(source.pos,1), length(source.time));
+for i=1:size(source.timeseries,2)
+  source.timeseries(:,i) = i;
+end
+source.dimord = 'pos_time';
+
+cfg = [];
+cfg.filetype  = 'cifti';
+cfg.parameter = 'timeseries';
+cfg.filename  = 'test_bug2096';
+ft_sourcewrite(cfg, source);
+
+source1 = ft_read_cifti('test_bug2096.timeseries.dtseries.nii')
+
+%%
+[pnt, tri] = icosahedron;
+
+source = [];
+source.pos    = pnt;
+source.tri    = tri;
+source.imagcoh = rand(size(pnt,1));
+source.dimord = 'pos_pos';
+% source.BrainStructure = ones(1, size(pnt,1));
+% source.BrainStructurelabel = {'CIFTI_STRUCTURE_CORTEX'};
+source.BrainStructure = [1 1 1 1 1 1 1 1 1 1 1 1];
+source.BrainStructurelabel = {'CIFTI_STRUCTURE_CORTEX_LEFT'};
+
+cfg = [];
+cfg.filetype  = 'cifti';
+cfg.parameter = 'imagcoh';
+cfg.filename  = 'test_bug2096';
+ft_sourcewrite(cfg, source);
+
+source1 = ft_read_cifti('test_bug2096.imagcoh.dconn.nii')
+
 
 %% test reading these files
 % http://brainvis.wustl.edu/cifti/DenseConnectome.dconn.nii
