@@ -96,7 +96,7 @@ if any(xmldata==0)
 end
 
 % write the xml section to a temporary file
-xmlfile = 'debug_read.xml';
+xmlfile = 'debug.xml';
 tmp = fopen(xmlfile, 'w');
 fwrite(tmp, xmldata);
 fclose(tmp);

@@ -280,6 +280,52 @@ save(tree, xmlfile);          % write the XMLTREE object to disk
 xmlfid = fopen(xmlfile, 'rb');
 xmldat = fread(xmlfid, [1, inf], 'char');
 fclose(xmlfid);
+
+% we do not want the content of the XML elements to be nicely formatted, as it might create confusion when reading
+% therefore detect and remove whitespace immediately following a ">" and preceding a "<"
+whitespace = false(size(xmldat));
+
+gt = int8('>');
+lt = int8('<');
+ws = int8(sprintf(' \t\r\n'));
+
+b = find(xmldat==gt);
+e = find(xmldat==lt);
+b = b(1:end-1); % the XML section ends with ">", this is not of relevance
+e = e(2:end);   % the XML section starts with "<", this is not of relevance
+b = b+1;
+e = e-1;
+
+for i=1:length(b)
+  for j=b(i):1:e(i)
+    if any(ws==xmldat(j))
+      whitespace(j) = true;
+    else
+      break
+    end
+  end
+end
+
+for i=1:length(b)
+  for j=e(i):-1:b(i)
+    if any(ws==xmldat(j))
+      whitespace(j) = true;
+    else
+      break
+    end
+  end
+end
+
+% keep it if there is _only_ whitespace between the  ">" and "<"
+for i=1:length(b)
+  if all(whitespace(b(i):e(i)))
+    whitespace(b(i):e(i)) = false;
+  end
+end
+
+% remove the padding and trailing whitespace
+xmldat = xmldat(~whitespace);
+
 xmlsize = length(xmldat);
 xmlpad  = ceil((xmlsize+8)/16)*16 - (xmlsize+8);
 
@@ -401,7 +447,7 @@ fid = fopen(filename, 'wb');
 write_nifti2_hdr(fid, hdr);
 
 % write the xml section to a temporary file
-xmlfile = 'debug_write.xml';
+xmlfile = 'debug.xml';
 tmp = fopen(xmlfile, 'w');
 fwrite(tmp, xmldat, 'char');
 fclose(tmp);
