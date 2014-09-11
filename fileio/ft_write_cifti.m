@@ -69,19 +69,59 @@ end
 
 switch dimord
   case 'pos'
+    % NIFTI_INTENT_CONNECTIVITY_DENSE_SCALARS
+    extension   = '.dscalar.nii';
+    intent_code = 3006;
+    intent_name = 'ConnDenseScalar';
+    dat = transpose(dat);
     dimord = 'scalar_pos';
-    dat = transpose(dat);
-    x = '.dscalar.nii';
-  case 'pos_time'
-    dimord = 'time_pos';
-    dat = transpose(dat);
-    x = '.dtseries.nii';
   case 'pos_pos'
-    x = '.dconn.nii';
-  case 'chan_time'
-    x = '.ptseries.nii';
+    % NIFTI_INTENT_CONNECTIVITY_DENSE
+    extension = '.dconn.nii';
+    intent_code = 3001;
+    intent_name = 'ConnDense';
+  case 'pos_time'
+    % NIFTI_INTENT_CONNECTIVITY_DENSE_SERIES
+    extension = '.dtseries.nii';
+    intent_code = 3002;
+    intent_name = 'ConnDenseSeries';
+    dat = transpose(dat);
+    dimord = 'time_pos';
+  case 'pos_freq'
+    % NIFTI_INTENT_CONNECTIVITY_DENSE_SERIES
+    extension = '.dtseries.nii';
+    intent_code = 3002;
+    intent_name = 'ConnDenseSeries';
+    dat = transpose(dat);
+    dimord = 'freq_pos';
+    
+  case 'chan'
+    % NIFTI_INTENT_CONNECTIVITY_DENSE_SCALARS
+    extension   = '.dscalar.nii';
+    intent_code = 3006;
+    intent_name = 'ConnDenseScalar';
+    dat = transpose(dat);
+    dimord = 'scalar_chan';
   case 'chan_chan'
-    x = '.pconn.nii';
+    % NIFTI_INTENT_CONNECTIVITY_PARCELLATED
+    extension = '.pconn.nii';
+    intent_code = 3003;
+    intent_name = 'ConnParcels';
+  case 'chan_time'
+    % NIFTI_INTENT_CONNECTIVITY_PARCELLATED_SERIES
+    extension = '.ptseries.nii';
+    intent_code = 3000;
+    intent_name = 'ConnParcelSries'; % due to length constraints of the NIfTI header field, the first ?e? in ?series? is removed
+    dat = transpose(dat);
+    dimord = 'freq_time';
+  case 'chan_freq'
+    % NIFTI_INTENT_CONNECTIVITY_PARCELLATED_SERIES
+    extension = '.ptseries.nii';
+    intent_code = 3000;
+    intent_name = 'ConnParcelSries'; % due to length constraints of the NIfTI header field, the first ?e? in ?series? is removed
+    dat = transpose(dat);
+    dimord = 'freq_chan';
+    
   otherwise
     error('unsupported dimord')
 end % switch
@@ -89,20 +129,7 @@ end % switch
 dimtok = tokenize(dimord, '_');
 
 [p, f] = fileparts(filename);
-filename = fullfile(p, [f x]);
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% construct the NIFTI-2 header
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-if false
-  hdr.magic           = fread(fid, [1 8 ], 'int8=>int8'     ); % 4       `n', '+', `2', `\0','\r','\n','\032','\n' or (0x6E,0x2B,0x32,0x00,0x0D,0x0A,0x1A,0x0A)
-  hdr.datatype        = fread(fid, [1 1 ], 'int16=>int16'   ); % 12      See file formats
-  hdr.dim             = fread(fid, [1 8 ], 'int64=>double'  ); % 16      See file formats
-  hdr.vox_offset      = fread(fid, [1 1 ], 'int64=>int64'   ); % 168     Offset of data, minimum=544
-  hdr.intent_code     = fread(fid, [1 1 ], 'int32=>int32'   ); % 504     See file formats
-  hdr.intent_name     = fread(fid, [1 16], 'int8=>char'     ); % 508     See file formats
-end
+filename = fullfile(p, [f extension]);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % construct the XML object describing the geometry
@@ -256,7 +283,10 @@ fclose(xmlfid);
 xmlsize = length(xmldat);
 xmlpad  = ceil((xmlsize+8)/16)*16 - (xmlsize+8);
 
-% construct the nifti-2 header
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% construct the NIFTI-2 header
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 hdr.magic = [110 43 50 0 13 10 26 10];
 
 % see http://nifti.nimh.nih.gov/nifti-1/documentation/nifti1fields/nifti1fields_pages/datatype.html
@@ -336,7 +366,7 @@ hdr.intent_p2       = 0;
 hdr.intent_p3       = 0;
 hdr.pixdim          = [0 1 1 1 1 1 1 1];
 hdr.vox_offset      = 4+540+8+xmlsize+xmlpad;
-hdr.scl_slope       = 0;
+hdr.scl_slope       = 1; % WorkBench sets scl_slope/scl_inter to 1 and 0, although 0 and 0 would also be fine - both mean the same thing according to the nifti spec
 hdr.scl_inter       = 0;
 hdr.cal_max         = 0;
 hdr.cal_min         = 0;
@@ -359,8 +389,8 @@ hdr.srow_y          = [0 0 0 0];
 hdr.srow_z          = [0 0 0 0];
 hdr.slice_code      = 0;
 hdr.xyzt_units      = 0;
-hdr.intent_code     = 0;
-hdr.intent_name     = char(zeros(1,16));
+hdr.intent_code     = intent_code;
+hdr.intent_name     = cat(2, intent_name, zeros(1, 16-length(intent_name))); % zero-pad up to 16 characters
 hdr.dim_info        = 0;
 hdr.unused_str      = char(zeros(1,15));
 
@@ -369,6 +399,12 @@ fid = fopen(filename, 'wb');
 
 % write the header, this is 4+540 bytes
 write_nifti2_hdr(fid, hdr);
+
+% write the xml section to a temporary file
+xmlfile = 'debug_write.xml';
+tmp = fopen(xmlfile, 'w');
+fwrite(tmp, xmldat, 'char');
+fclose(tmp);
 
 % write the cifti header extension
 fwrite(fid, [1 0 0 0], 'uint8');

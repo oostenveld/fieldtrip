@@ -96,7 +96,7 @@ if any(xmldata==0)
 end
 
 % write the xml section to a temporary file
-xmlfile = 'test.xml';
+xmlfile = 'debug_read.xml';
 tmp = fopen(xmlfile, 'w');
 fwrite(tmp, xmldata);
 fclose(tmp);
@@ -721,6 +721,6 @@ if isfield(Cifti, 'data')
   end
 end % if data
 
-source = copyfields(Cifti, source, {'time', 'freq'});
+source = copyfields(Cifti, source, {'hdr', 'time', 'freq'});
 
 return % function
