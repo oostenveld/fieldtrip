@@ -323,7 +323,7 @@ for i=1:length(b)
 end
 
 % remove the padding whitespace
-% xmldat = xmldat(~whitespace);
+xmldat = xmldat(~whitespace);
 
 xmlsize = length(xmldat);
 xmlpad  = ceil((xmlsize+8)/16)*16 - (xmlsize+8);
