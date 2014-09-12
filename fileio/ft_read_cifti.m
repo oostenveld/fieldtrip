@@ -127,13 +127,13 @@ if readdata
   % read the voxel data section
   fseek(fid, hdr.vox_offset, 'bof');
   switch hdr.datatype
-    case   2, [voxdata, nitemsread] = fread(fid, inf, 'uchar');   assert(nitemsread>0);
-    case   4, [voxdata, nitemsread] = fread(fid, inf, 'short');   assert(nitemsread>0);
-    case   8, [voxdata, nitemsread] = fread(fid, inf, 'int');     assert(nitemsread>0);
-    case  16, [voxdata, nitemsread] = fread(fid, inf, 'float');   assert(nitemsread>0);
-    case  64, [voxdata, nitemsread] = fread(fid, inf, 'double');  assert(nitemsread>0);
-    case 512, [voxdata, nitemsread] = fread(fid, inf, 'ushort');  assert(nitemsread>0);
-    case 768, [voxdata, nitemsread] = fread(fid, inf, 'uint');    assert(nitemsread>0);
+    case   2, [voxdata, nitemsread] = fread(fid, inf, 'uchar');   assert(nitemsread==prod(hdr.dim(2:end)), 'could not read all data');
+    case   4, [voxdata, nitemsread] = fread(fid, inf, 'short');   assert(nitemsread==prod(hdr.dim(2:end)), 'could not read all data');
+    case   8, [voxdata, nitemsread] = fread(fid, inf, 'int');     assert(nitemsread==prod(hdr.dim(2:end)), 'could not read all data');
+    case  16, [voxdata, nitemsread] = fread(fid, inf, 'float');   assert(nitemsread==prod(hdr.dim(2:end)), 'could not read all data');
+    case  64, [voxdata, nitemsread] = fread(fid, inf, 'double');  assert(nitemsread==prod(hdr.dim(2:end)), 'could not read all data');
+    case 512, [voxdata, nitemsread] = fread(fid, inf, 'ushort');  assert(nitemsread==prod(hdr.dim(2:end)), 'could not read all data');
+    case 768, [voxdata, nitemsread] = fread(fid, inf, 'uint');    assert(nitemsread==prod(hdr.dim(2:end)), 'could not read all data');
     otherwise, error('unsupported datatype');
   end
   cii.data = squeeze(reshape(voxdata, hdr.dim(2:end)));
@@ -511,6 +511,13 @@ function source = struct2source(Cifti)
 dimord = cell(size(Cifti.MatrixIndicesMap));
 hasbrainmodel = false;
 
+% MatrixIndicesMap.IndicesMapToDataType can be
+% CIFTI_INDEX_TYPE_BRAIN_MODELS The dimension represents one or more brain models.
+% CIFTI_INDEX_TYPE_PARCELS      The dimension represents a parcellation scheme.
+% CIFTI_INDEX_TYPE_SERIES       The dimension represents a series of regular samples.
+% CIFTI_INDEX_TYPE_SCALARS      The dimension represents named scalar maps.
+% CIFTI_INDEX_TYPE_LABELS       The dimension represents named label maps.
+
 for i=1:length(Cifti.MatrixIndicesMap)
   switch Cifti.MatrixIndicesMap(i).IndicesMapToDataType
     case 'CIFTI_INDEX_TYPE_BRAIN_MODELS'
@@ -594,6 +601,25 @@ for i=1:length(Cifti.MatrixIndicesMap)
         
       end % for all BrainModels
       
+    case 'CIFTI_INDEX_TYPE_PARCELS'
+      dimord(Cifti.MatrixIndicesMap(i).AppliesToMatrixDimension+1) = {'chan'};
+      source.channel = {Cifti.Parcel(:).Name};
+      
+    case 'CIFTI_INDEX_TYPE_SERIES'
+      % this only applies to cifti version 2
+      switch Cifti.MatrixIndicesMap(i).SeriesUnit
+        case 'SECOND'
+          dimord(Cifti.MatrixIndicesMap(i).AppliesToMatrixDimension+1) = {'time'};
+          Cifti.time = (((1:Cifti.MatrixIndicesMap(i).NumberOfSeriesPoints)-1) * Cifti.MatrixIndicesMap(i).SeriesStep + Cifti.MatrixIndicesMap(i).SeriesStart) * 10^Cifti.MatrixIndicesMap(i).SeriesExponent;
+        case 'HZ'
+          dimord(Cifti.MatrixIndicesMap(i).AppliesToMatrixDimension+1) = {'freq'};
+          Cifti.freq = (((1:Cifti.MatrixIndicesMap(i).NumberOfSeriesPoints)-1) * Cifti.MatrixIndicesMap(i).SeriesStep + Cifti.MatrixIndicesMap(i).SeriesStart) * 10^Cifti.MatrixIndicesMap(i).SeriesExponent;
+          % case 'METER'
+          % case 'RADIAN'
+        otherwise
+          error('unsupported SeriesUnit');
+      end % switch
+      
     case 'CIFTI_INDEX_TYPE_SCALARS'
       dimord{Cifti.MatrixIndicesMap(i).AppliesToMatrixDimension+1} = []; % scalars are not explicitly represented
       for j=1:length(Cifti.NamedMap)
@@ -610,21 +636,8 @@ for i=1:length(Cifti.MatrixIndicesMap)
         Cifti.mapname{j} = fixname(Cifti.NamedMap(j).MapName);
       end
       
-    case 'CIFTI_INDEX_TYPE_SERIES'
-      % this only applies to cifti version 2
-      switch Cifti.MatrixIndicesMap(i).SeriesUnit
-        case 'SECOND'
-          dimord(Cifti.MatrixIndicesMap(i).AppliesToMatrixDimension+1) = {'time'};
-          Cifti.time = (((1:Cifti.MatrixIndicesMap(i).NumberOfSeriesPoints)-1) * Cifti.MatrixIndicesMap(i).SeriesStep + Cifti.MatrixIndicesMap(i).SeriesStart) * 10^Cifti.MatrixIndicesMap(i).SeriesExponent;
-        case 'HZ'
-          dimord(Cifti.MatrixIndicesMap(i).AppliesToMatrixDimension+1) = {'freq'};
-          Cifti.freq = (((1:Cifti.MatrixIndicesMap(i).NumberOfSeriesPoints)-1) * Cifti.MatrixIndicesMap(i).SeriesStep + Cifti.MatrixIndicesMap(i).SeriesStart) * 10^Cifti.MatrixIndicesMap(i).SeriesExponent;
-        otherwise
-          error('unsupported SeriesUnit');
-      end % switch
-      
     case 'CIFTI_INDEX_TYPE_TIME_POINTS'
-      % this only applies to cifti version 1
+      % this only applies to cifti-1, in cifti-2 this has been replaced by CIFTI_INDEX_TYPE_SERIES
       dimord(Cifti.MatrixIndicesMap(i).AppliesToMatrixDimension+1) = {'time'};
       switch Cifti.MatrixIndicesMap(i).TimeStepUnits
         case 'NIFTI_UNITS_SEC'
@@ -633,13 +646,6 @@ for i=1:length(Cifti.MatrixIndicesMap)
           % other units should be trivial to implement
           error('unsupported TimeStepUnits');
       end
-      
-    case 'CIFTI_INDEX_TYPE_PARCELS'
-      dimord(Cifti.MatrixIndicesMap(i).AppliesToMatrixDimension+1) = {'chan'};
-      source.channel = {Cifti.Parcel(:).Name};
-      
-      % case 'CIFTI_INDEX_TYPE_FIBERS'
-      %   error('not yet implemented');
       
     otherwise
       error('unsupported IndicesMapToDataType');

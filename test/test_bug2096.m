@@ -117,21 +117,43 @@ ft_sourcewrite(cfg, source);
 
 source1 = ft_read_cifti('test_bug2096.timeseries.dtseries.nii');
 
-%%
+%% test the dscalar output
 [pnt, tri] = icosahedron;
+pntL = pnt; pntL(:,1) = pntL(:,1) - 1; % shift along X
+pntR = pnt; pntR(:,1) = pntR(:,1) + 1; % shift along X
 
 source = [];
-source.pos    = pnt;
-source.tri    = tri;
-source.pow    = (1:size(pnt,1))';
-% source.BrainStructure = ones(1, size(pnt,1));
-% source.BrainStructurelabel = {'CIFTI_STRUCTURE_CORTEX'};
-source.BrainStructure = [1 1 1 1 1 1 1 1 1 1 1 1];
-source.BrainStructurelabel = {'CIFTI_STRUCTURE_CORTEX_LEFT'};
+source.pos    = [pntL; pntR];
+source.tri    = [tri; tri+12];
+source.BrainStructure = [1 1 1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 2 2];
+source.BrainStructurelabel = {'CIFTI_STRUCTURE_CORTEX_LEFT', 'CIFTI_STRUCTURE_CORTEX_RIGHT'};
+source.activity = zeros(size(source.pos,1), 1);
+source.activity(:,1) = 1:24;
+source.dimord = 'pos';
+
+cfg = [];
+cfg.filetype  = 'cifti';
+cfg.parameter = 'activity';
+cfg.filename  = 'test_bug2096';
+ft_sourcewrite(cfg, source);
+
+source1 = ft_read_cifti('test_bug2096.activity.dscalar.nii')
+ft_plot_mesh(source1, 'vertexcolor', source1.activity(:,1), 'edgecolor', 'none')
+
+%% test the dtsetries output
+[pnt, tri] = icosahedron;
+pntL = pnt; pntL(:,1) = pntL(:,1) - 1; % shift along X
+pntR = pnt; pntR(:,1) = pntR(:,1) + 1; % shift along X
+
+source = [];
+source.pos    = [pntL; pntR];
+source.tri    = [tri; tri+12];
+source.BrainStructure = [1 1 1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 2 2];
+source.BrainStructurelabel = {'CIFTI_STRUCTURE_CORTEX_LEFT', 'CIFTI_STRUCTURE_CORTEX_RIGHT'};
 source.time = 1:10;
 source.timeseries = zeros(size(source.pos,1), length(source.time));
 for i=1:size(source.timeseries,2)
-  source.timeseries(:,i) = i;
+  source.timeseries(:,i) = 1:24;
 end
 source.dimord = 'pos_time';
 
@@ -142,19 +164,20 @@ cfg.filename  = 'test_bug2096';
 ft_sourcewrite(cfg, source);
 
 source1 = ft_read_cifti('test_bug2096.timeseries.dtseries.nii')
+ft_plot_mesh(source1, 'vertexcolor', source1.timeseries(:,1), 'edgecolor', 'none')
 
-%%
+%% test the dconn output
 [pnt, tri] = icosahedron;
+pntL = pnt; pntL(:,1) = pntL(:,1) - 1; % shift along X
+pntR = pnt; pntR(:,1) = pntR(:,1) + 1; % shift along X
 
 source = [];
-source.pos    = pnt;
-source.tri    = tri;
-source.imagcoh = rand(size(pnt,1));
+source.pos    = [pntL; pntR];
+source.tri    = [tri; tri+12];
+source.imagcoh = rand(size(source.pos,1));
 source.dimord = 'pos_pos';
-% source.BrainStructure = ones(1, size(pnt,1));
-% source.BrainStructurelabel = {'CIFTI_STRUCTURE_CORTEX'};
-source.BrainStructure = [1 1 1 1 1 1 1 1 1 1 1 1];
-source.BrainStructurelabel = {'CIFTI_STRUCTURE_CORTEX_LEFT'};
+source.BrainStructure = [1 1 1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 2 2];
+source.BrainStructurelabel = {'CIFTI_STRUCTURE_CORTEX_LEFT', 'CIFTI_STRUCTURE_CORTEX_RIGHT'};
 
 cfg = [];
 cfg.filetype  = 'cifti';

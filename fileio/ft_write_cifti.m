@@ -137,8 +137,7 @@ filename = fullfile(p, [f extension]);
 
 tree = xmltree;
 tree = set(tree, 1, 'name', 'CIFTI');
-tree = attributes(tree, 'add', find(tree, 'CIFTI'), 'Version', '2.0');
-tree = attributes(tree, 'add', find(tree, 'CIFTI'), 'NumberOfMatrices', '1');
+tree = attributes(tree, 'add', find(tree, 'CIFTI'), 'Version', '2');
 tree = add(tree, find(tree, 'CIFTI'), 'element', 'Matrix');
 
 if any(strcmp(dimtok, 'time'))
@@ -323,8 +322,8 @@ for i=1:length(b)
   end
 end
 
-% remove the padding and trailing whitespace
-xmldat = xmldat(~whitespace);
+% remove the padding whitespace
+% xmldat = xmldat(~whitespace);
 
 xmlsize = length(xmldat);
 xmlpad  = ceil((xmlsize+8)/16)*16 - (xmlsize+8);
@@ -463,6 +462,7 @@ fwrite(fid, dat, precision);
 
 fclose(fid);
 
+% write the surface information to one or two accompanying gifti files
 if isfield(source, 'tri')
   % it contains surface information
   if isfield(source, 'BrainStructure')
