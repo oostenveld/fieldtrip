@@ -193,7 +193,7 @@ Lfilelist = {
   [subject '.L' '.very_inflated'              '.surf.gii']
   [subject '.L' '.sphere'                     '.surf.gii']
   [subject '.L'                               '.surf.gii']
-  [subject '.CIFTI_STRUCTURE_CORTEX_LEFT'     '.surf.gii']
+  [subject '.CORTEX_LEFT'                     '.surf.gii']
   };
 
 Rfilelist = {
@@ -211,7 +211,7 @@ Rfilelist = {
   [subject '.R' '.very_inflated'               '.surf.gii']
   [subject '.R' '.sphere'                      '.surf.gii']
   [subject '.R'                                '.surf.gii']
-  [subject '.CIFTI_STRUCTURE_CORTEX_RIGHT'     '.surf.gii']
+  [subject '.CORTEX_RIGHT'                     '.surf.gii']
   };
 
 Bfilelist = {
@@ -229,24 +229,24 @@ Bfilelist = {
   [subject '.very_inflated'              '.surf.gii']
   [subject '.sphere'                     '.surf.gii']
   [subject                               '.surf.gii']
-  [subject '.CIFTI_STRUCTURE_CORTEX'     '.surf.gii']
+  [subject '.CORTEX'                     '.surf.gii']
   };
 
 
 if isfield(cii, 'BrainStructurelabel')
-  if all(ismember({'CIFTI_STRUCTURE_CORTEX_LEFT', 'CIFTI_STRUCTURE_CORTEX_RIGHT'}, cii.BrainStructurelabel))
+  if all(ismember({'CORTEX_LEFT', 'CORTEX_RIGHT'}, cii.BrainStructurelabel))
     for i=1:length(Lfilelist)
       Lfilename = fullfile(p, Lfilelist{i});
       Rfilename = fullfile(p, Rfilelist{i});
       
       if exist(Lfilename, 'file') && exist(Rfilename, 'file')
         warning('reading left hemisphere geometry from %s',  Lfilename);
-        meshL = ft_read_headshape(Lfilename);
+        meshL = ft_read_headshape(Lfilename, 'unit', 'mm'); % volume and surface should be in consistent units, gifti is defined in mm, wb_view also expects mm
         warning('reading right hemisphere geometry from %s',  Rfilename);
-        meshR = ft_read_headshape(Rfilename);
+        meshR = ft_read_headshape(Rfilename, 'unit', 'mm'); % volume and surface should be in consistent units, gifti is defined in mm, wb_view also expects mm
         
-        indexL = find(cii.BrainStructure==find(strcmp(cii.BrainStructurelabel, 'CIFTI_STRUCTURE_CORTEX_LEFT')));
-        indexR = find(cii.BrainStructure==find(strcmp(cii.BrainStructurelabel, 'CIFTI_STRUCTURE_CORTEX_RIGHT')));
+        indexL = find(cii.BrainStructure==find(strcmp(cii.BrainStructurelabel, 'CORTEX_LEFT')));
+        indexR = find(cii.BrainStructure==find(strcmp(cii.BrainStructurelabel, 'CORTEX_RIGHT')));
         
         cii.pos(indexL,:) = meshL.pnt;
         cii.pos(indexR,:) = meshR.pnt;
@@ -259,14 +259,14 @@ if isfield(cii, 'BrainStructurelabel')
         break % only read a single pair of meshes
       end
     end
-  elseif ismember({'CIFTI_STRUCTURE_CORTEX'}, cii.BrainStructurelabel)
+  elseif ismember({'CORTEX'}, cii.BrainStructurelabel)
     for i=1:length(Bfilelist)
       Bfilename = fullfile(p, Bfilelist{i});
       
       if exist(Bfilename, 'file')
         warning('reading surface geometry from %s',  Bfilename);
-        meshB   = ft_read_headshape(Bfilename);
-        indexB  = find(cii.BrainStructure==find(strcmp(cii.BrainStructurelabel, 'CIFTI_STRUCTURE_CORTEX')));
+        meshB   = ft_read_headshape(Bfilename, 'unit', 'mm'); % volume and surface should be in consistent units, gifti is defined in mm, wb_view also expects mm
+        indexB  = find(cii.BrainStructure==find(strcmp(cii.BrainStructurelabel, 'CORTEX')));
         cii.pos(indexB,:) = meshB.pnt;
         cii.tri = indexB(meshB.tri);
       end
@@ -297,7 +297,7 @@ return % function
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function Cifti = tree2struct(tree)
 
-numericAttributeTypes = {'NumberOfMatrices', 'AppliesToMatrixDimension', 'IndexOffset', 'IndexCount', 'SurfaceNumberOfNodes', 'VolumeDimensions', 'SurfaceNumberOfVertices', 'SeriesStart', 'SeriesStep', 'NumberOfSeriesPoints', 'SeriesExponent', 'Vertices'};
+numericAttributeTypes = {'NumberOfMatrices', 'AppliesToMatrixDimension', 'IndexOffset', 'IndexCount', 'SurfaceNumberOfNodes', 'VolumeDimensions', 'SurfaceNumberOfVertices', 'SeriesStart', 'SeriesStep', 'NumberOfSeriesPoints', 'SeriesExponent', 'Vertices', 'MeterExponent'};
 
 Cifti                  = struct(); % the parent of the XML tree, it only contains version info
 Cifti.MatrixIndicesMap = struct(); % this is the interesting content
@@ -599,6 +599,10 @@ for i=1:length(Cifti.MatrixIndicesMap)
         BrainStructure(posbeg:posend) = j; % indexed representation, see ft_datatype_parcellation
         BrainStructurelabel{j} = Cifti.MatrixIndicesMap(i).BrainModel(j).BrainStructure;
         
+        if ~isempty(regexp(BrainStructurelabel{j}, '^CIFTI_STRUCTURE_', 'once'))
+          BrainStructurelabel{j} = BrainStructurelabel{j}(17:end); % strip the first part
+        end
+        
       end % for all BrainModels
       
     case 'CIFTI_INDEX_TYPE_PARCELS'
@@ -658,11 +662,14 @@ source.dimord(end) = [];
 
 if hasbrainmodel
   source.pos                  = Cifti.pos;
+  source.unit                 = 'mm';   % volume and surface should be in consistent units, gifti is defined in mm, wb_view also expects mm
   source.BrainStructure       = BrainStructure;
   source.BrainStructurelabel  = BrainStructurelabel;
   if ~isempty(Cifti.Volume)
     % this only applies to the voxel coordinates, not to surface vertices which are NaN
-    source.pos        = ft_warp_apply(Cifti.Volume.Transform, source.pos+1); % one offset
+    source.pos        = ft_warp_apply(Cifti.Volume.Transform, source.pos+1);  % one offset
+    source.pos        = source.pos .* (10^Cifti.Volume.MeterExponent);        % convert from native to meter
+    source.pos        = source.pos .* (10^3);                                 % convert from meter to milimeter
     source.dim        = Cifti.Volume.VolumeDimensions;
     source.transform  = Cifti.Volume.Transform;
   end

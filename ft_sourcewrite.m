@@ -57,7 +57,7 @@ if abort
 end
 
 % check if the input data is valid for this function
-source = ft_checkdata(source, 'datatype', 'source', 'feedback', 'yes');
+source = ft_checkdata(source, 'datatype', 'source', 'hasunit', true, 'feedback', 'yes');
 
 % ensure that the required options are present
 cfg = ft_checkconfig(cfg, 'required', {'parameter', 'filename'});

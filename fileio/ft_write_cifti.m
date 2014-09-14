@@ -140,14 +140,22 @@ tree = set(tree, 1, 'name', 'CIFTI');
 tree = attributes(tree, 'add', find(tree, 'CIFTI'), 'Version', '2');
 tree = add(tree, find(tree, 'CIFTI'), 'element', 'Matrix');
 
+
+% The cifti file contains one Matrix, which contains one or multiple MatrixIndicesMap, which each contain
+% CIFTI_INDEX_TYPE_BRAIN_MODELS The dimension represents one or more brain models.
+% CIFTI_INDEX_TYPE_PARCELS      The dimension represents a parcellation scheme.
+% CIFTI_INDEX_TYPE_SERIES       The dimension represents a series of regular samples.
+% CIFTI_INDEX_TYPE_SCALARS      The dimension represents named scalar maps.
+% CIFTI_INDEX_TYPE_LABELS       The dimension represents named label maps.
+
+
 if any(strcmp(dimtok, 'time'))
   % construct the MatrixIndicesMap for the time axis in the data
   % NumberOfSeriesPoints="2" SeriesExponent="0" SeriesStart="0.0000000000" SeriesStep="1.0000000000" SeriesUnit="SECOND"
   tree = add(tree, find(tree, 'CIFTI/Matrix'), 'element', 'MatrixIndicesMap');
   branch = find(tree, 'CIFTI/Matrix/MatrixIndicesMap');
   branch = branch(end);
-  tmp = sprintf('%d ', find(strcmp(dimtok, 'time'))-1); tmp = tmp(1:end-1); % remove the trailing comma
-  tree = attributes(tree, 'add', branch, 'AppliesToMatrixDimension', tmp);
+  tree = attributes(tree, 'add', branch, 'AppliesToMatrixDimension', printwithcomma(find(strcmp(dimtok, 'time'))-1));
   tree = attributes(tree, 'add', branch, 'IndicesMapToDataType', 'CIFTI_INDEX_TYPE_SERIES');
   tree = attributes(tree, 'add', branch, 'NumberOfSeriesPoints', num2str(length(source.time)));
   tree = attributes(tree, 'add', branch, 'SeriesExponent', num2str(0));
@@ -162,8 +170,7 @@ if any(strcmp(dimtok, 'freq'))
   tree = add(tree, find(tree, 'CIFTI/Matrix'), 'element', 'MatrixIndicesMap');
   branch = find(tree, 'CIFTI/Matrix/MatrixIndicesMap');
   branch = branch(end);
-  tmp = sprintf('%d ', find(strcmp(dimtok, 'freq'))-1); tmp = tmp(1:end-1); % remove the trailing comma
-  tree = attributes(tree, 'add', branch, 'AppliesToMatrixDimension', tmp);
+  tree = attributes(tree, 'add', branch, 'AppliesToMatrixDimension', printwithcomma(find(strcmp(dimtok, 'freq'))-1));
   tree = attributes(tree, 'add', branch, 'IndicesMapToDataType', 'CIFTI_INDEX_TYPE_SCALARS');
   tree = attributes(tree, 'add', branch, 'NumberOfSeriesPoints', num2str(length(source.freq)));
   tree = attributes(tree, 'add', branch, 'SeriesExponent', num2str(0));
@@ -176,8 +183,7 @@ if any(strcmp(dimtok, 'scalar'))
   tree = add(tree, find(tree, 'CIFTI/Matrix'), 'element', 'MatrixIndicesMap');
   branch = find(tree, 'CIFTI/Matrix/MatrixIndicesMap');
   branch = branch(end);
-  tmp = sprintf('%d ', find(strcmp(dimtok, 'scalar'))-1); tmp = tmp(1:end-1); % remove the trailing comma
-  tree = attributes(tree, 'add', branch, 'AppliesToMatrixDimension', tmp);
+  tree = attributes(tree, 'add', branch, 'AppliesToMatrixDimension', printwithcomma(find(strcmp(dimtok, 'scalar'))-1));
   tree = attributes(tree, 'add', branch, 'IndicesMapToDataType', 'CIFTI_INDEX_TYPE_SCALARS');
   tree = add(tree, branch, 'element', 'NamedMap');
   branch = find(tree, 'CIFTI/Matrix/MatrixIndicesMap/NamedMap');
@@ -191,23 +197,36 @@ if any(strcmp(dimtok, 'pos'))
   tree = add(tree, find(tree, 'CIFTI/Matrix'), 'element', 'MatrixIndicesMap');
   branch = find(tree, 'CIFTI/Matrix/MatrixIndicesMap');
   branch = branch(end);
-  tmp = sprintf('%d,', find(strcmp(dimtok, 'pos'))-1); tmp = tmp(1:end-1); % remove the trailing comma
-  tree = attributes(tree, 'add', branch, 'AppliesToMatrixDimension', tmp);
+  tree = attributes(tree, 'add', branch, 'AppliesToMatrixDimension', printwithcomma(find(strcmp(dimtok, 'pos'))-1));
   tree = attributes(tree, 'add', branch, 'IndicesMapToDataType', 'CIFTI_INDEX_TYPE_BRAIN_MODELS');
+  
+  switch source.unit
+    case 'mm'
+      MeterExponent = -3;
+    case 'cm'
+      MeterExponent = -2;
+    case 'dm'
+      MeterExponent = -1;
+    case 'm'
+      MeterExponent = 0;
+    otherwise
+      error('unsupported source.unit')
+  end % case
+  
   if isfield(source, 'dim')
-    tmp = sprintf('%d,', source.dim); tmp = tmp(1:end-1); % remove the trailing comma
     [tree, uid] = add(tree, branch, 'element', 'Volume');
-    tree        = attributes(tree, 'add', uid, 'VolumeDimensions', tmp);
+    tree        = attributes(tree, 'add', uid, 'VolumeDimensions', printwithcomma(source.dim));
     [tree, uid] = add(tree, uid, 'element', 'TransformationMatrixVoxelIndicesIJKtoXYZ');
-    tree        = add(tree, uid, 'chardata', sprintf('%f ', source.transform')); % it needs to be transposed
+    tree        = attributes(tree, 'add', uid, 'MeterExponent', num2str(MeterExponent));
+    tree        = add(tree, uid, 'chardata', printwithspace(source.transform')); % it needs to be transposed
   end
   
   if isfield(source, brainstructure)
-    brainstructureindex = source.( brainstructure         );
-    brainstructurelabel = source.([brainstructure 'label']);
+    BrainStructureindex = source.( brainstructure         );
+    BrainStructurelabel = source.([brainstructure 'label']);
   else
-    brainstructureindex = ones(1,size(source.pos,1));
-    brainstructurelabel = {'CIFTI_STRUCTURE_CORTEX'};
+    BrainStructureindex = ones(1,size(source.pos,1));
+    BrainStructurelabel = {'INVALID'};
   end
   
   if isfield(source, 'dim')
@@ -218,10 +237,13 @@ if any(strcmp(dimtok, 'pos'))
     isvolume = false;
   end
   
-  for i=1:length(brainstructurelabel)
-    % write one brainstructure for all each group of vertices
+  for i=1:length(BrainStructurelabel)
+    % write one brainstructure for each group of vertices
+    if isempty(regexp(BrainStructurelabel{i}, '^CIFTI_STRUCTURE_', 'once'))
+      BrainStructurelabel{i} = ['CIFTI_STRUCTURE_' BrainStructurelabel{i}];
+    end
     
-    sel = (brainstructureindex==i);
+    sel = (BrainStructureindex==i);
     IndexCount = sum(sel);
     IndexOffset = find(sel, 1, 'first') - 1; % zero offset
     
@@ -232,31 +254,31 @@ if any(strcmp(dimtok, 'pos'))
     branch = branch(end);
     
     if isvolume
-      tmp = source.pos(sel,:);
-      tmp = ft_warp_apply(inv(source.transform), tmp);
-      tmp = round(transpose(tmp))-1; % zero offset
-      tree = attributes(tree, 'add', branch, 'IndexOffset', sprintf('%d ', IndexOffset));
-      tree = attributes(tree, 'add', branch, 'IndexCount', sprintf('%d ', IndexCount));
+      tree = attributes(tree, 'add', branch, 'IndexOffset', printwithspace(IndexOffset));
+      tree = attributes(tree, 'add', branch, 'IndexCount', printwithspace(IndexCount));
       tree = attributes(tree, 'add', branch, 'ModelType', 'CIFTI_MODEL_TYPE_VOXELS');
-      tree = attributes(tree, 'add', branch, 'BrainStructure', brainstructurelabel{i});
+      tree = attributes(tree, 'add', branch, 'BrainStructure', BrainStructurelabel{i});
       tree = add(tree, branch, 'element', 'VoxelIndicesIJK');
       branch = find(tree, 'CIFTI/Matrix/MatrixIndicesMap/BrainModel/VoxelIndicesIJK');
       branch = branch(end);
-      tree = add(tree, branch, 'chardata', sprintf('%d ', tmp));
+      tmp = source.pos(sel,:);
+      tmp = ft_warp_apply(inv(source.transform), tmp);
+      tmp = round(transpose(tmp))-1; % zero offset
+      tree = add(tree, branch, 'chardata', printwithspace(tmp));
     else
       tmp = find(sel)-IndexOffset-1; % zero offset
-      tree = attributes(tree, 'add', branch, 'IndexOffset', sprintf('%d ', IndexOffset));
-      tree = attributes(tree, 'add', branch, 'IndexCount', sprintf('%d ', IndexCount));
+      tree = attributes(tree, 'add', branch, 'IndexOffset', printwithspace(IndexOffset));
+      tree = attributes(tree, 'add', branch, 'IndexCount', printwithspace(IndexCount));
       tree = attributes(tree, 'add', branch, 'ModelType', 'CIFTI_MODEL_TYPE_SURFACE');
-      tree = attributes(tree, 'add', branch, 'BrainStructure', brainstructurelabel{i});
-      tree = attributes(tree, 'add', branch, 'SurfaceNumberOfVertices', sprintf('%d ', IndexCount));
+      tree = attributes(tree, 'add', branch, 'BrainStructure', BrainStructurelabel{i});
+      tree = attributes(tree, 'add', branch, 'SurfaceNumberOfVertices', printwithspace(IndexCount));
       tree = add(tree, branch, 'element', 'VertexIndices');
       branch = find(tree, 'CIFTI/Matrix/MatrixIndicesMap/BrainModel/VertexIndices');
       branch = branch(end);
-      tree = add(tree, branch, 'chardata', sprintf('%d ', tmp));
+      tree = add(tree, branch, 'chardata', printwithspace(tmp));
     end
     
-  end % for each brainstructurelabel
+  end % for each BrainStructurelabel
   
 end % if pos
 
@@ -462,14 +484,51 @@ fwrite(fid, dat, precision);
 
 fclose(fid);
 
-% write the surface information to one or two accompanying gifti files
+% write the surface information to one or multiple accompanying gifti files
 if isfield(source, 'tri')
+  
+  % the following are valid values for the structure name according to wb_command
+  % CORTEX_LEFT
+  % CORTEX_RIGHT
+  % CEREBELLUM
+  % ACCUMBENS_LEFT
+  % ACCUMBENS_RIGHT
+  % ALL_GREY_MATTER
+  % ALL_WHITE_MATTER
+  % AMYGDALA_LEFT
+  % AMYGDALA_RIGHT
+  % BRAIN_STEM
+  % CAUDATE_LEFT
+  % CAUDATE_RIGHT
+  % CEREBELLAR_WHITE_MATTER_LEFT
+  % CEREBELLAR_WHITE_MATTER_RIGHT
+  % CEREBELLUM_LEFT
+  % CEREBELLUM_RIGHT
+  % CEREBRAL_WHITE_MATTER_LEFT
+  % CEREBRAL_WHITE_MATTER_RIGHT
+  % CORTEX
+  % DIENCEPHALON_VENTRAL_LEFT
+  % DIENCEPHALON_VENTRAL_RIGHT
+  % HIPPOCAMPUS_LEFT
+  % HIPPOCAMPUS_RIGHT
+  % INVALID
+  % OTHER
+  % OTHER_GREY_MATTER
+  % OTHER_WHITE_MATTER
+  % PALLIDUM_LEFT
+  % PALLIDUM_RIGHT
+  % PUTAMEN_LEFT
+  % PUTAMEN_RIGHT
+  % THALAMUS_LEFT
+  % THALAMUS_RIGHT
+  
   % it contains surface information
   if isfield(source, 'BrainStructure')
     % it contains multiple surfaces
     for i=1:length(source.BrainStructurelabel)
       sel = find(source.BrainStructure~=i);
       [mesh.pnt, mesh.tri] = remove_vertices(source.pos, source.tri, sel);
+      mesh.unit = source.unit;
       
       [p, f, x] = fileparts(filename);
       filetok = tokenize(f, '.');
@@ -479,6 +538,7 @@ if isfield(source, 'tri')
   else
     mesh.pnt = source.pos;
     mesh.tri = source.tri;
+    mesh.unit = source.unit;
     
     [p, f, x] = fileparts(filename);
     filetok = tokenize(f, '.');
@@ -486,6 +546,34 @@ if isfield(source, 'tri')
     ft_write_headshape(surffile, mesh, 'format', 'gifti');
   end
 end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SUBFUNCTION to print lists of numbers with appropriate whitespace
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function s = printwithspace(x)
+x = x(:)'; % convert to vector
+if all(round(x)==x)
+  % print as integer value
+  s = sprintf('%d ', x);
+else
+  % print as floating point value
+  s = sprintf('%f ', x);
+end
+s = s(1:end-1);
+
+function s = printwithcomma(x)
+x = x(:)'; % convert to vector
+if all(round(x)==x)
+  % print as integer value
+  s = sprintf('%d,', x);
+else
+  % print as floating point value
+  s = sprintf('%f,', x);
+end
+s = s(1:end-1);
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SUBFUNCTION from roboos/matlab/triangle

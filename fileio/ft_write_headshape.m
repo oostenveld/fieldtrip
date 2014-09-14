@@ -14,11 +14,12 @@ function ft_write_headshape(filename, bnd, varargin)
 %
 % Required input arguments should be specified as key-value pairs and
 % should include
-%   format		= string, see below
+%   'format'		  = string, see below
 %
 % Optional input arguments should be specified as key-value pairs and
 % can include
-%   data      = data matrix, size(1) should be number of vertices
+%   'data'        = data matrix, size(1) should be number of vertices
+%   'unit'        = string, e.g. 'mm'
 %
 % Supported output formats are
 %   'mne_tri'		MNE surface desciption in ascii format
@@ -34,7 +35,7 @@ function ft_write_headshape(filename, bnd, varargin)
 %
 % See also FT_READ_HEADSHAPE
 
-% Copyright (C) 2011-2013, Lilla Magyari & Robert Oostenveld
+% Copyright (C) 2011-2014, Lilla Magyari & Robert Oostenveld
 %
 % This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
 % for the documentation and details.
@@ -56,6 +57,7 @@ function ft_write_headshape(filename, bnd, varargin)
 
 fileformat    = ft_getopt(varargin, 'format', 'unknown');
 data          = ft_getopt(varargin, 'data');         % can be stored in a gifti file
+unit          = ft_getopt(varargin, 'unit');
 
 if ~isfield(bnd, 'pnt') && isfield(bnd, 'pos')
   bnd.pnt = bnd.pos;
@@ -65,6 +67,10 @@ if ~isstruct(bnd)
   bnd.pnt = bnd;
 end
 
+if ~isempty(unit)
+  % convert to the desired units prior to writing to disk
+  bnd = ft_convert_units(bnd, unit);
+end
 
 switch fileformat
   case 'mne_pos'
@@ -171,6 +177,7 @@ switch fileformat
     
   case 'gifti'
     ft_hastoolbox('gifti', 1);
+    bnd = ft_convert_units(bnd, 'mm');  % defined in the GIFTI standard to be milimeter
     tmp = [];
     tmp.vertices = bnd.pnt;
     tmp.faces    = bnd.tri;
