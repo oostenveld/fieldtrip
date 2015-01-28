@@ -97,10 +97,10 @@ end
 cfg.parameter   = ft_getopt(cfg, 'parameter'); % default is set below
 cfg.correctm    = ft_getopt(cfg, 'correctm');
 cfg.channel     = ft_getopt(cfg, 'channel',     'all');
-cfg.avgoverchan = ft_getopt(cfg, 'avgoverchan', 'no');
 cfg.latency     = ft_getopt(cfg, 'latency',     'all');
-cfg.avgovertime = ft_getopt(cfg, 'avgovertime', 'no');
 cfg.frequency   = ft_getopt(cfg, 'frequency',   'all');
+cfg.avgoverchan = ft_getopt(cfg, 'avgoverchan', 'no');
+cfg.avgovertime = ft_getopt(cfg, 'avgovertime', 'no');
 cfg.avgoverfreq = ft_getopt(cfg, 'avgoverfreq', 'no');
 
 if isempty(cfg.parameter)
@@ -220,8 +220,7 @@ stat.dimord = cfg.dimord;
 stat = copyfields(varargin{1}, stat, {'freq', 'time', 'label'});
 
 % these were only present to inform the low-level functions
-cfg = rmfield(cfg, 'dim');
-cfg = rmfield(cfg, 'dimord');
+cfg = removefields(cfg, {'dim', 'dimord'});
 
 % do the general cleanup and bookkeeping at the end of the function
 ft_postamble debug
