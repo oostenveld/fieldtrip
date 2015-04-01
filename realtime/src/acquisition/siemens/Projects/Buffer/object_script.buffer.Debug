@@ -1,0 +1,16 @@
+INPUT(
+./debug\cleanup.o
+./debug\clientrequest.o
+./debug\dmarequest.o
+./debug\endianutil.o
+./debug\extern.o
+./debug\printstruct.o
+./debug\rdaserver.o
+./debug\socketserver.o
+./debug\swapbytes.o
+./debug\tcprequest.o
+./debug\tcpserver.o
+./debug\tcpsocket.o
+./debug\tiaserver.o
+./debug\util.o
+);

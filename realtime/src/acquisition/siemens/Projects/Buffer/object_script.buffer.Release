@@ -1,0 +1,16 @@
+INPUT(
+./release\cleanup.o
+./release\clientrequest.o
+./release\dmarequest.o
+./release\endianutil.o
+./release\extern.o
+./release\printstruct.o
+./release\rdaserver.o
+./release\socketserver.o
+./release\swapbytes.o
+./release\tcprequest.o
+./release\tcpserver.o
+./release\tcpsocket.o
+./release\tiaserver.o
+./release\util.o
+);
