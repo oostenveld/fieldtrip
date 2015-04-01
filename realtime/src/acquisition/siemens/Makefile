@@ -31,31 +31,57 @@ ifeq "$(PLATFORM)" "mingw32"
   LDFLAGS = $(FTBUFFER)/src/libbuffer.a $(FIELDTRIP)/realtime/src/external/pthreads-win32/lib/pthreadGC2.dll -LC:/MinGW/msys/1.0/local/lib -lws2_32 -lwinmm 
   SUFFIX = .exe
   WINONLY = gui_streamer.exe pixeldata_to_remote_buffer.exe 
+  BINDIR = $(FIELDTRIP)/realtime/bin/win32
   # make clean target work on windows:
   fixpath = $(subst /,\,$1)
   RM = rm -f
+endif
+
+ifeq "$(UNAME)" "Linux"
+  $LDLIBS += -ldl -lstdc++
+  fixpath = $1
+  ifeq "$(MACHINE)" "i686"
+    BINDIR = $(FIELDTRIP)/realtime/bin/glnx86
+  endif
+  ifeq "$(MACHINE)" "x86_64"
+    BINDIR = $(FIELDTRIP)/realtime/bin/glnxa64
+  endif
+  ifeq "$(MACHINE)" "armv6l"
+    BINDIR = $(FIELDTRIP)/realtime/bin/raspberrypi
+  endif
 endif
 
 ifeq "$(UNAME)" "Darwin"
   # Snow Leopard 10.6 is the first Mac OS X version to ship with a 64 bit kernel, and obviously your
   # Mac has to have a 64 bit processor to utilize that kernel, but some 64 bit Mac's are not defaulting
   # to the 64 bit kernel. Furthermore, irrespective of the kernel, the gcc compiler is able to (cross)
-    # compile objects, libraries and applications for 32 and 64 bit.
-    ifeq "$(MACHINE)" "i386"
-        # compile for 32 bit
-        CFLAGS += -m32
-        CXXFLAGS += -m32
-        LDFLAGS += -m32
-    endif
-    ifeq "$(MACHINE)" "x86_64"
-        # compile for 64 bit
-        CFLAGS += -m64
-        CXXFLAGS += -m64
-        LDFLAGS += -m64
-    endif
+  # compile objects, libraries and applications for 32 and 64 bit.
+  fixpath = $1
+  ifeq "$(MACHINE)" "i386"
+    # compile for 32 bit
+    CFLAGS += -m32
+    CXXFLAGS += -m32
+    LDFLAGS += -m32
+    BINDIR = $(FIELDTRIP)/realtime/bin/maci
+  endif
+  ifeq "$(MACHINE)" "x86_64"
+    # compile for 64 bit
+    CFLAGS += -m64
+    CXXFLAGS += -m64
+    LDFLAGS += -m64
+    BINDIR = $(FIELDTRIP)/realtime/bin/maci64
+  endif
+  ifeq "$(MACHINE)" "Power Macintosh"
+    BINDIR = $(FIELDTRIP)/realtime/bin/mac
+  endif
 endif
 
-TARGETS: nii_to_buffer$(SUFFIX) opengl_client$(SUFFIX) gui_buffer_client$(SUFFIX) $(WINONLY)
+ifndef BINDIR
+$(error Unsupported platform: $(PLATFORM) :/.)
+endif
+
+##############################################################################
+TARGETS: $(BINDIR)/nii_to_buffer$(SUFFIX) $(BINDIR)/opengl_client$(SUFFIX) $(BINDIR)/gui_buffer_client$(SUFFIX) $(WINONLY)
 
 all: $(TARGETS)
 
@@ -77,8 +103,8 @@ unixtime.o: unixtime.c unixtime.h
 gui_buffer_client.o: gui_buffer_client.cc siemensap.h
 	$(CXX) -c gui_buffer_client.cc $(CXXFLAGS)
 	
-gui_buffer_client$(SUFFIX): gui_buffer_client.o siemensap.o 
-	$(CXX) -o gui_buffer_client$(SUFFIX) gui_buffer_client.o siemensap.o $(LDFLAGS) $(LDFL)
+$(BINDIR)/gui_buffer_client$(SUFFIX): gui_buffer_client.o siemensap.o 
+	$(CXX) -o $@ gui_buffer_client.o siemensap.o $(LDFLAGS) $(LDFL)
 
 opengl_client.o: opengl_client.cc siemensap.h
 	$(CXX) -c opengl_client.cc $(CXXFLAGS)
@@ -86,20 +112,20 @@ opengl_client.o: opengl_client.cc siemensap.h
 Brain3dWindow.o: Brain3dWindow.cc Brain3dWindow.h
 	$(CXX) -c Brain3dWindow.cc $(CXXFLAGS)
 	
-opengl_client$(SUFFIX): opengl_client.o siemensap.o Brain3dWindow.o
-	$(CXX) -o opengl_client$(SUFFIX) opengl_client.o siemensap.o Brain3dWindow.o $(LDFLAGS) $(LDGL)
+$(BINDIR)/opengl_client$(SUFFIX): opengl_client.o siemensap.o Brain3dWindow.o
+	$(CXX) -o $@ opengl_client.o siemensap.o Brain3dWindow.o $(LDFLAGS) $(LDGL)
 	
 nii_to_buffer.o: nii_to_buffer.cc
 	$(CXX) -c nii_to_buffer.cc $(CXXFLAGS)
 
-nii_to_buffer$(SUFFIX): nii_to_buffer.o
-	$(CXX) -o nii_to_buffer$(SUFFIX) nii_to_buffer.o $(LDFLAGS)
+$(BINDIR)/nii_to_buffer$(SUFFIX): nii_to_buffer.o
+	$(CXX) -o $@ nii_to_buffer.o $(LDFLAGS)
 	
 save_as_nifti.o: save_as_nifti.c
 	$(CC) -c save_as_nifti.c $(CFLAGS)
 	
-save_as_nifti$(SUFFIX): save_as_nifti.o ../../buffer/src/socketserver.o
-	$(CC) -o save_as_nifti$(SUFFIX) save_as_nifti.o ../../buffer/src/socketserver.o $(LDFLAGS)
+$(BINDIR)/save_as_nifti$(SUFFIX): save_as_nifti.o ../../buffer/src/socketserver.o
+	$(CC) -o $@ save_as_nifti.o ../../buffer/src/socketserver.o $(LDFLAGS)
 
 ###############################################################################
 # Windows specific components / acquisition software
