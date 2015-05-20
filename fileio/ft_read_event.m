@@ -410,6 +410,8 @@ switch eventformat
       event = [];
     end
     
+  case 'AnyWave'
+    event = read_ah5_markers(hdr, filename);
   case 'brainvision_vmrk'
     fid=fopen(filename,'rt');
     if fid==-1,
@@ -1030,7 +1032,11 @@ switch eventformat
     end
     
   case 'fcdc_buffer_offline'
-    [path, file, ext] = fileparts(filename);
+    if isdir(filename)
+      path = filename;
+    else
+      [path, file, ext] = fileparts(filename);
+    end
     if isempty(hdr)
       headerfile = fullfile(path, 'header');
       hdr = read_buffer_offline_header(headerfile);
