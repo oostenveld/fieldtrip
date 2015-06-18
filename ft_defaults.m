@@ -10,19 +10,21 @@ function ft_defaults
 % the FieldTrip function that you are calling.
 %
 % The global options and their default values are
-%   ft_default.trackconfig    string, can be cleanup, report, off (default = 'off')
-%   ft_default.checkconfig    string, can be pedantic, loose, silent (default = 'loose')
-%   ft_default.checksize      number in bytes, can be inf (default = 1e5)
-%   ft_default.showcallinfo   string, can be yes or no (default = 'yes')
-%   ft_default.debug          string, can be 'display', 'displayonerror', 'displayonsuccess',
-%                             'save', 'saveonerror', saveonsuccess' or 'no' (default = 'no')
+%   ft_default.trackdatainfo     = string, can be 'yes' or 'no' (default = 'no')
+%   ft_default.trackconfig       = string, can be 'cleanup', 'report', 'off' (default = 'off')
+%   ft_default.showcallinfo      = string, can be 'yes' or 'no' (default = 'yes')
+%   ft_default.checkconfig       = string, can be 'pedantic', 'loose', 'silent' (default = 'loose')
+%   ft_default.checksize         = number in bytes, can be inf (default = 1e5)
+%   ft_default.outputfilepresent = string, can be 'keep', 'overwrite', 'error' (default = 'overwrite')
+%   ft_default.debug             = string, can be 'display', 'displayonerror', 'displayonsuccess', 'save', 'saveonerror', saveonsuccess' or 'no' (default = 'no')
+%   ft_default.trackusage        = false, or string with salt for one-way encryption of identifying information (by default this is enabled and an automatic salt is created)
 %
 % See also FT_HASTOOLBOX, FT_CHECKCONFIG
 
 % Note that this should be a function and not a script, otherwise the
 % ft_hastoolbox function appears not be found in fieldtrip/private.
 
-% Copyright (C) 2009-2012, Robert Oostenveld
+% Copyright (C) 2009-2015, Robert Oostenveld
 %
 % This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
 % for the documentation and details.
@@ -45,6 +47,17 @@ function ft_defaults
 global ft_default
 persistent initialized
 
+if isempty(initialized)
+  initialized = false;
+end
+
+% locate the file that contains the persistent FieldTrip preferences
+fieldtripprefs = fullfile(prefdir, 'fieldtripprefs.mat');
+if exist(fieldtripprefs, 'file')
+  prefs       = load(fieldtripprefs); % the file contains multiple fields
+  ft_default  = mergeconfig(ft_default, prefs);
+end
+
 % Set the defaults in a global variable, ft_checkconfig will copy these over into the local configuration.
 % Note that ft_getopt might not be available on the path at this moment and can therefore not yet be used.
 
@@ -56,19 +69,18 @@ if ~isfield(ft_default, 'debug'),          ft_default.debug          = 'no';    
 
 % these options allow to disable parts of the provenance
 if ~isfield(ft_default, 'trackcallinfo'),  ft_default.trackcallinfo  = 'yes';    end % yes or no
-if ~isfield(ft_default, 'trackdatainfo'),  ft_default.trackdatainfo  = 'no';     end % yes or no, this is still under development
-if ~isfield(ft_default, 'trackparaminfo'), ft_default.trackparaminfo = 'no';     end % yes or no, this is still under development
+if ~isfield(ft_default, 'trackdatainfo'),  ft_default.trackdatainfo  = 'no';     end % yes or no
 
-% track whether we have executed ft_defaults already. Note that we should
-% not use ft_default itself directly, because the user might have set stuff
-% in that struct already before ft_defaults is called for the first time.
-if ~isempty(initialized) && exist('ft_hastoolbox', 'file')
+% Check whether this ft_defaults function has already been executed. Note that we
+% should not use ft_default itself directly, because the user might have set stuff
+% in that struct already prior to ft_defaults being called for the first time.
+if initialized && exist('ft_hastoolbox', 'file')
   return;
 end
 
 % Ensure that the path containing ft_defaults is on the path.
 % This allows people to do "cd path_to_fieldtrip; ft_defaults"
-ftPath = fileparts(mfilename('fullpath')); % get path, strip away 'ft_defaults'
+ftPath = fileparts(mfilename('fullpath')); % get the full path to this function, strip away 'ft_defaults'
 ftPath = strrep(ftPath, '\', '\\');
 if isempty(regexp(path, [ftPath pathsep '|' ftPath '$'], 'once'))
   warning('FieldTrip is not yet on your MATLAB path, adding %s', strrep(ftPath, '\\', '\'));
@@ -124,7 +136,7 @@ if ~isdeployed
     % some alternative implementations of statistics functions
     addpath(fullfile(fileparts(which('ft_defaults')), 'external', 'stats'));
   end
-
+  
   try
     % this directory contains various functions that were obtained from elsewere, e.g. MATLAB file exchange
     ft_hastoolbox('fileexchange', 3, 1); % not required
@@ -134,7 +146,7 @@ if ~isdeployed
     % this directory contains the backward compatibility wrappers for the ft_xxx function name change
     ft_hastoolbox('compat', 3, 1); % not required
   end
-    
+  
   try
     % these directories contain functions that were added to MATLAB in
     % recent versions to replace an older function.
@@ -213,6 +225,9 @@ if ~isdeployed
   
 end
 
+% track the usage of this function, this only happens once at startup
+ft_trackusage('startup');
+
 % remember that the function has executed in a persistent variable
 initialized = true;
 
@@ -224,12 +239,12 @@ end % function ft_default
 function checkMultipleToolbox(toolbox, keyfile)
 list = which(keyfile, '-all');
 if length(list)>1
-  [ws, warned] = warning_once(sprintf('Multiple versions of %s on your path will confuse FieldTrip', toolbox));
+  [ws, warned] = ft_warning(sprintf('Multiple versions of %s on your path will confuse FieldTrip', toolbox));
   if warned % only throw the warning once
     for i=1:length(list)
       warning('one version of %s is found here: %s', toolbox, list{i});
     end
   end
-  warning_once('You probably used addpath(genpath(''path_to_fieldtrip'')), this can lead to unexpected behaviour. See http://fieldtrip.fcdonders.nl/faq/should_i_add_fieldtrip_with_all_subdirectories_to_my_matlab_path');
+  ft_warning('You probably used addpath(genpath(''path_to_fieldtrip'')), this can lead to unexpected behaviour. See http://fieldtrip.fcdonders.nl/faq/should_i_add_fieldtrip_with_all_subdirectories_to_my_matlab_path');
 end
 end % function checkMultipleToolbox

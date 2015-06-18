@@ -59,7 +59,7 @@ if isempty(db_blob)
 end
 
 if iscell(filename)
-  warning_once(sprintf('concatenating data from %d files', numel(filename)));
+  ft_warning(sprintf('concatenating data from %d files', numel(filename)));
   % this only works if the data is indexed by means of samples, not trials
   assert(isempty(ft_getopt(varargin, 'begtrial')));
   assert(isempty(ft_getopt(varargin, 'endtrial')));
@@ -180,9 +180,13 @@ if isempty(checkboundary)
   checkboundary = ~ft_getopt(varargin, 'continuous');
 end
 
-% read the header if not provided
+% read the header if it is not provided
 if isempty(hdr)
-  hdr = ft_read_header(filename, 'headerformat', headerformat, 'checkmaxfilter', checkmaxfilter);
+  if isempty(chanindx)
+    hdr = ft_read_header(filename, 'headerformat', headerformat);
+  else
+    hdr = ft_read_header(filename, 'headerformat', headerformat, 'chanindx', chanindx);
+  end;
 end
 
 % set the default channel selection, which is all channels
@@ -190,14 +194,14 @@ if isempty(chanindx)
   chanindx = 1:hdr.nChans;
 end
 
+% test whether the requested channels can be accomodated  
+if min(chanindx)<1 || max(chanindx)>hdr.nChans
+  error('FILEIO:InvalidChanIndx', 'selected channels are not present in the data');
+end
+
 % read until the end of the file if the endsample is "inf"
 if any(isinf(endsample)) && any(endsample>0)
   endsample = hdr.nSamples*hdr.nTrials;
-end
-
-% test whether the requested channels can be accomodated
-if min(chanindx)<1 || max(chanindx)>hdr.nChans
-  error('FILEIO:InvalidChanIndx', 'selected channels are not present in the data');
 end
 
 % test whether the requested data segment is not outside the file
