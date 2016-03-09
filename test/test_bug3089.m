@@ -46,10 +46,10 @@ cfg.keepchannel = 'yes';
 cfg.channel = 'EEG';
 data_clean = ft_rejectvisual(cfg, data_raw);
 
-cfg.channel = 'MEG*1';
+cfg.channel = 'MEG*1'; % MEGMAG
 data_clean = ft_rejectvisual(cfg, data_clean);
 
-cfg.channel = {'MEG*2', 'MEG*3'};
+cfg.channel = {'MEG*2', 'MEG*3'}; % MEGGRAD
 data_clean = ft_rejectvisual(cfg, data_clean);
 
 save data_clean data_clean
