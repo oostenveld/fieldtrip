@@ -6,7 +6,10 @@ function test_bug3089
 % TEST test_bug3089
 % TEST ft_dipolefitting ft_compute_leadfield
 
-dataset = 'oddball1_mc_downsampled.fif';
+dataset = dccnpath('/home/common/matlab/fieldtrip/data/ftp/tutorial/natmeg/oddball1_mc_downsampled.fif');
+cd(dccnpath('/home/common/matlab/fieldtrip/data/test/bug3089'));
+
+%%
 
 %%
 
@@ -37,6 +40,7 @@ cfg.coilaccuracy   = 1; % use the COILDEF file
 
 data_raw = ft_preprocessing(cfg);
 
+
 %% reject noisy trials
 
 cfg = [];
@@ -53,6 +57,7 @@ cfg.channel = {'MEG*2', 'MEG*3'}; % MEGGRAD
 data_clean = ft_rejectvisual(cfg, data_clean);
 
 save data_clean data_clean
+
 
 %% reference eeg data
 
