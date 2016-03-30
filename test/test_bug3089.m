@@ -11,8 +11,6 @@ cd(dccnpath('/home/common/matlab/fieldtrip/data/test/bug3089'));
 
 %%
 
-%%
-
 cfg = [];
 cfg.dataset = dataset;
 cfg.trialdef.prestim        = 0.2;
@@ -43,37 +41,62 @@ data_raw = ft_preprocessing(cfg);
 
 %% reject noisy trials
 
-cfg = [];
-cfg.method = 'summary';
-cfg.keepchannel = 'yes';
+if exist('data_clean.mat', 'file')
+  load('data_clean.mat')
 
-cfg.channel = 'EEG';
-data_clean = ft_rejectvisual(cfg, data_raw);
-
-cfg.channel = 'MEG*1'; % MEGMAG
-data_clean = ft_rejectvisual(cfg, data_clean);
-
-cfg.channel = {'MEG*2', 'MEG*3'}; % MEGGRAD
-data_clean = ft_rejectvisual(cfg, data_clean);
-
-save data_clean data_clean
-
+else
+  cfg = [];
+  cfg.method = 'summary';
+  cfg.keepchannel = 'yes';
+  
+  cfg.channel = 'EEG';
+  data_clean = ft_rejectvisual(cfg, data_raw);
+  
+  cfg.channel = 'MEG*1'; % MEGMAG
+  data_clean = ft_rejectvisual(cfg, data_clean);
+  
+  cfg.channel = {'MEG*2', 'MEG*3'}; % MEGGRAD
+  data_clean = ft_rejectvisual(cfg, data_clean);
+  
+  save data_clean data_clean
+end
 
 %% reference eeg data
 
-cfg = [];
-cfg.reref = 'yes';
-cfg.refchannel = 'all';
-cfg.channel = 'EEG';
+if false
+  cfg = [];
+  cfg.reref = 'yes';
+  cfg.refchannel = 'all';
+  cfg.channel = 'EEG';
+  data_eeg = ft_preprocessing(cfg, data_clean);
+  
+  cfg = [];
+  cfg.channel = 'MEG';
+  data_meg = ft_preprocessing(cfg, data_clean);
+  
+  cfg = []
+  data_all = ft_appenddata(cfg, data_eeg, data_meg);
+  
+else
+  montage = [];
+  montage.labelorg = ft_channelselection('EEG', data_clean.label);
+  montage.labelnew = ft_channelselection('EEG', data_clean.label);
+  montage.tra = eye(length(montage.labelnew), length(montage.labelorg));
+  for i=1:length(montage.labelnew)
+    montage.tra(i,:) = montage.tra(i,:) - ones(1,length(montage.labelorg))/length(montage.labelorg);
+  end
+  data_all      = ft_apply_montage(data_clean, montage, 'keepunused', true, 'balancename', 'avgref');
+  
+  % apply the montage to the electrode definition
+  elec = data_clean.elec;
+  elec.tra = eye(length(elec.label));
+  elec.balance.current = 'none';
+  elec = ft_apply_montage(elec, montage, 'keepunused', true, 'balancename', 'avgref');
+  
+  % keep it with the data
+  data_all.elec = elec;
+end
 
-data_eeg = ft_preprocessing(cfg, data_clean);
-
-cfg = [];
-cfg.channel = 'MEG';
-
-data_meg = ft_preprocessing(cfg, data_clean);
-
-data_all = ft_appenddata([], data_eeg, data_meg);
 
 %% average
 
@@ -121,7 +144,7 @@ timelock_all.elec  = ft_convert_units(timelock_all.elec , 'm');
 timelock_cov.grad  = ft_convert_units(timelock_cov.grad , 'm');
 timelock_cov.elec  = ft_convert_units(timelock_cov.elec , 'm');
 
-%% recompute the EEG headmodel
+%% recompute the EEG headmodel (following unit change)
 
 cfg = [];
 cfg.method = 'bemcp';
@@ -154,8 +177,6 @@ dipole_eeg = ft_dipolefitting(cfg, timelock_all);
 %% weighted dipole fitting
 
 cfg = [];
-cfg.channel = {'MEGMAG'};
-timelock_sel = ft_selectdata(cfg, timelock_cov); % this selects channels from the covariance
 
 cfg.latency         = 0.100;
 cfg.numdipoles      = 2;
@@ -164,18 +185,31 @@ cfg.gridsearch      = 'yes';
 cfg.grid.unit       = 'm';
 cfg.grid.resolution = 0.02;
 
+cfg.channel = {'MEGMAG'};
+timelock_sel = ft_selectdata(cfg, timelock_cov); % this selects channels from the covariance
 cfg.senstype        = 'MEG';
 cfg.headmodel       = headmodel_meg;
-
 cfg.dipfit.noisecov = timelock_sel.cov;
 dipole_mag_weighted = ft_dipolefitting(cfg, timelock_sel);
 
+cfg.channel = {'MEGGRAD'};
+timelock_sel = ft_selectdata(cfg, timelock_cov); % this selects channels from the covariance
+cfg.senstype        = 'MEG';
+cfg.headmodel       = headmodel_meg;
+cfg.dipfit.noisecov = timelock_sel.cov;
+dipole_grad_weighted = ft_dipolefitting(cfg, timelock_sel);
 
-%% combined dipole fitting
+cfg.channel = {'EEG'};
+timelock_sel = ft_selectdata(cfg, timelock_cov); % this selects channels from the covariance
+cfg.senstype        = 'EEG';
+cfg.headmodel       = headmodel_eeg;
+cfg.dipfit.noisecov = timelock_sel.cov;
+dipole_eeg_weighted = ft_dipolefitting(cfg, timelock_sel);
+
+
+%% weighted combined dipole fitting
 
 cfg = [];
-cfg.channel = {'MEGMAG', 'MEGGRAD'};
-timelock_sel = ft_selectdata(cfg, timelock_cov); % this selects channels from the covariance
 
 cfg.numdipoles      = 2;
 cfg.latency         = 0.100;
@@ -184,25 +218,84 @@ cfg.gridsearch      = 'yes';
 cfg.grid.unit       = 'm';
 cfg.grid.resolution = 0.02;
 
+cov_mag  = zeros(306);
+for i=1:3:306
+  cov_mag(i,i) = 1;
+end
+
+cov_grad = zeros(306);
+for i=2:3:306
+  cov_grad(i,i) = 1;
+end
+for i=3:3:306
+  cov_grad(i,i) = 1;
+end
+
+
+cov_grad = zeros(306);
+for i=2:3:306
+  cov_grad(i,i) = 1;
+end
+for i=3:3:306
+  cov_grad(i,i) = 1;
+end
+
+cov_58 = zeros(306);
+for i=1:3:306
+  cov_58(i,i) = 1;
+end
+for i=2:3:306
+  cov_58(i,i) = 58^2;
+end
+for i=3:3:306
+  cov_58(i,i) = 58^2;
+end
+
+cov_20 = zeros(306);
+for i=1:3:306
+  cov_20(i,i) = 1;
+end
+for i=2:3:306
+  cov_20(i,i) = 20^2;
+end
+for i=3:3:306
+  cov_20(i,i) = 20^2;
+end
+
+
+cfg.channel = {'MEGMAG', 'MEGGRAD'};
+timelock_sel = ft_selectdata(cfg, timelock_cov); % this selects channels from the covariance
 cfg.senstype        = 'MEG';
 cfg.headmodel       = headmodel_meg;
-
 cfg.dipfit.noisecov = timelock_sel.cov;
+% cfg.dipfit.noisecov = cov_20
 dipole_mag_grad = ft_dipolefitting(cfg, timelock_sel);
 
-if false
-  cfg.channel = {'MEGMAG', 'EEG'};
-  timelock_sel = ft_selectdata(cfg, timelock_cov);
-  
-  cfg.senstype        = {'MEG', 'EEG'};
-  cfg.headmodel       = {headmodel_meg, headmodel_eeg};
-  dipole_mag_eeg = ft_dipolefitting(cfg, timelock_sel);
-end
+cfg.channel = {'MEGMAG', 'EEG'};
+timelock_sel = ft_selectdata(cfg, timelock_cov);
+cfg.senstype        = {'MEG', 'EEG'};
+cfg.headmodel       = {headmodel_meg, headmodel_eeg};
+cfg.dipfit.noisecov = timelock_sel.cov;
+dipole_mag_eeg = ft_dipolefitting(cfg, timelock_sel);
+
+cfg.channel = {'MEGGRAD', 'EEG'};
+timelock_sel = ft_selectdata(cfg, timelock_cov);
+cfg.senstype        = {'MEG', 'EEG'};
+cfg.headmodel       = {headmodel_meg, headmodel_eeg};
+cfg.dipfit.noisecov = timelock_sel.cov;
+dipole_grad_eeg = ft_dipolefitting(cfg, timelock_sel);
+
+cfg.channel = {'MEGMAG', 'MEGGRAD', 'EEG'};
+timelock_sel = ft_selectdata(cfg, timelock_cov);
+cfg.senstype        = {'MEG', 'EEG'};
+cfg.headmodel       = {headmodel_meg, headmodel_eeg};
+cfg.dipfit.noisecov = timelock_sel.cov;
+dipole_mag_grad_eeg = ft_dipolefitting(cfg, timelock_sel);
 
 
 %% plot dipoles
 
-dipoles_all = {dipole_mag, dipole_grad, dipole_eeg, dipole_mag_weighted, dipole_mag_grad};
+dipoles_all = {dipole_mag, dipole_grad, dipole_eeg, dipole_mag_grad};
 
 close all
 colours = {'r', 'g', 'b', 'k', 'm', 'c'};
