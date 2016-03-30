@@ -253,9 +253,9 @@ if isempty(cfg.reducerank)
 end
 
 % select the desired channels, the order should be the same as in the sensor structure
-[selsens, seldata] = match_str(sens.label, data.label);
+[selcfg, seldata] = match_str(cfg.channel, data.label);
 % take the selected channels
-Vdata = data.avg(seldata, :);
+Vdata = data.avg(selcfg, :);
 
 % sphere the date using the noise covariance matrix supplied, if any
 % this affects both the gridsearch and the nonlinear optimization
@@ -270,8 +270,12 @@ if ~isempty(noisecov)
   sphere = diag(s) * u';
   % apply the sphering to the data
   Vdata = sphere * Vdata;
-  % apply the sphering to the forward model as a pre-multiplication
-  sens.tra = sphere * sens.tra;
+  % apply the sphering as a pre-multiplication to the sensor definition
+  montage = [];
+  montage.labelorg = cfg.channel;
+  montage.labelnew = cfg.channel;
+  montage.tra = sphere;
+  sens = ft_apply_montage(sens, montage, 'balancename', 'sphering');
 end
 
 if iscomp
