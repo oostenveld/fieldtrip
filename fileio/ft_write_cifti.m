@@ -59,7 +59,8 @@ brainstructure  = ft_getopt(varargin, 'brainstructure'); % the default is determ
 parcellation    = ft_getopt(varargin, 'parcellation');   % the default is determined further down
 precision       = ft_getopt(varargin, 'precision', 'single');
 writesurface    = ft_getopt(varargin, 'writesurface', true);
-debug            = ft_getopt(varargin, 'debug', false);
+debug           = ft_getopt(varargin, 'debug', false);
+skipnan         = ft_getopt(varargin, 'skipnan', false);
 
 if isfield(source, 'brainordinate')
   % this applies to a parcellated data representation
@@ -115,6 +116,7 @@ switch dimord
     intent_name = 'ConnDenseSeries';
     dat = transpose(dat);
     dimord = 'time_pos';
+    skip = any(isnan(dat),1);
   case 'pos_freq'
     % NIFTI_INTENT_CONNECTIVITY_DENSE_SERIES
     extension = '.dtseries.nii';
@@ -165,6 +167,12 @@ switch dimord
   otherwise
     error('unsupported dimord "%s"', dimord);
 end % switch
+
+if ~istrue(skipnan)
+  % do not skip any of the brainordinate positions 
+  skip(:) = false;
+end
+skip = skip(:); % should be column vector
 
 % determine each of the dimensions
 dimtok = tokenize(dimord, '_');
@@ -407,6 +415,8 @@ if any(strcmp(dimtok, 'pos'))
     sel = (BrainStructure==i);
     IndexCount = sum(sel);
     IndexOffset = find(sel, 1, 'first') - 1; % zero offset
+
+    sel = (sel & ~skip); % FIXME how do IndexCount and IndexOffset change when skipping brainordinates in the output?
     
     branch = find(tree, 'CIFTI/Matrix/MatrixIndicesMap');
     branch = branch(end);
@@ -671,7 +681,7 @@ assert(hdr.dim(1)<8);
 for i=1:length(dimtok)
   switch dimtok{i}
     case 'pos'
-      hdr.dim(5+i) = size(source.pos,1);
+      hdr.dim(5+i) = sum(~skip);
     case 'chan'
       hdr.dim(5+i) = numel(source.label);
     case 'time'
@@ -723,6 +733,14 @@ fid = fopen(filename, 'wb');
 
 % write the header, this is 4+540 bytes
 write_nifti2_hdr(fid, hdr);
+
+if any(skip)
+  % skip the data for brainordinates where it is nan
+  if numel(dimtok)>0 && strcmp(dimtok{1}, 'pos'), dat = dat(~skip,:,:,:); end
+  if numel(dimtok)>1 && strcmp(dimtok{2}, 'pos'), dat = dat(:,~skip,:,:); end
+  if numel(dimtok)>2 && strcmp(dimtok{3}, 'pos'), dat = dat(:,:,~skip,:); end
+  if numel(dimtok)>3 && strcmp(dimtok{4}, 'pos'), dat = dat(:,:,:,~skip); end
+end
 
 if debug
   try
