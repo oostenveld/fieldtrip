@@ -182,7 +182,7 @@ cfg = ft_checkconfig(cfg, 'renamedval',  {'method', 'coh_refdip',      'dics'});
 cfg = ft_checkconfig(cfg, 'renamedval',  {'method', 'dics_cohrefchan', 'dics'});
 cfg = ft_checkconfig(cfg, 'renamedval',  {'method', 'dics_cohrefdip',  'dics'});
 cfg = ft_checkconfig(cfg, 'forbidden',   {'parallel', 'trials'});
-cfg = ft_checkconfig(cfg, 'forbidden', {'foi', 'toi'});
+cfg = ft_checkconfig(cfg, 'forbidden',   {'foi', 'toi'});
 cfg = ft_checkconfig(cfg, 'renamed',     {'hdmfile', 'headmodel'});
 cfg = ft_checkconfig(cfg, 'renamed',     {'vol',     'headmodel'});
 
@@ -218,8 +218,8 @@ if istimelock
   cfg.method = ft_getopt(cfg, 'method', 'lcmv');
 elseif isfreq
   cfg.method = ft_getopt(cfg, 'method', 'dics');
-else
-  cfg.method = ft_getopt(cfg, 'method', []);
+elseif iscomp
+  cfg.method = ft_getopt(cfg, 'method', 'rv');
 end
 
 % put the low-level options pertaining to the source reconstruction method in their own field
@@ -238,7 +238,7 @@ cfg.(cfg.method).feedback      = ft_getopt(cfg.(cfg.method), 'feedback',      't
 cfg.(cfg.method).lambda        = ft_getopt(cfg.(cfg.method), 'lambda',        []);
 cfg.(cfg.method).powmethod     = ft_getopt(cfg.(cfg.method), 'powmethod',     []);
 cfg.(cfg.method).normalize     = ft_getopt(cfg.(cfg.method), 'normalize',     'no');
-cfg.(cfg.method).reducerank     = ft_getopt(cfg.(cfg.method), 'reducerank',    []); % the default for this is handled below
+cfg.(cfg.method).reducerank    = ft_getopt(cfg.(cfg.method), 'reducerank',    []); % the default for this is handled below
 
 if hasbaseline && (strcmp(cfg.randomization, 'no') && strcmp(cfg.permutation, 'no'))
   error('input of two conditions only makes sense if you want to randomize or permute');
@@ -484,7 +484,7 @@ if isfreq && any(strcmp(cfg.method, {'dics', 'pcc', 'eloreta', 'mne','harmony', 
       end
       
     case 'dics'
-      
+      % these can handle both a csd matrix and a fourier matrix
       [Cf, Cr, Pr, Ntrials, cfg] = prepare_freq_matrices(cfg, data);
       
       % assign a descriptive name to each of the dics sub-methods, the default is power only
@@ -647,13 +647,13 @@ if isfreq && any(strcmp(cfg.method, {'dics', 'pcc', 'eloreta', 'mne','harmony', 
     Pr  = reshape(Pr , [1 1 1]);
   end
   
-  % get the relevant low level options from the cfg and convert into key-value pairs
+  % get the relevant low level options from the cfg 
   tmpcfg = cfg.(cfg.method);
-  % disable console feedback for the low-level function in case of multiple
-  % repetitions
+  % disable console feedback for the low-level function in case of multiple repetitions
   if Nrepetitions > 1
     tmpcfg.feedback = 'none';
   end
+  % convert into key-value pairs
   optarg = ft_cfg2keyval(tmpcfg);
   
   if Nrepetitions > 1
@@ -692,13 +692,14 @@ if isfreq && any(strcmp(cfg.method, {'dics', 'pcc', 'eloreta', 'mne','harmony', 
         dip(i) = harmony(grid, sens, headmodel, avg, optarg{:});
         % error(sprintf('method ''%s'' is unsupported for source reconstruction in the frequency domain', cfg.method));
       case {'rv'}
-        dip(i) = residualvariance(grid, sens, headmodel, avg, optarg{:}) ;
+        dip(i) = residualvariance(grid, sens, headmodel, avg, optarg{:});
       case {'music'}
-        error(sprintf('method ''%s'' is currently unsupported for source reconstruction in the frequency domain', cfg.method));
+        error(sprintf('method ''%s'' is unsupported for source reconstruction in the frequency domain', cfg.method));
       otherwise
     end
     
-  end
+  end % for Nrepetitions
+  
   if Nrepetitions > 1
     ft_progress('close');
   end
@@ -1076,6 +1077,7 @@ elseif istimelock && any(strcmp(cfg.method, {'lcmv', 'sam', 'mne','harmony', 'rv
   
 elseif iscomp
   error('the use of component data in ft_sourceanalysis is disabled for the time being: if you encounter this error message and you need this functionality please contact the fieldtrip development team');
+
 else
   error('the specified method ''%s'' combined with the input data of type ''%s'' are not supported', cfg.method, ft_datatype(data));
 end % if freq or timelock or comp data
