@@ -22,12 +22,13 @@ function [dipout] = dipole_fit(dip, sens, headmodel, dat, varargin)
 %
 % The constraints on the source model are specified in a structure
 %   constr.symmetry   = boolean, dipole positions are symmetrically coupled to each other
-%   constr.fixedori   = boolean, keep dipole orientation fixed over whole data window
-%   constr.rigidbody  = boolean, keep relative position of multiple dipoles fixed
+%   constr.fixedori   = boolean, keep the dipole orientation fixed over whole data window
+%   constr.rigidbody  = boolean, keep the relative position of multiple dipoles fixed
+%   constr.sequential = boolean, fit the different dipoles to sequential slices of the data
 %   constr.mirror     = vector, used for symmetric dipole models
 %   constr.reduce     = vector, used for symmetric dipole models
 %   constr.expand     = vector, used for symmetric dipole models
-%   constr.sequential = boolean, fit different dipoles to sequential slices of the data
+%   constr.nofit      = vector, used to fit only a subset of the position parameters
 %
 % The maximum likelihood estimation implements
 %   Lutkenhoner B. "Dipole source localization by means of maximum
@@ -102,6 +103,7 @@ constr.symmetry   = ft_getopt(constr, 'symmetry', false);
 constr.fixedori   = ft_getopt(constr, 'fixedori', false);
 constr.rigidbody  = ft_getopt(constr, 'rigidbody', false);
 constr.sequential = ft_getopt(constr, 'sequential', false);
+constr.nofit      = ft_getopt(constr, 'nofit', []);
 
 if isempty(optimfun)
   % determine whether the MATLAB Optimization toolbox is available and can be used
@@ -190,8 +192,8 @@ dipout = fixdipole(dipout);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% DIPOLEMODEL2PARAM takes the initial guess for the diople model and converts it
-% to a set of parameters that needs to be optimized
+% DIPOLEMODEL2PARAM takes the initial guess for the dipole model and converts
+% it to a set of parameters that needs to be optimized.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [param, constr] = dipolemodel2param(pos, ori, constr)
 
@@ -223,11 +225,25 @@ elseif constr.rigidbody
   param = [0 0 0 0 0 0];     % start with an initial translation and rotation of zero
 end
 
+if ~isempty(constr.nofit)
+  % this allows certain parameters to be kept constant and not fitted
+  param(constr.nofit==true)  = constr.nofitparam;
+  param(constr.nofit==false) = param;
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% PARAM2DIPOLEMODEL takes the parameters and constraints and converts them into a
-% diople model for which the leadfield and residual error can be computed
+% PARAM2DIPOLEMODEL takes the parameters and constraints and converts them into
+% a dipole model for which the leadfield and residual error can be computed. To
+% ensure consistency with PARAM2DIPOLEMODEL, this function should apply the
+% constraints in exactly the opposite order.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [pos, ori] = param2dipolemodel(param, constr)
+
+if ~isempty(constr.nofit)
+  % this allows certain parameters to be kept constant and not fitted
+  constr.nofitparam = param(constr.nofit==true);
+  param             = param(constr.nofit==false);
+end
 
 if constr.symmetry && constr.rigidbody
   error('simultaneous symmetry and rigidbody constraints are not supported')
@@ -242,7 +258,7 @@ elseif constr.rigidbody
   transform = rigidbody(param);                   % this is a 4x4 homogenous transformation matrix
   pos       = transform * pos;                    % apply the homogenous transformation matrix
   param     = reshape(pos(1:3,:), 1, 3*numdip);
-  clear pos                                       % the actual pos will be constructed from param further down 
+  clear pos                                       % the actual pos will be reconstructed from param further down 
 end
 
 if constr.fixedori
@@ -254,6 +270,7 @@ if constr.fixedori
     [ori(1,i), ori(2,i), ori(3,i)] = sph2cart(th, phi, 1);
   end
   pos = reshape(param(1:(numdip*3)), 3, numdip)'; % convert into a Ndip*3 matrix
+
 else
   numdip = numel(param)/3;
   pos = reshape(param, 3, numdip)'; % convert into a Ndip*3 matrix
