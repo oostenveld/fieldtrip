@@ -16,7 +16,7 @@ function [pos, tri] = headsurface(headmodel, sens, varargin)
 %   npos           = number of vertices (default is determined automatic)
 %   downwardshift  = boolean, this will shift the lower rim of the helmet down with approximately 1/4th of its radius (default is 1)
 %   inwardshift    = number (default = 0)
-%   headshape      = string, file containing the head shape
+%   headshape      = structure, from FT_READ_HEADSHAPE
 
 % Copyright (C) 2005-2006, Robert Oostenveld
 %
@@ -58,7 +58,7 @@ end
 surface       = ft_getopt(varargin, 'surface', 'skin');     % skin or brain
 downwardshift = ft_getopt(varargin, 'downwardshift', true); % boolean
 inwardshift   = ft_getopt(varargin, 'inwardshift');         % number
-headshape     = ft_getopt(varargin, 'headshape');           % CTF *.shape file
+headshape     = ft_getopt(varargin, 'headshape');           % headshape structure from FT_READ_HEADSHAPE
 npos          = ft_getopt(varargin, 'npos');                % number of vertices
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -68,9 +68,9 @@ if ~isempty(headshape)
   tri = headshape.tri;
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-elseif ~isempty(headmodel) && isfield(headmodel, 'r') && length(headmodel.r)<5
+elseif ft_voltype(headmodel, 'singlesphere') || ft_voltype(headmodel, 'concentricspheres')
   if length(headmodel.r)==1
-    % single sphere model, cannot distinguish between skin and/or brain
+    % model with single sphere, cannot distinguish between skin and/or brain
     radius = headmodel.r;
     if isfield(headmodel, 'o')
       origin = headmodel.o;
@@ -78,7 +78,7 @@ elseif ~isempty(headmodel) && isfield(headmodel, 'r') && length(headmodel.r)<5
       origin = [0 0 0];
     end
   elseif length(headmodel.r)<5
-    % multiple concentric sphere model
+    % model with multiple concentric spheres
     switch surface
       case 'skin'
         % using outermost sphere
@@ -174,9 +174,10 @@ elseif ft_voltype(headmodel, 'bem') ||  ft_voltype(headmodel, 'singleshell')
     otherwise
       error('other surfaces cannot be constructed this way');
   end
-end
+  
+end % if ft_voltype(...)
 
-% retriangulate the skin/brain/cortex surface to the desired number of vertices
+% retriangulate the surface to the desired number of vertices
 if ~isempty(npos) && size(pos,1)~=npos
   switch npos
     case 2562
