@@ -264,7 +264,7 @@ end % if istrue(coil)
 
 switch coilshape
   case 'point'
-    hs = plot3(pos(:,1), pos(:,2), pos(:,3), style, 'MarkerSize', 30, 'Color', edgecolor);
+    hs = plot3(pos(:,1), pos(:,2), pos(:,3), style, 'MarkerSize', 30);
   case 'circle'
     plotcoil(pos, ori, [],      coilsize, coilshape, 'edgecolor', edgecolor, 'facecolor', facecolor, 'edgealpha', edgealpha, 'facealpha', facealpha);
   case 'square'
@@ -273,10 +273,10 @@ switch coilshape
     error('incorrect coilshape');
 end % switch
 
-if ~isempty(label) && ~any(strcmp(label, {'off', 'no'}))
+if ~isempty(label) && ~isfalse(label)
   for i=1:length(sens.label)
     switch label
-      case {'on', 'yes'}
+      case {'on', 'yes', 1, true}
         str = sens.label{i};
       case {'label' 'labels'}
         str = sens.label{i};
@@ -379,3 +379,23 @@ pos = [
   0.5 -0.5 0
   0.5  0.5 0 % this closes the square
   ];
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SUBFUNCTION
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function y = isfalse(x)
+if strcmpi(x, 'no')
+  y = true;
+elseif strcmpi(x, 'off')
+  y = true;
+elseif strcmpi(x, 'none')
+  y = true;
+elseif isequal(x, 0)
+  y = true;
+elseif isequal(x, false)
+  y = true;
+else
+  y = false;
+end
+  
+  
