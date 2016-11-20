@@ -1,0 +1,9 @@
+{
+  "name": "FieldTrip-buffer",
+  "version": "0.0.1",
+  "description": "Interface to the FieldTrip realtime buffer",
+  "dependencies": {
+    "express": "^4.14.0",
+    "net": "^1.0.2"
+  }
+}
