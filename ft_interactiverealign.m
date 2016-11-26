@@ -1,31 +1,34 @@
 function cfg = ft_interactiverealign(cfg)
 
 % FT_INTERACTIVEREALIGN interactively rotates, scales and translates
-% electrode positions to template electrode positions or towards
-% the head surface.
+% a geometrical object such as electrode positions to another template
+% geometrical object, such as the head surface.
 %
 % Use as
 %   [cfg] = ft_interactiverealign(cfg)
 %
 % The configuration structure should contain the individuals geometrical
 % objects that have to be realigned as
-%  cfg.individual.elec           = structure
-%  cfg.individual.grad           = structure
-%  cfg.individual.headmodel      = structure, see FT_PREPARE_HEADMODEL
-%  cfg.individual.headmodelstyle = 'edge', 'surface' or 'both' (default = 'edge')
-%  cfg.individual.headshape      = structure, see FT_READ_HEADSHAPE
-%  cfg.individual.headshapestyle = 'vertex', 'surface' or 'both' (default = 'vertex')
+%   cfg.individual.elec           = structure, see FT_READ_SENS
+%   cfg.individual.grad           = structure, see FT_READ_SENS
+%   cfg.individual.headshape      = structure, see FT_READ_HEADSHAPE
+%   cfg.individual.headshapestyle = 'vertex', 'surface' or 'both' (default = 'vertex')
+%   cfg.individual.headmodel      = structure, see FT_PREPARE_HEADMODEL
+%   cfg.individual.headmodelstyle = 'edge', 'surface' or 'both' (default = 'edge')
 %
 % The configuration structure should also contain the geometrical
 % objects of a template that serves as target
-%  cfg.template.elec           = structure
-%  cfg.template.grad           = structure
-%  cfg.template.headmodel      = structure, see FT_PREPARE_HEADMODEL
-%  cfg.template.headmodelstyle = 'edge', 'surface' or 'both' (default = 'edge')
-%  cfg.template.headshape      = structure, see FT_READ_HEADSHAPE
-%  cfg.template.headshapestyle = 'vertex', 'surface' or 'both' (default = 'vertex')
+%   cfg.template.elec           = structure, see FT_READ_SENS
+%   cfg.template.grad           = structure, see FT_READ_SENS
+%   cfg.template.headshape      = structure, see FT_READ_HEADSHAPE
+%   cfg.template.headshapestyle = 'vertex', 'surface' or 'both' (default = 'vertex')
+%   cfg.template.headmodel      = structure, see FT_PREPARE_HEADMODEL
+%   cfg.template.headmodelstyle = 'edge', 'surface' or 'both' (default = 'edge')
 %
-% See also FT_VOLUMEREALIGN, FT_ELECTRODEREALIGN, FT_READ_SENS, FT_READ_VOL, FT_READ_HEADSHAPE
+% The output configuration contains the 4x4 homogenous coordinate
+% transformation matrix in cfg.m.
+%
+% See also FT_VOLUMEREALIGN, FT_ELECTRODEREALIGN, FT_READ_SENS, FT_READ_HEADSHAPE, FT_READ_VOL
 
 % Copyright (C) 2008, Vladimir Litvak
 %
@@ -119,12 +122,28 @@ for i=1:length(fn)
   end
 end
 
+% determine the coordinate system of the template
+coordsys = 'unknown';
+for i=1:length(fn)
+  if isfield(template.(fn{i}), 'coordsys')
+    coordsys = template.(fn{i}).coordsys;
+  end
+end
+
+% determine the units of the template
+unit = 'unknown';
+for i=1:length(fn)
+  if isfield(template.(fn{i}), 'unit')
+    unit = template.(fn{i}).unit;
+  end
+end
+
+% make a triangulated surface out of the head shape points
 if ~isempty(template.headshape)
   if ~isfield(template.headshape, 'tri') || isempty(template.headshape.tri)
     template.headshape.tri = projecttri(template.headshape.pos);
   end
 end
-
 if ~isempty(individual.headshape)
   if ~isfield(individual.headshape, 'tri') || isempty(individual.headshape.tri)
     individual.headshape.tri = projecttri(individual.headshape.pos);
@@ -136,6 +155,10 @@ fig = figure;
 set(gca, 'position', [0.05 0.15 0.75 0.75]);
 axis([-150 150 -150 150 -150 150]);
 
+% give the user instructions
+disp('Use the mouse to rotate the objects, click "redisplay" to update the light');
+disp('Close the figure when you are done');
+
 % add the data to the figure
 set(fig, 'CloseRequestFcn', @cb_quit);
 setappdata(fig, 'individual',  individual);
@@ -143,8 +166,11 @@ setappdata(fig, 'template',    template);
 setappdata(fig, 'transform',   eye(4));
 setappdata(fig, 'cleanup',     false);
 
-setappdata(fig, 'toggle_axes', 1);
-setappdata(fig, 'toggle_grid', 1);
+setappdata(fig, 'toggle_axes', true);
+setappdata(fig, 'toggle_grid', true);
+setappdata(fig, 'toggle_label', false);
+setappdata(fig, 'coordsys', coordsys);
+setappdata(fig, 'unit', unit);
 
 % add the GUI elements
 cb_creategui(gca);
@@ -187,9 +213,9 @@ uicontrol('tag', 'rx',   'parent',  fig, 'units', 'normalized', 'style', 'edit',
 uicontrol('tag', 'ry',   'parent',  fig, 'units', 'normalized', 'style', 'edit', 'string', '0', 'callback', @cb_redraw)
 uicontrol('tag', 'rz',   'parent',  fig, 'units', 'normalized', 'style', 'edit', 'string', '0', 'callback', @cb_redraw)
 ft_uilayout(fig, 'tag', 'rotateui', 'BackgroundColor', [0.8 0.8 0.8], 'width',  2*CONTROL_WIDTH, 'height',  CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET,                 'vpos',  CONTROL_VOFFSET+CONTROL_HEIGHT);
-ft_uilayout(fig, 'tag', 'rx',   'BackgroundColor', [0.8 0.8 0.8], 'width',  CONTROL_WIDTH,   'height',  CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET+3*CONTROL_WIDTH, 'vpos',  CONTROL_VOFFSET+CONTROL_HEIGHT);
-ft_uilayout(fig, 'tag', 'ry',   'BackgroundColor', [0.8 0.8 0.8], 'width',  CONTROL_WIDTH,   'height',  CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET+4*CONTROL_WIDTH, 'vpos',  CONTROL_VOFFSET+CONTROL_HEIGHT);
-ft_uilayout(fig, 'tag', 'rz',   'BackgroundColor', [0.8 0.8 0.8], 'width',  CONTROL_WIDTH,   'height',  CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET+5*CONTROL_WIDTH, 'vpos',  CONTROL_VOFFSET+CONTROL_HEIGHT);
+ft_uilayout(fig, 'tag', 'rx',       'BackgroundColor', [0.8 0.8 0.8], 'width',  CONTROL_WIDTH,   'height',  CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET+3*CONTROL_WIDTH, 'vpos',  CONTROL_VOFFSET+CONTROL_HEIGHT);
+ft_uilayout(fig, 'tag', 'ry',       'BackgroundColor', [0.8 0.8 0.8], 'width',  CONTROL_WIDTH,   'height',  CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET+4*CONTROL_WIDTH, 'vpos',  CONTROL_VOFFSET+CONTROL_HEIGHT);
+ft_uilayout(fig, 'tag', 'rz',       'BackgroundColor', [0.8 0.8 0.8], 'width',  CONTROL_WIDTH,   'height',  CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET+5*CONTROL_WIDTH, 'vpos',  CONTROL_VOFFSET+CONTROL_HEIGHT);
 
 % scaleui
 uicontrol('tag', 'scaleui', 'parent',  fig, 'units', 'normalized', 'style', 'text', 'string', 'scale', 'callback', [])
@@ -197,9 +223,9 @@ uicontrol('tag', 'sx',  'parent',  fig, 'units', 'normalized', 'style', 'edit', 
 uicontrol('tag', 'sy',  'parent',  fig, 'units', 'normalized', 'style', 'edit', 'string', '1', 'callback', @cb_redraw)
 uicontrol('tag', 'sz',  'parent',  fig, 'units', 'normalized', 'style', 'edit', 'string', '1', 'callback', @cb_redraw)
 ft_uilayout(fig, 'tag', 'scaleui', 'BackgroundColor', [0.8 0.8 0.8], 'width',  2*CONTROL_WIDTH, 'height',  CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET,                 'vpos',  CONTROL_VOFFSET-0*CONTROL_HEIGHT);
-ft_uilayout(fig, 'tag', 'sx',  'BackgroundColor', [0.8 0.8 0.8], 'width',  CONTROL_WIDTH,   'height',  CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET+3*CONTROL_WIDTH, 'vpos',  CONTROL_VOFFSET-0*CONTROL_HEIGHT);
-ft_uilayout(fig, 'tag', 'sy',  'BackgroundColor', [0.8 0.8 0.8], 'width',  CONTROL_WIDTH,   'height',  CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET+4*CONTROL_WIDTH, 'vpos',  CONTROL_VOFFSET-0*CONTROL_HEIGHT);
-ft_uilayout(fig, 'tag', 'sz',  'BackgroundColor', [0.8 0.8 0.8], 'width',  CONTROL_WIDTH,   'height',  CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET+5*CONTROL_WIDTH, 'vpos',  CONTROL_VOFFSET-0*CONTROL_HEIGHT);
+ft_uilayout(fig, 'tag', 'sx',      'BackgroundColor', [0.8 0.8 0.8], 'width',  CONTROL_WIDTH,   'height',  CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET+3*CONTROL_WIDTH, 'vpos',  CONTROL_VOFFSET-0*CONTROL_HEIGHT);
+ft_uilayout(fig, 'tag', 'sy',      'BackgroundColor', [0.8 0.8 0.8], 'width',  CONTROL_WIDTH,   'height',  CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET+4*CONTROL_WIDTH, 'vpos',  CONTROL_VOFFSET-0*CONTROL_HEIGHT);
+ft_uilayout(fig, 'tag', 'sz',      'BackgroundColor', [0.8 0.8 0.8], 'width',  CONTROL_WIDTH,   'height',  CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET+5*CONTROL_WIDTH, 'vpos',  CONTROL_VOFFSET-0*CONTROL_HEIGHT);
 
 % translateui
 uicontrol('tag', 'translateui', 'parent',  fig, 'units', 'normalized', 'style', 'text', 'string', 'translate', 'callback', [])
@@ -207,22 +233,22 @@ uicontrol('tag', 'tx',      'parent',  fig, 'units', 'normalized', 'style', 'edi
 uicontrol('tag', 'ty',      'parent',  fig, 'units', 'normalized', 'style', 'edit', 'string', '0', 'callback', @cb_redraw)
 uicontrol('tag', 'tz',      'parent',  fig, 'units', 'normalized', 'style', 'edit', 'string', '0', 'callback', @cb_redraw)
 ft_uilayout(fig, 'tag', 'translateui', 'BackgroundColor', [0.8 0.8 0.8], 'width',  2*CONTROL_WIDTH, 'height',  CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET,                 'vpos',  CONTROL_VOFFSET-1*CONTROL_HEIGHT);
-ft_uilayout(fig, 'tag', 'tx',      'BackgroundColor', [0.8 0.8 0.8], 'width',  CONTROL_WIDTH,   'height',  CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET+3*CONTROL_WIDTH, 'vpos',  CONTROL_VOFFSET-1*CONTROL_HEIGHT);
-ft_uilayout(fig, 'tag', 'ty',      'BackgroundColor', [0.8 0.8 0.8], 'width',  CONTROL_WIDTH,   'height',  CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET+4*CONTROL_WIDTH, 'vpos',  CONTROL_VOFFSET-1*CONTROL_HEIGHT);
-ft_uilayout(fig, 'tag', 'tz',      'BackgroundColor', [0.8 0.8 0.8], 'width',  CONTROL_WIDTH,   'height',  CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET+5*CONTROL_WIDTH, 'vpos',  CONTROL_VOFFSET-1*CONTROL_HEIGHT);
+ft_uilayout(fig, 'tag', 'tx',          'BackgroundColor', [0.8 0.8 0.8], 'width',  CONTROL_WIDTH,   'height',  CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET+3*CONTROL_WIDTH, 'vpos',  CONTROL_VOFFSET-1*CONTROL_HEIGHT);
+ft_uilayout(fig, 'tag', 'ty',          'BackgroundColor', [0.8 0.8 0.8], 'width',  CONTROL_WIDTH,   'height',  CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET+4*CONTROL_WIDTH, 'vpos',  CONTROL_VOFFSET-1*CONTROL_HEIGHT);
+ft_uilayout(fig, 'tag', 'tz',          'BackgroundColor', [0.8 0.8 0.8], 'width',  CONTROL_WIDTH,   'height',  CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET+5*CONTROL_WIDTH, 'vpos',  CONTROL_VOFFSET-1*CONTROL_HEIGHT);
 
 % control buttons
-uicontrol('tag', 'viewbtn',       'parent',  fig, 'units', 'normalized', 'style', 'popup',      'string', 'top|bottom|left|right|front|back', 'value',  1, 'callback', @cb_view);
+uicontrol('tag', 'viewbtn',       'parent',  fig, 'units', 'normalized', 'style', 'popup',      'string', 'top|bottom|left|right|front|back', 'value',  1, 'callback', @cb_viewpoint);
 uicontrol('tag', 'redisplaybtn',  'parent',  fig, 'units', 'normalized', 'style', 'pushbutton', 'string', 'redisplay',    'value', [], 'callback', @cb_redraw);
 uicontrol('tag', 'applybtn',      'parent',  fig, 'units', 'normalized', 'style', 'pushbutton', 'string', 'apply',        'value', [], 'callback', @cb_apply);
-uicontrol('tag', 'toggle labels', 'parent',  fig, 'units', 'normalized', 'style', 'pushbutton', 'string', 'toggle label', 'value',  0,  'callback', @cb_redraw);
+uicontrol('tag', 'toggle label',  'parent',  fig, 'units', 'normalized', 'style', 'pushbutton', 'string', 'toggle label', 'value',  getappdata(fig, 'toggle_label'), 'callback', @cb_redraw);
 uicontrol('tag', 'toggle axes',   'parent',  fig, 'units', 'normalized', 'style', 'pushbutton', 'string', 'toggle axes',  'value',  getappdata(fig, 'toggle_axes'),  'callback', @cb_redraw);
 uicontrol('tag', 'toggle grid',   'parent',  fig, 'units', 'normalized', 'style', 'pushbutton', 'string', 'toggle grid',  'value',  getappdata(fig, 'toggle_grid'),  'callback', @cb_redraw);
 uicontrol('tag', 'quitbtn',       'parent',  fig, 'units', 'normalized', 'style', 'pushbutton', 'string', 'quit',         'value',  1,  'callback', @cb_quit);
 ft_uilayout(fig, 'tag', 'viewbtn',        'BackgroundColor', [0.8 0.8 0.8], 'width',  6*CONTROL_WIDTH, 'height',  CONTROL_HEIGHT, 'vpos',  CONTROL_VOFFSET-2*CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET);
 ft_uilayout(fig, 'tag', 'redisplaybtn',   'BackgroundColor', [0.8 0.8 0.8], 'width',  6*CONTROL_WIDTH, 'height',  CONTROL_HEIGHT, 'vpos',  CONTROL_VOFFSET-4*CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET);
 ft_uilayout(fig, 'tag', 'applybtn',       'BackgroundColor', [0.8 0.8 0.8], 'width',  6*CONTROL_WIDTH, 'height',  CONTROL_HEIGHT, 'vpos',  CONTROL_VOFFSET-5*CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET);
-ft_uilayout(fig, 'tag', 'toggle labels',  'BackgroundColor', [0.8 0.8 0.8], 'width',  6*CONTROL_WIDTH, 'height',  CONTROL_HEIGHT, 'vpos',  CONTROL_VOFFSET-6*CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET);
+ft_uilayout(fig, 'tag', 'toggle label',   'BackgroundColor', [0.8 0.8 0.8], 'width',  6*CONTROL_WIDTH, 'height',  CONTROL_HEIGHT, 'vpos',  CONTROL_VOFFSET-6*CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET);
 ft_uilayout(fig, 'tag', 'toggle axes',    'BackgroundColor', [0.8 0.8 0.8], 'width',  6*CONTROL_WIDTH, 'height',  CONTROL_HEIGHT, 'vpos',  CONTROL_VOFFSET-7*CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET);
 ft_uilayout(fig, 'tag', 'toggle grid',    'BackgroundColor', [0.8 0.8 0.8], 'width',  6*CONTROL_WIDTH, 'height',  CONTROL_HEIGHT, 'vpos',  CONTROL_VOFFSET-8*CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET);
 ft_uilayout(fig, 'tag', 'quitbtn',        'BackgroundColor', [0.8 0.8 0.8], 'width',  6*CONTROL_WIDTH, 'height',  CONTROL_HEIGHT, 'vpos',  CONTROL_VOFFSET-9*CONTROL_HEIGHT, 'hpos',  CONTROL_HOFFSET);
@@ -241,6 +267,17 @@ individual = getappdata(fig, 'individual');
 template   = getappdata(fig, 'template');
 transform  = getappdata(fig, 'transform');
 
+if strcmp(get(h, 'tag'), 'toggle label')
+  setappdata(fig, 'toggle_label', ~getappdata(fig, 'toggle_label'))
+end
+
+if strcmp(get(h, 'tag'), 'toggle axes')
+  setappdata(fig, 'toggle_axes', ~getappdata(fig, 'toggle_axes'))
+end
+
+if strcmp(get(h, 'tag'), 'toggle grid')
+  setappdata(fig, 'toggle_grid', ~getappdata(fig, 'toggle_grid'))
+end
 
 % get the transformation details
 rx = str2double(get(findobj(fig, 'tag', 'rx'), 'string'));
@@ -260,10 +297,11 @@ H = S * T * R;
 % combine the present transform according to the GUI with the one that has been previously applied
 transform = H * transform;
 
-axis vis3d; cla
-xlabel('x')
-ylabel('y')
-zlabel('z')
+axis vis3d
+cla
+xlabel(sprintf('x (%s)', getappdata(fig, 'unit')))
+ylabel(sprintf('y (%s)', getappdata(fig, 'unit')))
+zlabel(sprintf('z (%s)', getappdata(fig, 'unit')))
 
 hold on
 
@@ -301,39 +339,33 @@ if ~isempty(individual.mri)
 end
 
 if ~isempty(template.elec)
-  % FIXME use ft_plot_sens
   if isfield(template.elec, 'line')
     tmpbnd = [];
     tmpbnd.pos = template.elec.chanpos;
     tmpbnd.tri = template.elec.line;
-    ft_plot_mesh(tmpbnd,'vertexcolor', 'b', 'facecolor', 'none', 'edgecolor', 'b', 'vertexsize',10)
+    ft_plot_mesh(tmpbnd,'vertexcolor', 'b', 'facecolor', 'none', 'edgecolor', 'b', 'vertexsize', 10)
   else
-    ft_plot_mesh(template.elec.chanpos,'vertexcolor', 'b', 'vertexsize',10);
+    ft_plot_sens(template.elec, 'style', 'b.', 'label', getappdata(fig, 'toggle_label'));
   end
 end
 
 if ~isempty(individual.elec)
-  % FIXME use ft_plot_sens
   if isfield(individual.elec, 'line')
     tmpbnd = [];
     tmpbnd.pos = individual.elec.chanpos;
     tmpbnd.tri = individual.elec.line;
-    ft_plot_mesh(tmpbnd,'vertexcolor', 'r', 'facecolor', 'none', 'edgecolor', 'r', 'vertexsize',10)
+    ft_plot_mesh(tmpbnd,'vertexcolor', 'r', 'facecolor', 'none', 'edgecolor', 'r', 'vertexsize', 10)
   else
-    ft_plot_mesh(individual.elec.chanpos,'vertexcolor', 'r', 'vertexsize',10);
+    ft_plot_sens(individual.elec, 'style', 'r.', 'label', getappdata(fig, 'toggle_label'));
   end
 end
 
 if ~isempty(template.grad)
-  % FIXME use ft_plot_sens
-  ft_plot_mesh(template.grad.chanpos,'vertexcolor', 'b', 'vertexsize',10);
-  % FIXME also plot lines?
+  ft_plot_sens(template.grad, 'edgecolor', 'b', 'label', getappdata(fig, 'toggle_label'));
 end
 
 if ~isempty(individual.grad)
-  % FIXME use ft_plot_sens
-  ft_plot_mesh(individual.grad.chanpos,'vertexcolor', 'r', 'vertexsize',10);
-  % FIXME also plot lines?
+  ft_plot_mesh(individual.grad, 'edgecolor', 'r', 'label', getappdata(fig, 'toggle_label'));
 end
 
 if ~isempty(template.headmodel)
@@ -390,6 +422,10 @@ if ~isempty(template.headshape)
       vertexcolor = 'none';
       edgecolor   = 'k';
       facecolor   = 'skin';
+    elseif strcmp(template.headshapestyle, 'vertex')
+      vertexcolor = 'k';
+      edgecolor   = 'none';
+      facecolor   = 'none';
     end
     ft_plot_headshape(template.headshape, 'facecolor', facecolor, 'vertexcolor', vertexcolor, 'edgecolor', edgecolor)
   end
@@ -409,6 +445,10 @@ if ~isempty(individual.headshape)
       vertexcolor = 'none';
       edgecolor   = 'k';
       facecolor   = 'skin';
+    elseif strcmp(individual.headshapestyle, 'vertex')
+      vertexcolor = 'k';
+      edgecolor   = 'none';
+      facecolor   = 'none';
     end
     ft_plot_headshape(individual.headshape, 'facecolor', facecolor, 'vertexcolor', vertexcolor, 'edgecolor', edgecolor)
   end
@@ -419,18 +459,10 @@ lighting gouraud
 material shiny
 camlight
 
-if strcmp(get(h, 'tag'), 'toggle axes')
-  setappdata(fig, 'toggle_axes', ~getappdata(fig, 'toggle_axes'))
-end
-
 if getappdata(fig, 'toggle_axes')
   axis on
 else
   axis off
-end
-
-if strcmp(get(h, 'tag'), 'toggle grid')
-  setappdata(fig, 'toggle_grid', ~getappdata(fig, 'toggle_grid'))
 end
 
 if getappdata(fig, 'toggle_grid')
@@ -480,25 +512,40 @@ if ~getappdata(fig, 'cleanup')
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function cb_view(h, eventdata)
+function cb_viewpoint(h, eventdata)
+fig = getparent(h);
 
-% FIXME this is hardcoded for a particular (probably MNI/SPM) coordinate system
-val = get(h, 'value');
-switch val
-  case 1
-    view([90 90]);
-  case 2
-    view([90 -90]);
-  case 3
-    view([-90 0]);
-  case 4
-    view([90 0]);
-  case 5
-    view([-180 0]);
-  case 6
-    view([0 0]);
+% the value from 1 to 6 corresponds to top|bottom|left|right|front|back
+direction = get(h, 'value');
+
+% the head-centered viewpoint depends on the coordinate system
+coordsys = getappdata(fig, 'coordsys');
+
+switch lower(coordsys)
+  case {'ras', 'itab', 'neuromag', 'tal', 'mni', 'spm'}
+    viewpoint = [
+      0 0 +1
+      0 0 -1
+      -1 0 0
+      +1 0 0
+      0 +1 0
+      0 -1 0
+      ];
+    view(viewpoint(direction,:));
+  case {'als', 'ctf', '4d', 'bti'}
+    viewpoint = [
+      0 0 +1
+      0 0 -1
+      0 +1 0
+      0 -1 0
+      +1 0 0
+      -1 0 0
+      ];
+    view(viewpoint(direction,:));
   otherwise
+    warning('coordinate system is unknown');
 end
+
 uiresume;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
