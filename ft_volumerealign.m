@@ -62,8 +62,8 @@ function [realign, snap] = ft_volumerealign(cfg, mri, target)
 %   cfg.fiducial.nas    = [i j k], position of nasion
 %   cfg.fiducial.lpa    = [i j k], position of LPA
 %   cfg.fiducial.rpa    = [i j k], position of RPA
-%   cfg.fiducial.zpoint = [i j k], a point on the positive z-axis. This is
-%                         an optional 'fiducial', and can be used to determine
+%   cfg.fiducial.zpoint = [i j k], an optional point on the positive z-axis. 
+%                         This optional 'fiducial' can be used to determine
 %                         whether the input voxel coordinate axes are left-handed
 %                         (i.e. flipped in one of the dimensions). If this additional
 %                         point is specified, and the voxel coordinate axes are left
