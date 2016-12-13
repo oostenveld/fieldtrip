@@ -22,11 +22,10 @@ function [elec_realigned] = ft_electroderealign(cfg, elec_original)
 % non-linear search to minimize the distance between the input sensor
 % positions and the corresponding template sensors.
 %
-% HEADSHAPE - You can apply a spatial transformation/deformation that
-% automatically minimizes the distance between the electrodes and the head
-% surface. The warping methods use a non-linear search to minimize the
-% distance between the input sensor positions and the projection of the
-% electrodes on the head surface.
+% HEADSHAPE - You can apply a spatial transformation/deformation that automatically
+% minimizes the distance between the electrodes and the head surface. The warping
+% methods use a non-linear search to minimize the distance between the input sensor
+% positions and the projection of them on the head surface.
 %
 % PROJECT - This projects all electrodes to the nearest point on the
 % head surface mesh.
@@ -53,13 +52,11 @@ function [elec_realigned] = ft_electroderealign(cfg, elec_original)
 %                        'nonlin3'         apply a 3rd order non-linear warp
 %                        'nonlin4'         apply a 4th order non-linear warp
 %                        'nonlin5'         apply a 5th order non-linear warp
-%                        'dykstra2012'     non-linear wrap only for headshape
+%                        'dykstra2012'     non-linear warp only for headshape
 %                                          method useful for projecting ECoG onto
 %                                          cortex hull.
 %   cfg.channel        = Nx1 cell-array with selection of channels (default = 'all'),
 %                        see  FT_CHANNELSELECTION for details
-%   cfg.fiducial       = cell-array with the name of three fiducials used for
-%                        realigning (default = {'nasion', 'lpa', 'rpa'})
 %   cfg.casesensitive  = 'yes' or 'no', determines whether string comparisons
 %                        between electrode labels are case sensitive (default = 'yes')
 %   cfg.feedback       = 'yes' or 'no' (default = 'no')
@@ -67,13 +64,6 @@ function [elec_realigned] = ft_electroderealign(cfg, elec_original)
 % The electrode positions can be present in the 2nd input argument or can be specified as
 %   cfg.elec          = structure with electrode positions, see FT_DATATYPE_SENS
 %   cfg.elecfile      = name of file containing the electrode positions, see FT_READ_SENS
-%
-% If you want to realign the EEG electrodes using anatomical fiducials, the template
-% has to contain the three fiducials, e.g.
-%   cfg.target.pos(1,:) = [110 0 0]     % location of the nose
-%   cfg.target.pos(2,:) = [0  90 0]     % location of the left ear
-%   cfg.target.pos(3,:) = [0 -90 0]     % location of the right ear
-%   cfg.target.label    = {'NAS', 'LPA', 'RPA'}
 %
 % If you want to align EEG electrodes to a single or multiple template electrode sets
 % (which will be averaged), you should specify the template electrode sets either as
@@ -103,6 +93,24 @@ function [elec_realigned] = ft_electroderealign(cfg, elec_original)
 %                        procedure.
 %
 % See also FT_READ_SENS, FT_VOLUMEREALIGN, FT_INTERACTIVEREALIGN, FT_PREPARE_MESH
+
+
+
+% ========================================================================================
+% old stuff, should still be supported
+% ========================================================================================
+%   cfg.fiducial       = cell-array with the name of three fiducials used for
+%                        realigning (default = {'nasion', 'lpa', 'rpa'})
+%
+% If you want to realign the EEG electrodes using anatomical fiducials, the template
+% has to contain the three fiducials, e.g.
+%   cfg.target.pos(1,:) = [110 0 0]     % location of the nose
+%   cfg.target.pos(2,:) = [0  90 0]     % location of the left ear
+%   cfg.target.pos(3,:) = [0 -90 0]     % location of the right ear
+%   cfg.target.label    = {'NAS', 'LPA', 'RPA'}
+% ========================================================================================
+% ========================================================================================
+% ========================================================================================
 
 % Copyright (C) 2005-2015, Robert Oostenveld
 %
