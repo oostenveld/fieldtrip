@@ -294,7 +294,7 @@ end % function
 
 
 function infoGuids = read_nervus_header_infoGuids(h, StaticPackets, MainIndex)
-
+DATETIMEMINUSFACTOR = 2209161600;
 
 infoIdx = StaticPackets(find(strcmp({StaticPackets.IDStr},'InfoGuids'),1)).index;
 indexInstance = MainIndex(find([MainIndex.sectionIdx]==infoIdx,1));
@@ -312,6 +312,8 @@ end
 end % function
 
 function dynamicPackets = read_nervus_header_dynamicpackets(h, StaticPackets, MainIndex)
+DAYSECS = 86400.0;  
+DATETIMEMINUSFACTOR = 2209161600; 
 dynamicPackets = struct();
 indexIdx = StaticPackets(find(strcmp({StaticPackets.IDStr},'InfoChangeStream'),1)).index;
 offset = MainIndex(indexIdx).offset;
@@ -330,7 +332,7 @@ for i = 1: nrDynamicPackets
   dynamicPackets(i).guidAsStr = sprintf('{%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X}', guidnonmixed);
   %dynamicPackets(i).date = datenum(1899,12,31) + fread(h,1,'double');
   %dynamicPackets(i).datefrac = fread(h,1,'double');
-  dynamicPackets(i).date = datetime(fread(h,1,'double')*86400+fread(h,1,'double')- 2209161600, 'ConvertFrom', 'posixtime');
+  dynamicPackets(i).date = datetime(fread(h,1,'double')*DAYSECS+fread(h,1,'double')- DATETIMEMINUSFACTOR, 'ConvertFrom', 'posixtime');
   dynamicPackets(i).internalOffsetStart = fread(h,1, 'uint64')';
   dynamicPackets(i).packetSize = fread(h,1, 'uint64')';
   dynamicPackets(i).data = zeros(0, 1,'uint8');
@@ -408,6 +410,8 @@ end % function
 
 
 function PatientInfo = read_nervus_header_patient(h, StaticPackets, Index)
+DAYSECS = 86400.0;  
+DATETIMEMINUSFACTOR = 2209161600;
 %% Get PatientGUID
 PatientInfo = struct();
 
@@ -430,8 +434,8 @@ for i = 1:nrValues
   id = fread(h,1,'uint64');
   switch id
     case {7,8}
-      unix_time = (fread(h,1, 'double')*(3600*24)) - 2209161600; % 2208988800; %8
-      obj.segments(i).dateStr = datestr(unix_time/86400 + datenum(1970,1,1));
+      unix_time = (fread(h,1, 'double')*DAYSECS) - DATETIMEMINUSFACTOR; % 2208988800; %8
+      obj.segments(i).dateStr = datestr(unix_time/DAYSECS + datenum(1970,1,1));
       value = datevec( obj.segments(i).dateStr );
       value = value([3 2 1]);
     case {23,24}
@@ -632,6 +636,8 @@ end % function
 
 
 function [segments] = read_nervus_header_Segments(h, StaticPackets, Index, TSInfo)
+DAYSECS = 86400.0;  
+DATETIMEMINUSFACTOR = 2209161600;
 %% Get Segment Start Times
 segmentIdx = StaticPackets(find(strcmp({StaticPackets.IDStr}, 'SegmentStream'),1)).index;
 indexIdx = find([Index.sectionIdx] == segmentIdx, 1);
@@ -643,9 +649,9 @@ segments = struct();
 for i = 1: nrSegments
   dateOLE = fread(h,1, 'double');
   segments(i).dateOLE = dateOLE;
-  unix_time = (dateOLE*(3600*24)) - 2209161600; % 2208988800; %8
-  segments(i).dateStr = datestr(unix_time/86400 + datenum(1970,1,1));
-  segments(i).date = datetime(dateOLE*86400- 2209161600, 'ConvertFrom', 'posixtime');
+  unix_time = (dateOLE*DAYSECS) - DATETIMEMINUSFACTOR; % 2208988800; %8
+  segments(i).dateStr = datestr(unix_time/DAYSECS + datenum(1970,1,1));
+  segments(i).date = datetime(dateOLE*DAYSECS- DATETIMEMINUSFACTOR, 'ConvertFrom', 'posixtime');
   datev = datevec( segments(i).dateStr );
   segments(i).startDate = datev(1:3);
   segments(i).startTime = datev(4:6);
@@ -686,7 +692,8 @@ HCEVENT_REVIEWPROGRESS    =  '{725798BF-CD1C-4909-B793-6C7864C27AB7}';
 HCEVENT_EXAMSTART         =  '{96315D79-5C24-4A65-B334-E31A95088D55}';
 HCEVENT_HYPERVENTILATION  =  '{A5A95608-A7F8-11CF-831A-0800091B5BDA}';
 HCEVENT_IMPEDANCE         =  '{A5A95617-A7F8-11CF-831A-0800091B5BDA}';
-DAYSECS = 86400.0;  % From nrvdate.h
+DAYSECS = 86400.0;  
+DATETIMEMINUSFACTOR = 2209161600;
 
 fseek(h,offset,'bof');
 pktGUID = fread(h,16,'uint8');
@@ -701,7 +708,8 @@ while (pktGUID == evtPktGUID)
   evtDateFraction   = fread(h,1,'double');
   eventMarkers(i).dateOLE = evtDate;
   eventMarkers(i).dateFraction = evtDateFraction;
-  evtPOSIXTime = evtDate*DAYSECS + evtDateFraction - 2209161600; % 2208988800; %8
+  evtPOSIXTime = evtDate*DAYSECS + evtDateFraction - DATETIMEMINUSFACTOR; % 2208988800; %8
+  eventMarkers(i).date = datetime(evtPOSIXTime, 'ConvertFrom', 'posixtime');
   eventMarkers(i).dateStr = datestr(evtPOSIXTime/DAYSECS + datenum(1970,1,1),'dd-mmmm-yyyy HH:MM:SS.FFF'); % Save fractions of seconds, as well
   eventMarkers(i).duration  = fread(h,1,'double');
   fseek(h,48,'cof');

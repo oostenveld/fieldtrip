@@ -24,8 +24,8 @@ try
     assert(hdr.nChans==nChans,["Channel count should be" nChans]);
     assert(hdr.nSamples==nSamples,["Sample count should be " nSamples]);
     assert(hdr.nTrials==nTrials,["Trial count should be " nTrials]);
-    assert(hdr.startDateTime-startDateTime<datetimeTolerance,["startDateTime should be " datestr(startDateTime)]);
-    assert(strcmp(hdr.reference,'common'),'Reference should be common');
+    assert(hdr.orig.startDateTime-startDateTime<datetimeTolerance,["startDateTime should be " datestr(startDateTime)]);
+    assert(strcmp(hdr.orig.reference,'common'),'Reference should be common');
 catch ME
   disp(ME);
   error('Failed verifying header of Nicolet/Nervus EEG ');
