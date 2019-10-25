@@ -1772,7 +1772,7 @@ end
 function val = get_token(f, tok)
 % ensure that it is only the filename
 [p, f] = fileparts(f);
-pieces = tokenize(f, '_');
+pieces = split(f, '_');
 val = '';
 for i=1:numel(pieces)
   if startsWith([pieces{i} '-'], tok)

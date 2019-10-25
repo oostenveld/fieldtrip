@@ -120,7 +120,7 @@ for i=1:length(fn)
     % check whether the specific dimord applies
     dimord = source.([fn{i} 'dimord']);
     
-    dimtok = tokenize(dimord, '_');
+    dimtok = split(dimord, '_');
     descr  = [];
     for j=1:length(dimtok)
       if strcmp(dimtok{j}, 'pos')
@@ -152,7 +152,7 @@ for i=1:length(fn)
     % check whether the general dimord applies to this element
     dimord = source.dimord;
     
-    dimtok = tokenize(dimord, '_');
+    dimtok = split(dimord, '_');
     descr  = [];
     for j=1:length(dimtok)
       if strcmp(dimtok{j}, 'pos')
@@ -271,7 +271,7 @@ end
 %
 %     % determine the size of the data
 %     if isfield(data, 'dimord'),
-%       dimtok = tokenize(data.dimord, '_');
+%       dimtok = split(data.dimord, '_');
 %       if ~isempty(strmatch('time', dimtok)), Ntime = length(data.time); else Ntime = 1; end
 %       if ~isempty(strmatch('freq', dimtok)), Nfreq = length(data.freq); else Nfreq = 1; end
 %     else
@@ -395,7 +395,7 @@ end
 %     dim = [data.dim 1];
 %   elseif isfield(data, 'dimord')
 %     %HACK
-%     dimtok = tokenize(data.dimord, '_');
+%     dimtok = split(data.dimord, '_');
 %     for i=1:length(dimtok)
 %       if strcmp(dimtok(i), 'pos')
 %         dim(1,i) = size(getsubfield(data,dimtok{i}),1);

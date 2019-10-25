@@ -64,7 +64,7 @@ configuration = {};
 
 for j=1:length(funname)
   str = help(funname{j});
-  str = tokenize(str, 10);
+  str = split(str, 10);
 
   % compact the help description
   for i=2:(length(str)-1)

@@ -65,7 +65,7 @@ z_block = cell(numel(uz),1);
 z_label = cell(numel(uz),1);
 for k = 1:numel(uz)
   tmp = strcmp(z(:,1),uz{k});
-  tok = tokenize(uz{k}, ',');
+  tok = split(uz{k}, ',');
   
   z_label{k} = tok(:); % the label of the channels that participate in a block
   

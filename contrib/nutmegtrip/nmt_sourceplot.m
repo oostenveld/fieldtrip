@@ -424,7 +424,7 @@ for funidx = 1:length(funparameters)
     
     if hasfun
         dimord = getdimord(functional, cfg.funparameter);
-        dimtok = tokenize(dimord, '_');
+        dimtok = split(dimord, '_');
         
         if strcmp(dimtok{1}, '{pos}')
             tmpdim = getdimsiz(functional, cfg.funparameter);

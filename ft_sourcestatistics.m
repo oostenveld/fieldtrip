@@ -118,7 +118,7 @@ tmpcfg = keepfields(cfg, {'frequency', 'avgoverfreq', 'latency', 'avgovertime', 
 [cfg, varargin{:}] = rollback_provenance(cfg, varargin{:});
 
 dimord = getdimord(varargin{1}, cfg.parameter);
-dimtok = tokenize(dimord, '_');
+dimtok = split(dimord, '_');
 dimsiz = getdimsiz(varargin{1}, cfg.parameter, numel(dimtok));
 rptdim = find( strcmp(dimtok, 'subj') |  strcmp(dimtok, 'rpt') |  strcmp(dimtok, 'rpttap'));
 datdim = find(~strcmp(dimtok, 'subj') & ~strcmp(dimtok, 'rpt') & ~strcmp(dimtok, 'rpttap'));

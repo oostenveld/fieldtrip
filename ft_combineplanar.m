@@ -148,7 +148,7 @@ if isfreq
     case 'sum'
       if isfield(data, 'powspctrm')
         % compute the power of each planar channel, by summing the horizontal and vertical gradients
-        dimtok = tokenize(dimord, '_');
+        dimtok = split(dimord, '_');
         catdim = strmatch('chan',dimtok);
         if catdim==1
           combined = data.powspctrm(sel_dH,:,:,:) + data.powspctrm(sel_dV,:,:,:);

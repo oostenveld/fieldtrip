@@ -167,7 +167,7 @@ switch dimord
 end % switch
 
 % determine each of the dimensions
-dimtok = tokenize(dimord, '_');
+dimtok = split(dimord, '_');
 
 [p, f, x] = fileparts(filename);
 if isequal(x, '.nii')
@@ -766,7 +766,7 @@ if writesurface && isfield(source, 'pos') && isfield(source, 'tri')
       end
       
       [p, f, x] = fileparts(filename);
-      filetok = tokenize(f, '.');
+      filetok = split(f, '.');
       surffile = fullfile(p, [filetok{1} '.' BrainStructurelabel{i} '.surf.gii']);
       fprintf('writing %s surface to %s\n', BrainStructurelabel{i}, surffile);
       
@@ -784,7 +784,7 @@ if writesurface && isfield(source, 'pos') && isfield(source, 'tri')
     mesh.unit = source.unit;
     
     [p, f, x] = fileparts(filename);
-    filetok = tokenize(f, '.');
+    filetok = split(f, '.');
     surffile = fullfile(p, [filetok{1} '.surf.gii']);
     ft_write_headshape(surffile, mesh, 'format', 'gifti');
   end

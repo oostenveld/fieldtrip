@@ -203,7 +203,7 @@ switch key
     % select the radius of the eraser box
     response = inputdlg(sprintf('radius of eraser box (in voxels)'), 'specify', 1, {num2str(opt.radius)});
     if ~isempty(response)
-      response   = str2double(tokenize(response{1},' '));
+      response   = str2double(split(response{1},' '));
       opt.radius = round(response);
       opt.radius = min(opt.radius, 100);
       opt.radius = max(opt.radius, 1);

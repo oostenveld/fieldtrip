@@ -255,7 +255,7 @@ end
 
 % check whether rpt/subj is present and remove if necessary
 dimord = getdimord(varargin{1}, cfg.parameter);
-dimtok = tokenize(dimord, '_');
+dimtok = split(dimord, '_');
 hasrpt = any(ismember(dimtok, {'rpt' 'subj'}));
 
 if ~hasrpt

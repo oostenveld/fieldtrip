@@ -61,7 +61,7 @@ if isfield(data, 'label')
   switch output
     case 'data'
       dimord = getdimord(data, parameter);
-      dimtok = tokenize(dimord, '_');
+      dimtok = split(dimord, '_');
       dimsiz = getdimsiz(data, parameter);
       % replace the number of parcels by the number of vertices in a parcel
       dimsiz(strcmp(dimtok, 'chan')) = nelements;
@@ -124,7 +124,7 @@ elseif isfield(data, 'labelcmb')
   
   % remove the square brackets, if present
   for k = 1:numel(labelcmb)
-    tok = tokenize(labelcmb{k}, '[');
+    tok = split(labelcmb{k}, '[');
     labelcmb{k} = tok{1};
   end
   

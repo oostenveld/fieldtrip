@@ -91,7 +91,7 @@ else
 
     case 'buffer'
       % buffer://<host>:<port>
-      tok = tokenize(filename(10:end), ':');
+      tok = split(filename(10:end), ':');
       varargout{1} = tok{1};
       if numel(tok)>1
         varargout{2} = str2num(tok{2});
@@ -102,29 +102,29 @@ else
       
     case 'tcp'
       % tcp://<host>:<port>
-      tok = tokenize(filename(7:end), ':');
+      tok = split(filename(7:end), ':');
       varargout{1} = tok{1};
       varargout{2} = str2num(tok{2});
 
     case 'udp'
       % udp://<host>:<port>
-      tok = tokenize(filename(7:end), ':');
+      tok = split(filename(7:end), ':');
       varargout{1} = tok{1};
       varargout{2} = str2num(tok{2});
 
     case 'rfb'
       % rfb://<password>@<host>:<port>
-      tok0 = tokenize(filename(7:end), '@');
-      tok1 = tokenize(tok0{2}, ':');
+      tok0 = split(filename(7:end), '@');
+      tok1 = split(tok0{2}, ':');
       varargout{1} = tok0{1};
       varargout{2} = tok1{1};
       varargout{3} = str2num(tok1{2});
 
     case 'mysql'
       % mysql://<user>:<password>@<host>:<port>
-      tok0 = tokenize(filename(9:end), '@');
-      tok1 = tokenize(tok0{1}, ':');
-      tok2 = tokenize(tok0{2}, ':');
+      tok0 = split(filename(9:end), '@');
+      tok1 = split(tok0{1}, ':');
+      tok2 = split(tok0{2}, ':');
       varargout{1} = tok1{1};
       varargout{2} = tok1{2};
       varargout{3} = tok2{1};
@@ -147,13 +147,13 @@ else
       %   RequestToSend
       %   StopBits
       %   Terminator
-      tok0 = tokenize(filename(8:end), '?');
+      tok0 = split(filename(8:end), '?');
       varargout{1} = tok0{1};
       varargout{2} = [];
       if length(tok0)>1
-        tok1 = tokenize(tok0{2}, '&');
+        tok1 = split(tok0{2}, '&');
         for i=1:length(tok1)
-          tok2 = tokenize(tok1{i}, '=');
+          tok2 = split(tok1{i}, '=');
           opt{(i-1)*2+1} = tok2{1};
           opt{(i-1)*2+2} = tok2{2};
         end
@@ -163,8 +163,8 @@ else
     case 'ftp'
       % the schema for FTP looks like ftp://[username@]hostname[:port]/filename[?options]
       % FIXME it is not really obvious how to deal with a relative or absolute pathspec
-      tok0 = tokenize(filename(7:end), '/');
-      tok1 = tokenize(tok0{1}, '@');
+      tok0 = split(filename(7:end), '/');
+      tok1 = split(tok0{1}, '@');
       varargout{1} = tok1{1};
       varargout{2} = tok1{2};
       varargout{3} = filename((7+1+length(tok0{1})):end);
@@ -172,8 +172,8 @@ else
     case 'sftp'
       % the schema for SFTP looks like sftp://[username@]hostname[:port]/filename[?options]
       % FIXME it is not really obvious how to deal with a relative or absolute pathspec
-      tok0 = tokenize(filename(8:end), '/');
-      tok1 = tokenize(tok0{1}, '@');
+      tok0 = split(filename(8:end), '/');
+      tok1 = split(tok0{1}, '@');
       varargout{1} = tok1{1};
       varargout{2} = tok1{2};
       varargout{3} = filename((8+1+length(tok0{1})):end);

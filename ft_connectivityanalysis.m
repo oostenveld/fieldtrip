@@ -722,7 +722,7 @@ switch cfg.method
         % make a temporary label list
         tmp2 = cell(numel(data.labelcmb),1);
         for m = 1:numel(data.labelcmb)
-          tok = tokenize(data.labelcmb{m}, '[');
+          tok = split(data.labelcmb{m}, '[');
           tmp2{m} = tok{1};
         end
         label = cat(1,data.block.label); %unique(tmp2);
@@ -742,7 +742,7 @@ switch cfg.method
         else
           tmp = cell(numel(data.labelcmb),1);
           for m = 1:numel(data.labelcmb)
-            tok = tokenize(data.labelcmb{m}, '[');
+            tok = split(data.labelcmb{m}, '[');
             tmp{m} = tok{1};
           end
           label = unique(tmp);
@@ -829,7 +829,7 @@ switch cfg.method
       
       % HACK
       dimord = getdimord(data, 'mom');
-      dimtok = tokenize(dimord, '_');
+      dimtok = split(dimord, '_');
       posdim = find(strcmp(dimtok, '{pos}'));
       posdim = 4; % we concatenate across positions...
       rptdim = find(~cellfun('isempty',strfind(dimtok, 'rpt')));
@@ -1016,7 +1016,7 @@ switch dtype
       % ensure the correct dimord in case the input was 'powandcsd'
       data.dimord = strrep(data.dimord, 'chan_', 'chancmb_');
     end
-    tok = tokenize(data.dimord, '_');
+    tok = split(data.dimord, '_');
     dimord = '';
     for k = 1:numel(tok)
       if isempty(strfind(tok{k}, 'rpt'))
@@ -1045,7 +1045,7 @@ switch dtype
       stat.dimord = outdimord;
     else
       % guess
-      tok = tokenize(getdimord(data, inparam), '_');
+      tok = split(getdimord(data, inparam), '_');
       dimord = '';
       for k = 1:numel(tok)
         if isempty(strfind(tok{k}, 'rpt'))
@@ -1072,7 +1072,7 @@ switch dtype
       stat.dimord = outdimord;
     else
       % guess
-      tok = tokenize(getdimord(data, inparam), '_');
+      tok = split(getdimord(data, inparam), '_');
       dimord = '';
       for k = 1:numel(tok)
         if isempty(strfind(tok{k}, 'rpt'))
@@ -1095,7 +1095,7 @@ switch dtype
 end % switch dtype
 
 if isfield(stat, 'dimord')
-  dimtok = tokenize(stat.dimord, '_');
+  dimtok = split(stat.dimord, '_');
   % these dimensions in the output data must come from the input data
   if any(strcmp(dimtok, 'time')), stat.time = data.time; end
   if any(strcmp(dimtok, 'freq')), stat.freq = data.freq; end

@@ -145,7 +145,7 @@ while ischar(line)
       val = str2num(val);
     elseif ~isempty(strfind(key, 'Names')) || any(strcmp(key, strlist))
       % this contains a comma-separated list of strings
-      val = tokenize(val, ',');
+      val = split(val, ',');
     else
       tmp = str2num(val);
       if ~isempty(tmp)

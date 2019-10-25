@@ -147,7 +147,7 @@ switch fileformat
     sens.elecpos = sfh.SurfacePointsCoordinates(:,1:3);
     sel = true(sfh.NrOfPoints, 1);
     for i=1:sfh.NrOfPoints
-      tok = tokenize(sens.label{i}, '_');
+      tok = split(sens.label{i}, '_');
       sens.label{i} = tok{2};
       sel(i) = ~strcmp(tok{1}, 'Fid');
     end

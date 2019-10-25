@@ -38,7 +38,7 @@ datfield = setdiff(fieldnames(data), ignorefields('makessense'));
 for i=1:numel(datfield)
   if isfield(data, datfield{i})
     dimord = getdimord(data, datfield{i});
-    dimtok = tokenize(dimord, '_');
+    dimtok = split(dimord, '_');
     dimsiz = getdimsiz(data, datfield{i}, numel(dimtok));
     if strcmp(dimord, '{rpt}_chan_time') || strcmp(dimord, '{subj}_chan_time')
       nrpt  = dimsiz(1);

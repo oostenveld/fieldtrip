@@ -1,11 +1,11 @@
 function s = json2struct(j)
 
 j = j(2:end-1); % remove the { and }
-t = tokenize(j, ',');
+t = split(j, ',');
 
 s = struct();
 for i=1:numel(t)
-  kv = tokenize(t{i}, ':');
+  kv = split(t{i}, ':');
   key = kv{1}(2:end-1); % remove the " and "
   val = kv{2};
   if any(val(1)=='0123456789') && ~isnan(str2double(val))

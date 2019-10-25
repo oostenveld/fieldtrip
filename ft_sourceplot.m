@@ -427,7 +427,7 @@ if hasfun
   
   
   dimord = getdimord(functional, cfg.funparameter);
-  dimtok = tokenize(dimord, '_');
+  dimtok = split(dimord, '_');
   
   % replace the cell-array functional with a normal array
   if strcmp(dimtok{1}, '{pos}')

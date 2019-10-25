@@ -34,7 +34,7 @@ aline = fread(fid, inf, 'char=>char');          % returns a single long string
 fclose(fid);
 
 aline(aline==uint8(sprintf('\r'))) = [];        % remove cariage return
-aline = tokenize(aline, uint8(newline));        % split on newline
+aline = split(aline, uint8(newline));        % split on newline
 
 dat = [];
 
@@ -42,7 +42,7 @@ dat = [];
 headerline = 1;
 while startsWith(aline{headerline}, '#')
   % for example "#Version : 6.3.6059.1"
-  tok = tokenize(aline{headerline}(2:end), ':');
+  tok = split(aline{headerline}(2:end), ':');
   key = matlab.lang.makeValidName(strtrim(tok{1}));
   val = strtrim(tok{2});
   dat.(key) = val;
@@ -54,7 +54,7 @@ headerline = 1;
 while ~startsWith(aline{headerline}, 'StudyName')
   headerline = headerline+1;
 end
-dat.Labels = tokenize(aline{headerline}, uint8(9)); % split on tab, which is ascii code 9
+dat.Labels = split(aline{headerline}, uint8(9)); % split on tab, which is ascii code 9
 dat.Labels = matlab.lang.makeValidName(dat.Labels);
 
 fprintf('parsing tabular data\n');

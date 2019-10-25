@@ -199,7 +199,7 @@ end
 % determine all dimensions that are present in all data fields
 dimtok = {};
 for i=1:length(datfield)
-  dimtok = cat(2, dimtok, tokenize(dimord{i}, '_'));
+  dimtok = cat(2, dimtok, split(dimord{i}, '_'));
 end
 dimtok = unique(dimtok);
 
@@ -284,7 +284,7 @@ keepfield = datfield;
 for i=1:numel(varargin)
   
   for j=1:numel(datfield)
-    dimtok = tokenize(dimord{j}, '_');
+    dimtok = split(dimord{j}, '_');
     
     % the rpt selection should only work with a single data argument
     % in case tapers were kept, selrpt~=selrpttap, otherwise selrpt==selrpttap
@@ -413,7 +413,7 @@ end
 
 % restore the original dimord fields in the data
 for i=1:length(orgdim1)
-  dimtok = tokenize(orgdim2{i}, '_');
+  dimtok = split(orgdim2{i}, '_');
   
   % using a setdiff may result in double occurrences of chan and pos to
   % disappear, so this causes problems as per bug 2962
@@ -1131,7 +1131,7 @@ dimord   = varargin{end};
 ndata    = numel(varargin)-1;
 data     = varargin{1:ndata}; % this syntax ensures that it will only work on a single data input
 
-dimtok = tokenize(dimord, '_');
+dimtok = split(dimord, '_');
 rptdim = find(strcmp(dimtok, '{rpt}') | strcmp(dimtok, 'rpt') | strcmp(dimtok, 'rpttap') | strcmp(dimtok, 'subj'));
 
 if isequal(cfg.trials, 'all')

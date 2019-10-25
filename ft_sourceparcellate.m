@@ -321,7 +321,7 @@ for i=1:numel(fn)
   
   % update the dimord, use chan rather than pos
   % this makes it look just like timelock or freq data
-  tok = tokenize(dimord{i}, '_');
+  tok = split(dimord{i}, '_');
   tok(strcmp(tok,  'pos' )) = { 'chan' }; % replace pos by chan
   tok(strcmp(tok, '{pos}')) = {'{chan}'}; % replace pos by chan
   tok(strcmp(tok, '{pos'))  = {'{chan' }; % replace pos by chan

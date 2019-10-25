@@ -46,14 +46,14 @@ end
 part1 = line((header1+1):(header2-1));
 part2 = line((header2+1):(end));
 
-VariableNames = tokenize(line{header1}, sprintf('\t'));
+VariableNames = split(line{header1}, sprintf('\t'));
 for i=1:length(VariableNames)
   VariableNames{i} = fixname(VariableNames{i});
 end
 
 Values = cell(length(part1), length(VariableNames));
 for i=1:length(part1)
-  val = tokenize(part1{i}, sprintf('\t'));
+  val = split(part1{i}, sprintf('\t'));
   val((end+1):length(VariableNames)) = {''};
   Values(i,:) = val;
 end

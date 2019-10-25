@@ -310,7 +310,7 @@ end
 
 % check whether rpt/subj is present and remove if necessary
 dimord = getdimord(data, cfg.parameter);
-dimtok = tokenize(dimord, '_');
+dimtok = split(dimord, '_');
 hasrpt = any(ismember(dimtok, {'rpt' 'subj'}));
 
 if ~hasrpt
@@ -405,7 +405,7 @@ data = chanscale_common(tmpcfg, data);
 %% Section 3: select the data to be plotted and determine min/max range
 
 dimord = getdimord(varargin{1}, cfg.parameter);
-dimtok = tokenize(dimord, '_');
+dimtok = split(dimord, '_');
 
 % Create time-series of small topoplots
 if ~ischar(cfg.xlim) && length(cfg.xlim)>2 %&& any(ismember(dimtok, 'time'))

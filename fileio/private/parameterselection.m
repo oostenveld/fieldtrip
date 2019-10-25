@@ -91,7 +91,7 @@ for i=1:length(param)
     elseif isfield(data, 'pos') && (prod(dim)==size(data.pos, 1) || dim(1)==size(data.pos,1))
       select{end+1} = param{i};
     elseif isfield(data, 'dimord') && (isfield(data, 'pos') || isfield(data, 'transform')),
-      dimtok = tokenize(data.dimord, '_');
+      dimtok = split(data.dimord, '_');
       nels   = 1;
       for k=1:numel(dimtok)
         if strcmp(dimtok{k}, 'rpt') || strcmp(dimtok{k}, 'rpttap')

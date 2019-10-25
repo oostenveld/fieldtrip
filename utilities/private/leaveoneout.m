@@ -1,6 +1,6 @@
 function data = leaveoneout(data)
 
-dimtok = tokenize(data.dimord, '_');
+dimtok = split(data.dimord, '_');
 rptdim = find(strcmp('rpt', dimtok)); % the selected dimension as number
 
 if length(rptdim)<1

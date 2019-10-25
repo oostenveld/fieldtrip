@@ -347,7 +347,7 @@ switch fileformat
     filename    = strrep(filename, '.coord.', '.shape.');
 
     [p,f,e]     = fileparts(filename);
-    tok         = tokenize(f, '.');
+    tok         = split(f, '.');
     if length(tok)>2
       tmpfilename = strrep(filename, tok{3}, 'sulc');
       if exist(tmpfilename, 'file'), g = gifti(tmpfilename); shape.sulc = g.cdata; end
@@ -1139,7 +1139,7 @@ switch fileformat
       % the filename is something like subject01_Rwhite_inflated_4d.mesh
       % and it is accompanied by subject01.nii
       [p, f, x] = fileparts(filename);
-      f = tokenize(f, '_');
+      f = split(f, '_');
       f = f{1};
       
       if exist(fullfile(p, [f '.nii']), 'file')

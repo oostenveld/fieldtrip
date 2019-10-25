@@ -5,7 +5,7 @@ function isdir_or_mkdir(p)
 %
 % See also FOPEN_OR_ERROR
 
-tok = tokenize(p, filesep);
+tok = split(p, filesep);
 if isempty(tok{1})
   tok{1} = filesep;
 end

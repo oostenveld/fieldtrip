@@ -389,7 +389,7 @@ switch headerformat
     if isfield(orig, 'label') && iscell(orig.label)
       hdr.label = orig.label;
     elseif isfield(orig, 'label') && ischar(orig.label)
-      hdr.label = tokenize(orig.label, ' ');
+      hdr.label = split(orig.label, ' ');
     else
       % give this warning only once
       ft_warning('creating fake channel names');

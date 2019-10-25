@@ -305,7 +305,7 @@ switch cfg.method
         mri.pos = mri.pos(~remove,1:3);
       end
       for i=1:numel(fn)
-        dimtok = tokenize(dimord{i}, '_');
+        dimtok = split(dimord{i}, '_');
         % do some sanity checks
         if any(strcmp(dimtok, '{pos}'))
           ft_error('not supported');

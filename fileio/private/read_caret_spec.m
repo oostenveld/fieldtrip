@@ -86,7 +86,7 @@ catch
   while isempty(strfind(line, 'EndHeader'))
     line = fgetl(fid);
     if isempty(strfind(line, 'BeginHeader')) && isempty(strfind(line, 'EndHeader'))
-      tok = tokenize(line, ' ');
+      tok = split(line, ' ');
       headerinfo.(strrep(tok{1},'-','_')) = tok{2};
     end
   end
@@ -96,7 +96,7 @@ catch
   while 1
     line = fgetl(fid);
     if ~ischar(line), break, end
-    tok = tokenize(line, ' ');
+    tok = split(line, ' ');
     if ~isempty(tok{1})
     if isfield(spec, tok{1})
       spec(1).(tok{1}){end+1,1} = tok{2};

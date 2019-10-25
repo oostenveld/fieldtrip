@@ -762,7 +762,7 @@ if isequal(current, desired)
   % nothing to do
   
 elseif strcmp(current, 'fourier') && strcmp(desired, 'sparsewithpow')
-  dimtok = tokenize(data.dimord, '_');
+  dimtok = split(data.dimord, '_');
   if ~isempty(strmatch('rpttap',   dimtok))
     nrpt = size(data.cumtapcnt,1);
     flag = 0;
@@ -852,7 +852,7 @@ elseif strcmp(current, 'fourier') && strcmp(desired, 'sparsewithpow')
 elseif strcmp(current, 'fourier') && strcmp(desired, 'sparse')
   
   if isempty(channelcmb), ft_error('no channel combinations are specified'); end
-  dimtok = tokenize(data.dimord, '_');
+  dimtok = split(data.dimord, '_');
   if ~isempty(strmatch('rpttap',   dimtok))
     nrpt = size(data.cumtapcnt,1);
     flag = 0;
@@ -943,7 +943,7 @@ elseif strcmp(current, 'fourier') && strcmp(desired, 'sparse')
 elseif strcmp(current, 'fourier') && strcmp(desired, 'full')
   
   % this is how it is currently and the desired functionality of prepare_freq_matrices
-  dimtok = tokenize(data.dimord, '_');
+  dimtok = split(data.dimord, '_');
   if ~isempty(strmatch('rpttap',   dimtok))
     nrpt = size(data.cumtapcnt, 1);
     flag = 0;
@@ -987,7 +987,7 @@ elseif strcmp(current, 'fourier') && strcmp(desired, 'full')
   
 elseif strcmp(current, 'fourier') && strcmp(desired, 'fullfast'),
   
-  dimtok = tokenize(data.dimord, '_');
+  dimtok = split(data.dimord, '_');
   nrpt = size(data.fourierspctrm, 1);
   nchn = numel(data.label);
   nfrq = numel(data.freq);
@@ -1051,7 +1051,7 @@ elseif strcmp(current, 'sparse') && strcmp(desired, 'sparsewithpow')
   end
   
 elseif strcmp(current, 'full') && strcmp(desired, 'sparse')
-  dimtok = tokenize(data.dimord, '_');
+  dimtok = split(data.dimord, '_');
   if ~isempty(strmatch('rpt',   dimtok)), nrpt=size(data.cumtapcnt,1); else nrpt = 1; end
   if ~isempty(strmatch('freq',  dimtok)), nfrq=numel(data.freq);      else nfrq = 1; end
   if ~isempty(strmatch('time',  dimtok)), ntim=numel(data.time);      else ntim = 1; end
@@ -1098,7 +1098,7 @@ elseif strcmp(current, 'full') && strcmp(desired, 'sparse')
 elseif strcmp(current, 'sparsewithpow') && strcmp(desired, 'sparse')
   % this representation for sparse data contains autospectra as e.g. {'A' 'A'} in labelcmb
   if isfield(data, 'crsspctrm')
-    dimtok         = tokenize(data.dimord, '_');
+    dimtok         = split(data.dimord, '_');
     catdim         = match_str(dimtok, {'chan' 'chancmb'});
     data.crsspctrm = cat(catdim, data.powspctrm, data.crsspctrm);
     data.labelcmb  = [data.label(:) data.label(:); data.labelcmb];
@@ -1113,7 +1113,7 @@ elseif strcmp(current, 'sparsewithpow') && strcmp(desired, 'sparse')
   data = rmfield(data, 'label');
   
 elseif strcmp(current, 'sparse') && strcmp(desired, 'full')
-  dimtok = tokenize(data.dimord, '_');
+  dimtok = split(data.dimord, '_');
   if ~isempty(strmatch('rpt',   dimtok)), nrpt=size(data.cumtapcnt,1); else nrpt = 1; end
   if ~isempty(strmatch('freq',  dimtok)), nfrq=numel(data.freq);      else nfrq = 1; end
   if ~isempty(strmatch('time',  dimtok)), ntim=numel(data.time);      else ntim = 1; end
@@ -1123,7 +1123,7 @@ elseif strcmp(current, 'sparse') && strcmp(desired, 'full')
     % processed. FIXME this is experimental and will not work if the user
     % did something weird before
     for k = 1:numel(data.labelcmb)
-      tmp = tokenize(data.labelcmb{k}, '[');
+      tmp = split(data.labelcmb{k}, '[');
       data.labelcmb{k} = tmp{1};
     end
     data.label = unique(data.labelcmb(:));
@@ -1194,7 +1194,7 @@ elseif strcmp(current, 'sparse') && strcmp(desired, 'full')
   end
   
 elseif strcmp(current, 'sparse') && strcmp(desired, 'fullfast')
-  dimtok = tokenize(data.dimord, '_');
+  dimtok = split(data.dimord, '_');
   if ~isempty(strmatch('rpt',   dimtok)), nrpt=size(data.cumtapcnt,1); else nrpt = 1; end
   if ~isempty(strmatch('freq',  dimtok)), nfrq=numel(data.freq);      else nfrq = 1; end
   if ~isempty(strmatch('time',  dimtok)), ntim=numel(data.time);      else ntim = 1; end
@@ -1322,7 +1322,7 @@ end
 for i=1:numel(parameter)
   dat = data.(parameter{i});
   dimord = getdimord(data, parameter{i});
-  dimtok = tokenize(dimord, '_');
+  dimtok = split(dimord, '_');
   for dim=1:numel(dimtok)
     if strcmp(dimtok{dim}, 'chan')
       dat = dimindex(dat, dim, {datsel});

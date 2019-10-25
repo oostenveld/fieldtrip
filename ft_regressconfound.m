@@ -152,7 +152,7 @@ end
 
 dimord = getdimord(datain, cfg.parameter);
 dimsiz = getdimsiz(datain, cfg.parameter);
-dimtok = tokenize(dimord, '_');
+dimtok = split(dimord, '_');
 rptdim = find(strcmp(dimtok, 'rpt'));
 datdim = setdiff(1:length(dimtok), rptdim);
 

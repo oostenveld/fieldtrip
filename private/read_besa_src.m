@@ -40,11 +40,11 @@ while isempty(strmatch('X:'           , line)), line = fgetl(fid); check_feof(fi
 while isempty(strmatch('Y:'           , line)), line = fgetl(fid); check_feof(fid, filename); end; liney = line;
 while isempty(strmatch('Z:'           , line)), line = fgetl(fid); check_feof(fid, filename); end; linez = line;
 
-tok = tokenize(linex, ' '); 
+tok = split(linex, ' '); 
 src.X = [str2num(tok{2}) str2num(tok{3}) str2num(tok{4})];
-tok = tokenize(liney, ' '); 
+tok = split(liney, ' '); 
 src.Y = [str2num(tok{2}) str2num(tok{3}) str2num(tok{4})];
-tok = tokenize(linez, ' '); 
+tok = split(linez, ' '); 
 src.Z = [str2num(tok{2}) str2num(tok{3}) str2num(tok{4})];
 
 nx = src.X(3);

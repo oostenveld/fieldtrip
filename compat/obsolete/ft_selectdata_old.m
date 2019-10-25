@@ -172,7 +172,7 @@ if length(data)>1 && ~israw,
     end
     dimord(:) = {data{1}.([param{1},'dimord'])};
   end
-  dimtok                           = tokenize(dimord{1}, '_');
+  dimtok                           = split(dimord{1}, '_');
   dimtok(strmatch('chan', dimtok)) = {'label'}; % data.chan does not exist
   
      dimmat      = zeros(length(dimtok), length(data));

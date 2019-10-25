@@ -260,7 +260,7 @@ if isUnstructuredFun && isUnstructuredAna && isfield(anatomical, 'orig') && isfi
     fprintf('interpolating %s\n', dat_name{i});
 
     dimord = getdimord(functional, dat_name{i});
-    dimtok = tokenize(dimord, '_');
+    dimtok = split(dimord, '_');
     dimf   = getdimsiz(functional, dat_name{i});
     dimf(end+1:length(dimtok)) = 1; % there can be additional trailing singleton dimensions
 
@@ -315,7 +315,7 @@ elseif isUnstructuredFun && isUnstructuredAna
     fprintf('interpolating %s\n', dat_name{i});
 
     dimord = getdimord(functional, dat_name{i});
-    dimtok = tokenize(dimord, '_');
+    dimtok = split(dimord, '_');
     dimf   = getdimsiz(functional, dat_name{i});
     dimf(end+1:length(dimtok)) = 1; % there can be additional trailing singleton dimensions
 
@@ -374,7 +374,7 @@ elseif isUnstructuredFun && ~isUnstructuredAna
     fprintf('interpolating %s\n', dat_name{i});
 
     dimord = getdimord(functional, dat_name{i});
-    dimtok = tokenize(dimord, '_');
+    dimtok = split(dimord, '_');
     dimf   = getdimsiz(functional, dat_name{i});
     dimf(end+1:length(dimtok)) = 1; % there can be additional trailing singleton dimensions
 
@@ -450,7 +450,7 @@ elseif ~isUnstructuredFun && isUnstructuredAna
     fprintf('interpolating %s\n', dat_name{i});
 
     dimord = getdimord(functional, dat_name{i});
-    dimtok = tokenize(dimord, '_');
+    dimtok = split(dimord, '_');
     dimf   = getdimsiz(functional, dat_name{i});
     dimf(end+1:length(dimtok)) = 1; % there can be additional trailing singleton dimensions
 
@@ -585,7 +585,7 @@ elseif ~isUnstructuredFun && ~isUnstructuredAna
       fprintf('reslicing and interpolating %s\n', dat_name{i});
       
       dimord = getdimord(functional, dat_name{i});
-      dimtok = tokenize(dimord, '_');
+      dimtok = split(dimord, '_');
       dimf   = getdimsiz(functional, dat_name{i});
       dimf(end+1:length(dimtok)) = 1; % there can be additional trailing singleton dimensions
       

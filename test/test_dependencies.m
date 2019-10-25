@@ -82,9 +82,9 @@ end
 
 toolboxfun = find(~cellfun(@isempty, regexp(deplist, matlabroot)));
 toolbox = cell(size(toolboxfun));
-t0 = length(tokenize(matlabroot, filesep));
+t0 = length(split(matlabroot, filesep));
 for i=1:length(toolboxfun)
-  t = tokenize(deplist{toolboxfun(i)}, filesep);
+  t = split(deplist{toolboxfun(i)}, filesep);
   toolbox{i} = t{t0+2};
 end
 toolbox = unique(toolbox);

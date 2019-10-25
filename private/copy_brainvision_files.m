@@ -171,5 +171,5 @@ end
 % SUBFUNCTION retuen the part after the '='
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function val = getvalue(str)
-tok = tokenize(str, '=');
+tok = split(str, '=');
 val = tok{2};

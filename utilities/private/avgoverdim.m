@@ -25,7 +25,7 @@ fndimord = fndimord(selx);
 
 % extract the selected dimension as number
 for k = 1:numel(fn)
-  dimtok       = tokenize(fndimord{k}, '_');
+  dimtok       = split(fndimord{k}, '_');
   avgdimnum{k} = find(strcmp(avgdim, dimtok)); % the selected dimension as number
   if numel(avgdimnum{k})<1 && strcmp(avgdim, 'rpt'),
     %try 'rpttap'

@@ -673,7 +673,7 @@ switch key
     % select the threshold
     response = inputdlg('threshold', 'specify', 1, {num2str(opt.threshold)});
     if ~isempty(response)
-      tok = tokenize(response{1}, ' ');
+      tok = split(response{1}, ' ');
       tok(cellfun(@isempty,tok)) = [];
       for k = 1:numel(tok)
         opt.threshold(1,k) = str2double(tok{k});
@@ -686,7 +686,7 @@ switch key
     % select the colorlim
     response = inputdlg('colorlim', 'specify', 1, {num2str(opt.cfg.funcolorlim)});
     if ~isempty(response)
-      tok = tokenize(response{1}, ' ');
+      tok = split(response{1}, ' ');
       tok(cellfun(@isempty,tok)) = [];
       for k = 1:2
         opt.cfg.funcolorlim(1,k) = str2double(tok{k});

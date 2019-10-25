@@ -84,7 +84,7 @@ if strcmp(cfg.foi, 'all')
   cfg.foi = (0:1:data.fsampleorig/2);
 end
 
-dimtok = tokenize(data.dimord, '_');
+dimtok = split(data.dimord, '_');
 isfull = isfield(data, 'label') && sum(strcmp(dimtok, 'chan'))==2;
 isuvar = isfield(data, 'label') && sum(strcmp(dimtok, 'chan'))==1;
 isbvar = isfield(data, 'labelcmb');

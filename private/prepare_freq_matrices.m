@@ -40,7 +40,7 @@ Cf = [];
 Cr = [];
 Pr = [];
 
-tok = tokenize(freq.dimord, '_');
+tok = split(freq.dimord, '_');
 if any(strcmp(tok, 'rpttap'))
   Ntrials = size(freq.cumtapcnt,1);
 elseif any(strcmp(tok, 'rpt'))
@@ -76,7 +76,7 @@ end
 % create a square csd-matrix, if necessary
 hasfull = false;
 if isfield(freq, 'crsspctrm')
-	dimtok  = tokenize(getdimord(freq, 'crsspctrm'),'_');
+	dimtok  = split(getdimord(freq, 'crsspctrm'),'_');
 	hasfull = sum(strcmp(dimtok, 'chan'))==2;
 end
 if ~hasfull,
@@ -87,7 +87,7 @@ if ~hasfull,
 		Ntrials = 1;
 	end
 end
-tok = tokenize(freq.dimord, '_');
+tok = split(freq.dimord, '_');
 
 % extract the csd-matrix for the channels-of-interest
 [dum, chanindx] = match_str(cfg.channel, freq.label);

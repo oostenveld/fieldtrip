@@ -84,7 +84,7 @@ end
 source = [];
 
 tol    = cfg.tolerance;
-dimtok = tokenize(dimord{1}, '_');
+dimtok = split(dimord{1}, '_');
 switch cfg.appenddim
   case 'auto'
 

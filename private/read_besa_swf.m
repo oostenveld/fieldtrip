@@ -51,7 +51,7 @@ if  isempty(dum{2})
   % first line contains all labels, each subsequent line is one timepoint for all channels
   line = fgetl(fid);
   line(line==' ') = [];
-  label = tokenize(line, ':')';
+  label = split(line, ':')';
   if isempty(label{end})
     label = label(1:(end-1));  % the last one is empty
   end

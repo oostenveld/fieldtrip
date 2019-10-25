@@ -309,7 +309,7 @@ switch cfg.appenddim
 end
 
 if isfield(data, 'dimord')
-  dimtok = tokenize(data.dimord, '_');
+  dimtok = split(data.dimord, '_');
   if strcmp(cfg.appenddim, 'rpt') && ~any(strcmp(dimtok{1}, {'rpt', 'rpttap', 'subj'}))
     data.dimord = ['rpt_' data.dimord];
   end

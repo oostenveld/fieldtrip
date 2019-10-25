@@ -314,7 +314,7 @@ switch dataformat
     [p, f] = fileparts(filename);
 
     % this works for the Siemens scanners at the FCDC
-    tok = tokenize(f, '.');
+    tok = split(f, '.');
     for i=5:length(tok)
       tok{i} = '*';
     end

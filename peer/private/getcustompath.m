@@ -34,9 +34,9 @@ if isequal(path, previous_path)
 end
 
 if ispc
-  p = tokenize(path, ';');
+  p = split(path, ';');
 else
-  p = tokenize(path, ':');
+  p = split(path, ':');
 end
 % remove the matlab specific directories
 if ispc

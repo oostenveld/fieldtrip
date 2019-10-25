@@ -40,7 +40,7 @@ function [num,dims]=dimnum(dimord, dim)
 
 if(~ischar(dimord)||~ischar(dim))error('Both dimord and dim must be strings');end;
 
-dims=tokenize(dimord,'_'); % splits the dimord string in parts using '_' as a delimiter
+dims=split(dimord,'_'); % splits the dimord string in parts using '_' as a delimiter
 dim=lower(dim); % makes the function case unsensitive.
 
 switch dim %convert some dimension names.

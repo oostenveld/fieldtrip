@@ -161,7 +161,7 @@ if startsWith(dimord, '{pos}')
     grandavg.(cfg.parameter) = dat(:,1); % keep it as cell-array
 
     % update the dimord
-    dimtok = tokenize(dimord, '_');
+    dimtok = split(dimord, '_');
     dimtok = {dimtok{1} 'rpt' dimtok{2:end}};
     dimord = sprintf('%s_', dimtok{:});
     dimord = dimord(1:end-1); % remove the trailing '_'
@@ -197,7 +197,7 @@ else
     grandavg.(cfg.parameter) = cat(1, dat{:});
 
     % update the dimord
-    dimtok = tokenize(dimord, '_');
+    dimtok = split(dimord, '_');
     dimtok = {'rpt' dimtok{1} dimtok{2:end}};
     dimord = sprintf('%s_', dimtok{:});
     dimord = dimord(1:end-1); % remove the trailing '_'

@@ -69,7 +69,7 @@ if isstruct(input)
          % it contains coherence between channel pairs
          fprintf('reading coherence between %d channel pairs\n', Nchan);
          for i=1:Nchan
-             tmp = tokenize(deblank(temp_chans(i,:)), '-');
+             tmp = split(deblank(temp_chans(i,:)), '-');
              data.labelcmb{i,1} = deblank(tmp{1});
              data.labelcmb{i,2} = deblank(tmp{2});
              data.label{i,1} = deblank(temp_chans(i,:));
@@ -252,7 +252,7 @@ elseif ischar(input)
       % it contains coherence between channel pairs
       fprintf('reading coherence between %d channel pairs\n', Nchan);
       for i=1:Nchan
-        tmp = tokenize(deblank(tfc.ChannelLabels(i,:)), '-');
+        tmp = split(deblank(tfc.ChannelLabels(i,:)), '-');
         data.labelcmb{i,1} = tmp{1};
         data.labelcmb{i,2} = tmp{2};
       end
@@ -282,7 +282,7 @@ elseif ischar(input)
       % it contains coherence between channel pairs
       fprintf('reading coherence between %d channel pairs\n', Nchan);
       for i=1:Nchan
-        tmp = tokenize(deblank(ChannelLabels(i,:)), '-');
+        tmp = split(deblank(ChannelLabels(i,:)), '-');
         data.labelcmb{i,1} = tmp{1};
         data.labelcmb{i,2} = tmp{2};
       end
@@ -371,16 +371,16 @@ if iscell(labels) && length(labels)>1
   newlabels = labels;
 elseif iscell(labels) && length(labels)==1
   % could be a cell with a single long string in it
-  if length(tokenize(labels{1}, ' '))>1
+  if length(split(labels{1}, ' '))>1
     % seems like a long string that accidentaly ended up in a single
     cell
-    newlabels = tokenize(labels{1}, ' ');
+    newlabels = split(labels{1}, ' ');
   else
     % seems to be ok
     newlabels = labels;
   end
 elseif ischar(labels) && any(size(labels)==1)
-  newlabels = tokenize(labels(:)', ' '); % also ensure that it is a row-string
+  newlabels = split(labels(:)', ' '); % also ensure that it is a row-string
 elseif ischar(labels) && ~any(size(labels)==1)
   for i=1:size(labels)
     newlabels{i} = strtrim(labels(i,:));

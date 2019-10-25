@@ -39,7 +39,7 @@ if nargin==1
   end
   
   for k = 1:numel(fndimord)
-    dimtok = tokenize(fndimord{k}, '_');
+    dimtok = split(fndimord{k}, '_');
     ndim   = numel(dimtok);
     n{k,1} = zeros(1, ndim);
     for i = 1:ndim
@@ -57,7 +57,7 @@ else
     case 'rpt'
       if numel(fld)>6 && isfield(data, fld(1:end-6)),
         % source level data
-        dimtok = tokenize(data.(fld), '_');
+        dimtok = split(data.(fld), '_');
         tmp    = data.(fld(1:end-6));
         % remove the first cell-dimension
         if iscell(tmp)
@@ -133,7 +133,7 @@ else
       
     case 'rpttap'
       if numel(fld)>6 && isfield(data, fld(1:end-6)),
-        dimtok = tokenize(data.(fld), '_');
+        dimtok = split(data.(fld), '_');
         tmp    = data.(fld(1:end-6));
         % remove the first cell-dimension
         if iscell(tmp)
@@ -206,7 +206,7 @@ else
     case {'ori'}
       % this is comparable to rpt and to rpttap
       if numel(fld)>6 && isfield(data, fld(1:end-6)),
-        dimtok = tokenize(data.(fld), '_');
+        dimtok = split(data.(fld), '_');
         tmp    = data.(fld(1:end-6));
         if iscell(tmp)
           if isfield(data, 'inside'),

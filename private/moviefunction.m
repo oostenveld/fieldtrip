@@ -136,7 +136,7 @@ if any(opt.issource) && (any(opt.isfreq) || any(opt.istimelock))
   
   varargin     = varargin(~opt.issource);
   opt.dat{1}   = getsubfield(varargin{1}, opt.funparameter);
-  funtok = tokenize(opt.funparameter, '.');
+  funtok = split(opt.funparameter, '.');
   opt.dimord   = getdimord(varargin{1}, funtok{end});
 elseif any(opt.issource)
   opt.anatomy  = varargin{opt.issource};
@@ -144,7 +144,7 @@ elseif any(opt.issource)
   opt.isvolume = isfield(opt.anatomy, 'dim');
   
   opt.dat{1}   = getsubfield(varargin{opt.issource}, opt.funparameter);
-  funtok = tokenize(opt.funparameter, '.');
+  funtok = split(opt.funparameter, '.');
   opt.dimord   = getdimord(varargin{1}, funtok{end});
 else
   opt.layout   = ft_prepare_layout(cfg); % let ft_prepare_layout do the error handling for now
@@ -165,7 +165,7 @@ else
   opt.dimord = getdimord(varargin{1}, opt.funparameter);
 end
 
-dimtok = tokenize(opt.dimord, '_');
+dimtok = split(opt.dimord, '_');
 if any(strcmp(dimtok, 'rpt') | strcmp(dimtok, 'subj'))
   ft_error('the input data cannot contain trials or subjects, please average first using ft_selectdata');
 end

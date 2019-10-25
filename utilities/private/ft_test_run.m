@@ -100,7 +100,7 @@ for i=1:numel(filelist)
   fid = fopen(filelist{i}, 'rt');
   str = fread(fid, [1 inf], 'char=>char');
   fclose(fid);
-  line = tokenize(str, 10);
+  line = split(str, 10);
   
   if ~isempty(dependency)
     dep(i) = false;

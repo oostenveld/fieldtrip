@@ -185,7 +185,7 @@ else
 end
 
 if hasrpt && ~keepflg
-  dimtok    = tokenize(freq.dimord, '_');
+  dimtok    = split(freq.dimord, '_');
   newdimord = dimtok{2};
   for k = 3:numel(dimtok)
     newdimord = [newdimord,'_',dimtok{k}];

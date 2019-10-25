@@ -134,7 +134,7 @@ if isfield(obj, 'elecpos'),    obj.elecpos    = scale * obj.elecpos;    end
 if isfield(obj, 'tra') && isfield(obj, 'chanunit')
   % find the gradiometer channels that are expressed as unit of field strength divided by unit of distance, e.g. T/cm
   for i=1:length(obj.chanunit)
-    tok = tokenize(obj.chanunit{i}, '/');
+    tok = split(obj.chanunit{i}, '/');
     if ~isempty(regexp(obj.chanunit{i}, 'm$', 'once'))
       % assume that it is T/m or so
       obj.tra(i,:)    = obj.tra(i,:) / scale;

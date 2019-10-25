@@ -209,7 +209,7 @@ siz = [nsubj nrpt nrpttap nchan nchancmb nfreq ntime npos nori ntopochan nlag nd
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if isfield(data, 'dimord')
-  dimtok  = tokenize(data.dimord, '_');
+  dimtok  = split(data.dimord, '_');
   if length(dimtok)>length(datsiz) && check_trailingdimsunitlength(data, dimtok((length(datsiz)+1):end))
     % add the trailing singleton dimensions to datsiz, if needed
     datsiz  = [datsiz ones(1,max(0,length(dimtok)-length(datsiz)))];

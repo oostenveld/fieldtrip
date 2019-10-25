@@ -123,7 +123,7 @@ cfgtopo.feedback = 'no';
 
 % handle with the data, it should be 1D or 2D
 dimord = getdimord(stat, cfg.parameter);
-dimtok = tokenize(dimord, '_');
+dimtok = split(dimord, '_');
 dimsiz = getdimsiz(stat, cfg.parameter, numel(dimtok));
 
 switch dimord

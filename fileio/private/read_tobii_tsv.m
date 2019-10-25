@@ -31,7 +31,7 @@ if needhdr
     
     if ~isempty(strfind(line, 'Timestamp')) && ~isempty(strfind(line, 'Gaze'))
       % this looks like the line with the headings of all the columns
-      tsv.header = tokenize(line, '\t');
+      tsv.header = split(line, '\t');
       % remember where the data starts
       tsv.headerline  = ln;
       tsv.datapointer = ftell(fid);
@@ -66,7 +66,7 @@ elseif needdat
   dat = zeros(length(tsv.header), endsample-begsample+1);
   while cursample<endsample
     line = fgetl(fid);
-    val = tokenize(line, 9); % horizontal tab is 9 in ascii table
+    val = split(line, 9); % horizontal tab is 9 in ascii table
     num = cellfun(@str2num, val, 'UniformOutput', false);
     valid = cellfun(@isempty, num, 'UniformOutput', true);
     val(~str) = num;

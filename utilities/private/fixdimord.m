@@ -96,7 +96,7 @@ if strcmp(data.dimord, 'voxel')
   data.dimord = 'pos';
 end
 
-dimtok = tokenize(data.dimord, '_');
+dimtok = split(data.dimord, '_');
 if strncmp('{pos_pos}', data.dimord, 9)
   % keep these together for bivariate source structures
   dimtok = {'{pos_pos}', dimtok{3:end}};

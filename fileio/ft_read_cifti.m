@@ -851,7 +851,7 @@ source.unit = 'mm'; % per definition
 filename = origfile;
 
 [p, f, x] = fileparts(filename);
-t = tokenize(f, '.');
+t = split(f, '.');
 
 subject  = 'unknown';
 dataname = 'unknown';

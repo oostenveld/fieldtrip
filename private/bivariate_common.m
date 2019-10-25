@@ -63,7 +63,7 @@ end
 
 for i=1:numel(varargin)
   dimord = getdimord(varargin{i}, cfg.parameter);
-  dimtok = tokenize(dimord, '_');
+  dimtok = split(dimord, '_');
   
   if isequal(dimtok{1}, 'chancmb')
     % convert 2-dimensional channel matrix to a single dimension

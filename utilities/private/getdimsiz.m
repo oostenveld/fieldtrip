@@ -14,7 +14,7 @@ function dimsiz = getdimsiz(data, field, numdim)
 %
 % Example use
 %   dimord = getdimord(datastructure, fieldname);
-%   dimtok = tokenize(dimord, '_');
+%   dimtok = split(dimord, '_');
 %   dimsiz = getdimsiz(datastructure, fieldname, numel(dimtok));
 %
 % See also GETDIMORD, GETDATFIELD

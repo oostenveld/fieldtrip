@@ -95,7 +95,7 @@ switch spikeformat
     clusters(clusters==0) = []; % remove rejected cluster (indexed by zeros)
     nclust = numel(clusters);
     [p, f, x] = fileparts(filename);
-    t = tokenize(f, '_'); % extract channel name
+    t = split(f, '_'); % extract channel name
     spike.label     = cell(1,nclust);
     spike.unit      = cell(1,nclust);
     spike.waveform  = cell(1,nclust);

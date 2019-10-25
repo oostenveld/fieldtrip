@@ -232,7 +232,7 @@ switch version
     fn = getdatfield(source);
     for i=1:numel(fn)
       dimord = getdimord(source, fn{i});
-      dimtok = tokenize(dimord, '_');
+      dimtok = split(dimord, '_');
       dimsiz = getdimsiz(source, fn{i}, numel(dimtok));
       if numel(dimsiz)>=3 && strcmp(dimtok{1}, 'dim1') && strcmp(dimtok{2}, 'dim2') && strcmp(dimtok{3}, 'dim3')
         % convert it from voxel-based representation to position-based representation

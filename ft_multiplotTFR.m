@@ -262,7 +262,7 @@ yparam = ft_getopt(cfg, 'yparam', 'freq');
 
 % check whether rpt/subj is present and remove if necessary
 dimord = getdimord(data, cfg.parameter);
-dimtok = tokenize(dimord, '_');
+dimtok = split(dimord, '_');
 hasrpt = any(ismember(dimtok, {'rpt' 'subj'}));
 
 if ~hasrpt
@@ -408,7 +408,7 @@ if strcmp(cfg.masknans, 'yes') && (~evenx || ~eveny)
 end
 
 % the usual data is chan_freq_time, but other dimords should also work
-dimtok = tokenize(dimord, '_');
+dimtok = split(dimord, '_');
 datamatrix = data.(cfg.parameter);
 [c, ia, ib] = intersect({'chan', yparam, xparam}, dimtok, 'stable');
 datamatrix = permute(datamatrix, ib);

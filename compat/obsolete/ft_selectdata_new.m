@@ -145,7 +145,7 @@ else % not raw or comp
     ft_error('cannot determine which parameter to select from the data, please specify cfg.parameter');
   end
   
-  dimtok = tokenize(dimord, '_');
+  dimtok = split(dimord, '_');
   
   if isempty(cfg.parameter) || isequal(cfg.parameter ,'all')
     
@@ -1150,7 +1150,7 @@ for i=1:length(datfields)
   end
 end
 
-dimtok = tokenize(dimord, '_');
+dimtok = split(dimord, '_');
 
 if isfield(cfg, 'trials') && ~isequal(cfg.trials, 'all') && ~isempty(datfields)
   
@@ -1357,6 +1357,6 @@ end % function paramdimord
 
 function dimtok = paramdimtok(data, param)
 dimord = paramdimord(data, param);
-dimtok = tokenize(dimord, '_');
+dimtok = split(dimord, '_');
 end % function paramdimtok
 

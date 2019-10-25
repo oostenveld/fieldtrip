@@ -22,7 +22,7 @@ if nargin==1 && ~isstruct(pos),
 elseif isstruct(pos),
   % the input is a FieldTrip data structure
   dimord = pos.dimord;
-  dimtok = tokenize(dimord, '_');
+  dimtok = split(dimord, '_');
   for i = 1:length(dimtok)
     if strcmp(dimtok{i},'pos'),
       dimold(i,1) = size(pos.pos,1);
