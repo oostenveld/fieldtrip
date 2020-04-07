@@ -190,7 +190,7 @@ dat = reshape(dat, nrpt, []);
 
 % estimate and remove the confounds
 fprintf('estimating the regression weights and removing the confounds \n');
-if isempty(find(isnan(dat))) % if there are no NaNs, process all at once 
+if ~any(isnan(dat(:)) % if there are no NaNs, process all at once 
   beta = regr\dat;                                                        % B = X\Y 
 else % otherwise process per colum set as defined by the nan distribution  
   [u,i,j] = unique(~isnan(dat)','rows','first'); % find unique rows
