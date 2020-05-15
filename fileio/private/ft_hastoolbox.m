@@ -165,7 +165,7 @@ url = {
   'BAYESFACTOR'   'see https://klabhub.github.io/bayesFactor'
   'EZC3D'         'see https://github.com/pyomeca/ezc3d'
   'XSENS'         'see https://www.xsens.com/motion-capture and http://www.fieldtriptoolbox.org/getting_started/xsens/'
-  'MAYO_MEF'      'see https://github.com/MultimodalNeuroimagingLab/mef_reader_fieldtrip and https://msel.mayo.edu/codes.html'
+  'MAYO_MEF'      'see https://github.com/MultimodalNeuroimagingLab/mef_reader_fieldtrip'
   };
 
 if nargin<2
