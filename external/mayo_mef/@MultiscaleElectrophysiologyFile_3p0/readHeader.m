@@ -89,18 +89,19 @@ else
 end % if
 
 % get the channel info
+map_tsi = true;
 [sess_path,chan_name] = fileparts(wholename);
 if isempty(pw)
-    md = read_mef_session_metadata(sess_path);
+    md = read_mef_session_metadata(sess_path,[],map_tsi);
 else
-    md = read_mef_session_metadata(sess_path,pw);
+    md = read_mef_session_metadata(sess_path,pw,map_tsi);
 end % if
 all_chan_name = {md.time_series_channels.name};
 chan_indx = ismember(all_chan_name,chan_name);
 
 % get the header and channel
 channel = md.time_series_channels(chan_indx);
-header  = md.time_series_channels(chan_indx).segments(1).time_series_data_uh;
+header  = channel.segments(1).time_series_data_uh;
 
 end %function
 
