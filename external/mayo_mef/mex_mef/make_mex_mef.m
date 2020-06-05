@@ -1,7 +1,7 @@
 % Compile mex files required to process MEF files
 
 % Copyright 2019-2020 Richard J. Cui. Created: Wed 05/29/2019  9:49:29.694 PM
-% $Revision: 0.7 $  $Date: Fri 05/15/2020  9:57:28.514 AM $
+% $Revision: 0.8 $  $Date: Fri 06/05/2020 10:27:44.467 AM $
 %
 % Multimodel Neuroimaging Lab (Dr. Dora Hermes)
 % Mayo Clinic St. Mary Campus
@@ -47,13 +47,13 @@ cd(mayo_mef)
 fprintf('\n')
 fprintf('===== Compiling c-mex for MEF 3.0 data =====\n')
 
-cd([mex_mef, filesep, 'mef_3p0'])
-fprintf('Building read_mef_header_mex_3p0.mex*\n')
-mex -output read_mef_header_mex_3p0 ...
-    read_mef_header_mex_3p0.c ...
-    matmef/matmef_mapping.c ...
-    matmef/mex_datahelper.c
-movefile('read_mef_header_mex_3p0.mex*',mayo_mef)
+% cd([mex_mef, filesep, 'mef_3p0'])
+% fprintf('Building read_mef_header_mex_3p0.mex*\n')
+% mex -output read_mef_header_mex_3p0 ...
+%     read_mef_header_mex_3p0.c ...
+%     matmef/matmef_mapping.c ...
+%     matmef/mex_datahelper.c
+% movefile('read_mef_header_mex_3p0.mex*',mayo_mef)
 
 cd([mex_mef, filesep, 'mef_3p0', filesep, 'matmef', filesep]) % assume 'mef_3p0' is the subdirectory
 fprintf('\n')

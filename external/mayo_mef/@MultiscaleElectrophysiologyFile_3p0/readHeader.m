@@ -59,7 +59,7 @@ function [header, channel] = readHeader(this, varargin)
 % See also read_mef_header_mex_3p0.m.
 
 % Copyright 2020 Richard J. Cui. Created: Tue 02/04/2020  3:33:28.609 PM
-% $Revision: 0.3 $  $Date: Wed 04/01/2020  7:14:38.610 PM $
+% $Revision: 0.4 $  $Date: Fri 06/05/2020 10:37:43.416 AM $
 %
 % Multimodel Neuroimaging Lab (Dr. Dora Hermes)
 % Mayo Clinic St. Mary Campus
@@ -88,11 +88,19 @@ else
     this.AccessLevel = al;
 end % if
 
+% get the channel info
+[sess_path,chan_name] = fileparts(wholename);
 if isempty(pw)
-    [header, channel] = read_mef_header_mex_3p0(wholename);
+    md = read_mef_session_metadata(sess_path);
 else
-    [header, channel] = read_mef_header_mex_3p0(wholename, pw);
+    md = read_mef_session_metadata(sess_path,pw);
 end % if
+all_chan_name = {md.time_series_channels.name};
+chan_indx = ismember(all_chan_name,chan_name);
+
+% get the header and channel
+channel = md.time_series_channels(chan_indx);
+header  = md.time_series_channels(chan_indx).segments(1).time_series_data_uh;
 
 end %function
 
