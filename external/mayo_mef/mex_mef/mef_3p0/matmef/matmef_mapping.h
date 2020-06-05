@@ -19,9 +19,6 @@
 #include "meflib/meflib/meflib.h"
 
 
-void map_mef3_segment_universal_header_tostruct(UNIVERSAL_HEADER *universal_header, mxArray *mat_universal_header, int mat_index);
-mxArray *map_mef3_segment_universal_header(UNIVERSAL_HEADER *universal_header);
-	
 void map_mef3_segment_tostruct(SEGMENT *segment, si1 map_indices_flag, mxArray *mat_segment, int mat_index);
 mxArray *map_mef3_segment(SEGMENT *segment, si1 map_indices_flag);
 void map_mef3_channel_tostruct(CHANNEL *channel, si1 map_indices_flag, mxArray *mat_channel, int mat_index);
@@ -37,5 +34,8 @@ mxArray *map_mef3_ti(TIME_SERIES_INDEX *ti, si8 number_of_entries);
 mxArray *map_mef3_vi(VIDEO_INDEX *vi, si8 number_of_entries);
 mxArray *map_mef3_records(FILE_PROCESSING_STRUCT *ri_fps, FILE_PROCESSING_STRUCT *rd_fps);
 
+mxArray *map_mef3_csti(RECORD_HEADER *rh);
+	
+mxArray *map_mef3_uh(UNIVERSAL_HEADER *universal_header);
 
 #endif   // MATMEF_MAPPING_

@@ -52,15 +52,15 @@ const char *UNIVERSAL_HEADER_FIELDNAMES[] 	= {
 };
 
 // Session, Channel, Segment Processing Structures
-const int SEGMENT_NUMFIELDS			= 10;
+const int SEGMENT_NUMFIELDS			= 11;
 const char *SEGMENT_FIELDNAMES[] 	= {	
 	"channel_type",
 	//"metadata_fps",				// instead of mapping the FILE_PROCESSING_STRUCT object, the data held within is mapped to the 'metadata' field
-	//"time_series_data_fps",		// (not mapped)
-	//"time_series_indices_fps",	// instead of mapping the FILE_PROCESSING_STRUCT object, the data held within is mapped to the 'time_series_indices' field
-	//"video_indices_fps",			// instead of mapping the FILE_PROCESSING_STRUCT object, the data held within is mapped to the 'video_indices' field
-	//"record_data_fps",			// instead of mapping the FILE_PROCESSING_STRUCT object, the data held within is mapped to the 'records' field
-	//"record_indices_fps",			// instead of mapping the FILE_PROCESSING_STRUCT object, the data held within is mapped to the 'records' field
+	//"time_series_data_fps",		// instead of mapping the FILE_PROCESSING_STRUCT object, the data held within is mapped to the 'time_series_data_uh' field
+	//"time_series_indices_fps",	// instead of mapping the FILE_PROCESSING_STRUCT object, the indices held within are mapped to the 'time_series_indices' field
+	//"video_indices_fps",			// instead of mapping the FILE_PROCESSING_STRUCT object, the indices held within are mapped to the 'video_indices' field
+	//"record_data_fps",			// instead of mapping the FILE_PROCESSING_STRUCT object, the records-data held within is mapped to the 'records' field
+	//"record_indices_fps",			// instead of mapping the FILE_PROCESSING_STRUCT object, the records-indices held within are mapped to the 'records' field
 	"name",							// just base name, no extension
 	"path",							// full path to enclosing directory (channel directory)
 	"channel_name",					// just base name, no extension
@@ -71,15 +71,16 @@ const char *SEGMENT_FIELDNAMES[] 	= {
 	"metadata",
 	"time_series_indices",
 	"video_indices",
-	"records"
+	"records",
+	"time_series_data_uh"
 };
 
 const int CHANNEL_NUMFIELDS			= 15;
 const char *CHANNEL_FIELDNAMES[] 	= {	
 	"channel_type",
 	"metadata",
-	//"record_data_fps",			// instead of mapping the FILE_PROCESSING_STRUCT object, the data held within is mapped to the 'records' field
-	//"record_indices_fps",			// instead of mapping the FILE_PROCESSING_STRUCT object, the data held within is mapped to the 'records' field
+	//"record_data_fps",			// instead of mapping the FILE_PROCESSING_STRUCT object, the records-data held within is mapped to the 'records' field
+	//"record_indices_fps",			// instead of mapping the FILE_PROCESSING_STRUCT object, the records-indices held within are mapped to the 'records' field
 	"number_of_segments",
 	"segments",
 	"path",							// full path to enclosing directory (session directory)
@@ -106,8 +107,8 @@ const char *SESSION_FIELDNAMES[] 	= {
 	"video_metadata",
 	"number_of_video_channels",
 	"video_channels",
-	//"record_data_fps",			// instead of mapping the FILE_PROCESSING_STRUCT object, the data held within is mapped to the 'records' field
-	//"record_indices_fps",			// instead of mapping the FILE_PROCESSING_STRUCT object, the data held within is mapped to the 'records' field
+	//"record_data_fps",			// instead of mapping the FILE_PROCESSING_STRUCT object, the record-data held within is mapped to the 'records' field
+	//"record_indices_fps",			// instead of mapping the FILE_PROCESSING_STRUCT object, the record-indices held within are mapped to the 'records' field
 	"name",
 	"path",
 	"anonymized_name",
@@ -262,8 +263,8 @@ const char *VIDEO_INDEX_FIELDNAMES[] 	= {
 
 
 // File Processing Structures
-const int FILE_PROCESSING_NUMFIELDS			= 16;
-const char *FILE_PROCESSING_FIELDNAMES[]	= {
+const int FILE_PROCESSINGFILE_PROCESSING_NUMFIELDS		= 16;
+const char *FILE_PROCESSING_FIELDNAMES[]				= {
 	"full_file_name",					// full path including extension
 	"fp",								// runtime file pointer		(not mapped)
 	"fd",								// runtime file descriptor	(not mapped)
@@ -283,69 +284,21 @@ const char *FILE_PROCESSING_FIELDNAMES[]	= {
 };	
 
 
+// Record Type Structures
+const int MEFREC_CSTI_1_0_NUMFIELDS			= 4;
+const char *MEFREC_CSTI_1_0_FIELDNAMES[] 	= {	
+	"task_type",
+	"stimulus_duration",
+	"stimulus_type",
+	"patient_response"
+};
+
+
+
 
 ///
 // Functions to map c-objects to matlab-structs
 ///
-
-
-
-
-
-/**
- * 	Map a MEF universal_header c-struct to an exising matlab-struct
- *  (by Richard J. Cui)
- *
- * 	@param universal_header			Pointer to the MEF universal_header c-struct
- * 	@param mat_universal_header		Pointer to the existing matlab-struct
- * 	@param mat_index				The index in the existing matlab-struct at which to map the data
- 
- */
-void map_mef3_segment_universal_header_tostruct(UNIVERSAL_HEADER *universal_header, mxArray *mat_universal_header, int mat_index) {
-
-    mxSetField(mat_universal_header, mat_index, "header_CRC", 			mxUint64ByValue(universal_header->header_CRC));
-    mxSetField(mat_universal_header, mat_index, "body_CRC", 			mxUint64ByValue(universal_header->body_CRC));
-    mxSetField(mat_universal_header, mat_index, "file_type_string", 	mxCreateString(universal_header->file_type_string));
-    mxSetField(mat_universal_header, mat_index, "mef_version_major", 	mxUint8ByValue(universal_header->mef_version_major));
-    mxSetField(mat_universal_header, mat_index, "mef_version_minor", 	mxUint8ByValue(universal_header->mef_version_minor));
-    mxSetField(mat_universal_header, mat_index, "byte_order_code", 		mxUint8ByValue(universal_header->byte_order_code));
-    mxSetField(mat_universal_header, mat_index, "start_time", 			mxInt64ByValue(universal_header->start_time));
-    mxSetField(mat_universal_header, mat_index, "end_time", 			mxInt64ByValue(universal_header->end_time));  
-    mxSetField(mat_universal_header, mat_index, "number_of_entries", 	mxInt64ByValue(universal_header->number_of_entries));  
-    mxSetField(mat_universal_header, mat_index, "maximum_entry_size", 	mxInt64ByValue(universal_header->maximum_entry_size));  
-    mxSetField(mat_universal_header, mat_index, "segment_number", 		mxInt32ByValue(universal_header->segment_number));  
-    mxSetField(mat_universal_header, mat_index, "channel_name", 		mxCreateString(universal_header->channel_name));  
-    mxSetField(mat_universal_header, mat_index, "session_name", 		mxCreateString(universal_header->session_name));  
-    mxSetField(mat_universal_header, mat_index, "anonymized_name", 		mxCreateString(universal_header->anonymized_name));  
-    mxSetField(mat_universal_header, mat_index, "level_UUID", 			mxUint8ArrayByValue(universal_header->level_UUID, UUID_BYTES));
-    mxSetField(mat_universal_header, mat_index, "file_UUID", 			mxUint8ArrayByValue(universal_header->file_UUID, UUID_BYTES));
-    mxSetField(mat_universal_header, mat_index, "provenance_UUID", 		mxUint8ArrayByValue(universal_header->provenance_UUID, UUID_BYTES));
-    mxSetField(mat_universal_header, mat_index, "level_1_password_validation_field", mxUint8ArrayByValue(universal_header->level_1_password_validation_field, PASSWORD_VALIDATION_FIELD_BYTES));
-    mxSetField(mat_universal_header, mat_index, "level_2_password_validation_field", mxUint8ArrayByValue(universal_header->level_2_password_validation_field, PASSWORD_VALIDATION_FIELD_BYTES));
-    mxSetField(mat_universal_header, mat_index, "protected_region", 	mxUint8ArrayByValue(universal_header->protected_region, UNIVERSAL_HEADER_PROTECTED_REGION_BYTES)); 
-    mxSetField(mat_universal_header, mat_index, "discretionary_region", mxUint8ArrayByValue(universal_header->discretionary_region, UNIVERSAL_HEADER_DISCRETIONARY_REGION_BYTES));
-    
-    return;
-}
-
-/**
- * 	Map a MEF universal_header c-struct to a newly created matlab-struct
- *  (by Richard J. Cui)
- *
- * 	@param universal_header		Pointer to the MEF universal_header c-struct
- * 	@return						Pointer to the new matlab-struct
- */
-mxArray *map_mef3_segment_universal_header(UNIVERSAL_HEADER *universal_header) {
-    
-    mxArray *mat_universal_header;
-    int mat_index = 0;
-    
-    mat_universal_header = mxCreateStructMatrix(1, 1, UNIVERSAL_HEADER_NUMFIELDS, UNIVERSAL_HEADER_FIELDNAMES);
-    map_mef3_segment_universal_header_tostruct(universal_header, mat_universal_header, mat_index);
-    
-    return mat_universal_header;
-}
-
 
 /**
  * 	Map a MEF segment c-struct to an exising matlab-struct
@@ -360,7 +313,7 @@ mxArray *map_mef3_segment_universal_header(UNIVERSAL_HEADER *universal_header) {
  */
 void map_mef3_segment_tostruct(SEGMENT *segment, si1 map_indices_flag, mxArray *mat_segment, int mat_index) {
 
-	// set segment specific properties
+	// set segment properties
 	mxSetField(mat_segment, mat_index, "channel_type", 				mxInt32ByValue(segment->channel_type));
 	mxSetField(mat_segment, mat_index, "name", 						mxCreateString(segment->name));
 	mxSetField(mat_segment, mat_index, "path", 						mxCreateString(segment->path));
@@ -370,13 +323,19 @@ void map_mef3_segment_tostruct(SEGMENT *segment, si1 map_indices_flag, mxArray *
 	
 	
 	//
+	// file processing struct
+	//
+	if (segment->channel_type == TIME_SERIES_CHANNEL_TYPE)
+		mxSetField(mat_segment, mat_index, "time_series_data_uh", 		map_mef3_uh(segment->time_series_data_fps->universal_header));
+
+	
+	//
 	// records
 	//
 	
 	// check segment records and (if existent) add
-    if ((segment->record_indices_fps != NULL) & (segment->record_data_fps != NULL)) {
+    if ((segment->record_indices_fps != NULL) & (segment->record_data_fps != NULL))
 		mxSetField(mat_segment, mat_index, "records", map_mef3_records(segment->record_indices_fps, segment->record_data_fps));
-    }
 	
 	
 	//
@@ -674,6 +633,12 @@ mxArray *map_mef3_session(SESSION *session, si1 map_indices_flag) {
 	
 }
 
+/**
+ * 	Map a MEF section 1 metadata c-struct to a newly created matlab-struct
+ *
+ * 	@param md1			A pointer to the MEF section 1 metadata c-struct
+ * 	@return				A pointer to the new matlab-struct
+ */
 mxArray *map_mef3_md1(METADATA_SECTION_1 *md1) {
 
     mxArray *mat_md = mxCreateStructMatrix(1, 1, METADATA_SECTION_1_NUMFIELDS, METADATA_SECTION_1_FIELDNAMES);
@@ -684,6 +649,12 @@ mxArray *map_mef3_md1(METADATA_SECTION_1 *md1) {
 	return mat_md;
 }
 
+/**
+ * 	Map a MEF section 2 time-series metadata c-struct to a newly created matlab-struct
+ *
+ * 	@param tmd2			A pointer to the MEF section 2 time-series metadata c-struct
+ * 	@return				A pointer to the new matlab-struct
+ */
 mxArray *map_mef3_tmd2(TIME_SERIES_METADATA_SECTION_2 *tmd2) {
 
     mxArray *mat_md = mxCreateStructMatrix(1, 1, TIME_SERIES_METADATA_SECTION_2_NUMFIELDS, TIME_SERIES_METADATA_SECTION_2_FIELDNAMES);
@@ -720,6 +691,12 @@ mxArray *map_mef3_tmd2(TIME_SERIES_METADATA_SECTION_2 *tmd2) {
 	return mat_md;
 }
 
+/**
+ * 	Map a MEF section 2 video-series metadata c-struct to a newly created matlab-struct
+ *
+ * 	@param vmd2			A pointer to the MEF section 2 video-series metadata c-struct
+ * 	@return				A pointer to the new matlab-struct
+ */
 mxArray *map_mef3_vmd2(VIDEO_METADATA_SECTION_2 *vmd2) {
 
     mxArray *mat_md = mxCreateStructMatrix(1, 1, VIDEO_METADATA_SECTION_2_NUMFIELDS, VIDEO_METADATA_SECTION_2_FIELDNAMES);
@@ -740,6 +717,12 @@ mxArray *map_mef3_vmd2(VIDEO_METADATA_SECTION_2 *vmd2) {
 	return mat_md;
 }
 
+/**
+ * 	Map a MEF section 3 metadata c-struct to a newly created matlab-struct
+ *
+ * 	@param md3			A pointer to the MEF section 3 metadata c-struct
+ * 	@return				A pointer to the new matlab-struct
+ */
 mxArray *map_mef3_md3(METADATA_SECTION_3 *md3) {
 
     mxArray *mat_md = mxCreateStructMatrix(1, 1, METADATA_SECTION_3_NUMFIELDS, METADATA_SECTION_3_FIELDNAMES);
@@ -806,7 +789,13 @@ mxArray *map_mef3_vi(VIDEO_INDEX *vi, si8 number_of_entries) {
 	return mat_vi;
 }
 
-// Runs through records and puts them in a matlab-struct
+
+/**
+ * 	Map the MEF records to a matlab-struct
+ *
+ * 	@param ri_fps			
+ * 	@param rd_fps	
+ */
 mxArray *map_mef3_records(FILE_PROCESSING_STRUCT *ri_fps, FILE_PROCESSING_STRUCT *rd_fps) {
 	si4 i;
 	RECORD_HEADER *rh;
@@ -817,10 +806,12 @@ mxArray *map_mef3_records(FILE_PROCESSING_STRUCT *ri_fps, FILE_PROCESSING_STRUCT
     si8 number_of_records = ri_fps->universal_header->number_of_entries;
 
 	// create custom record struct list
-	const int RECORD_NUMFIELDS		= 3;
+	const int RECORD_NUMFIELDS		= 5;
 	const char *RECORD_FIELDNAMES[]	= {	
 		"time",
 		"type",
+		"version_major",
+		"version_minor",
 		"body"
 	};
 	mxArray *mat_records = mxCreateStructMatrix(1, number_of_records, RECORD_NUMFIELDS, RECORD_FIELDNAMES);
@@ -838,15 +829,15 @@ mxArray *map_mef3_records(FILE_PROCESSING_STRUCT *ri_fps, FILE_PROCESSING_STRUCT
 		//
 		// header
 		//
-		
 		mxSetField(mat_records, i, "time", 					mxInt64ByValue(rh->time));
 		mxSetField(mat_records, i, "type", 					mxCreateString(rh->type_string));
+		mxSetField(mat_records, i, "version_major", 		mxUint8ByValue(rh->version_major));
+		mxSetField(mat_records, i, "version_minor", 		mxUint8ByValue(rh->version_minor));
 		
 		
 		//
 		// body
 		//
-		
 		type_str_int = (ui4 *) rh->type_string;
 		type_code = *type_str_int;
 		switch (type_code) {
@@ -879,9 +870,12 @@ mxArray *map_mef3_records(FILE_PROCESSING_STRUCT *ri_fps, FILE_PROCESSING_STRUCT
 				
 				break;
 			case MEFREC_CSti_TYPE_CODE:
-				
-				// TODO: need example with this type of records
-				mexPrintf("Warning: unimplemented record type, skipping body\n");
+			
+				{
+					mxArray *mat_csti = map_mef3_csti(rh);
+					if (mat_csti != NULL)
+						mxSetField(mat_records, i, "body", 			mat_csti);
+				}
 				
 				break;
 			case MEFREC_ESti_TYPE_CODE:
@@ -891,9 +885,13 @@ mxArray *map_mef3_records(FILE_PROCESSING_STRUCT *ri_fps, FILE_PROCESSING_STRUCT
 				
 				break;
 			case MEFREC_SyLg_TYPE_CODE:
-				
-				// TODO: need example with this type of records
-				mexPrintf("Warning: unimplemented record type, skipping body\n");
+
+				if (rh->version_major == 1 && rh->version_minor == 0) {
+					si1 *log_entry = (si1 *) rh + MEFREC_SyLg_1_0_TEXT_OFFSET;
+					mxSetField(mat_records, i, "body", 			mxCreateString(log_entry));
+					
+				} else
+					mexPrintf("Warning: unrecognized SyLg version, skipping SyLg body\n");
 				
 				break;
 			case MEFREC_UnRc_TYPE_CODE:
@@ -915,4 +913,73 @@ mxArray *map_mef3_records(FILE_PROCESSING_STRUCT *ri_fps, FILE_PROCESSING_STRUCT
 	
 	// return the struct
 	return mat_records;
+}
+
+/**
+ * 	Map a MEF record CSti c-struct to a newly created matlab-struct
+ *
+ * 	@param rh			A pointer to the MEF record header of a CSti c-struct
+ * 	@return				A pointer to the new matlab-struct
+ */
+mxArray *map_mef3_csti(RECORD_HEADER *rh) {
+
+	if (rh->version_major == 1 && rh->version_minor == 0) {
+		
+		MEFREC_CSti_1_0 *cog_stim = (MEFREC_CSti_1_0 *) ((ui1 *) rh + MEFREC_CSti_1_0_OFFSET);
+		
+		mxArray *mat_csti = mxCreateStructMatrix(1, 1, MEFREC_CSTI_1_0_NUMFIELDS, MEFREC_CSTI_1_0_FIELDNAMES);
+		
+		mxSetField(mat_csti, 0, "task_type", 				mxCreateString(cog_stim->task_type));
+		mxSetField(mat_csti, 0, "stimulus_duration", 		mxInt64ByValue(cog_stim->stimulus_duration));
+		mxSetField(mat_csti, 0, "stimulus_type", 			mxCreateString(cog_stim->stimulus_type));
+		mxSetField(mat_csti, 0, "patient_response", 		mxCreateString(cog_stim->patient_response));
+		
+		// return the struct
+		return mat_csti;
+		
+	}
+	
+	// message
+	mexPrintf("Warning: unrecognized Note version, skipping note body\n");
+	
+	// return failure
+	return NULL;
+}
+
+/**
+ * 	Map a MEF universal_header c-struct to a newly created matlab-struct
+ *  (added by Richard J. Cui)
+ *
+ * 	@param universal_header		Pointer to the MEF universal_header c-struct
+ * 	@return						Pointer to the new matlab-struct
+ */
+mxArray *map_mef3_uh(UNIVERSAL_HEADER *universal_header) {
+	
+    mxArray *mat_uh = mxCreateStructMatrix(1, 1, UNIVERSAL_HEADER_NUMFIELDS, UNIVERSAL_HEADER_FIELDNAMES);
+	
+    mxSetField(mat_uh, 0, "header_CRC", 					mxUint32ByValue(universal_header->header_CRC));
+    mxSetField(mat_uh, 0, "body_CRC", 						mxUint32ByValue(universal_header->body_CRC));
+    mxSetField(mat_uh, 0, "file_type_string", 				mxCreateString(universal_header->file_type_string));
+    mxSetField(mat_uh, 0, "mef_version_major", 				mxUint8ByValue(universal_header->mef_version_major));
+    mxSetField(mat_uh, 0, "mef_version_minor", 				mxUint8ByValue(universal_header->mef_version_minor));
+    mxSetField(mat_uh, 0, "byte_order_code", 				mxUint8ByValue(universal_header->byte_order_code));
+    mxSetField(mat_uh, 0, "start_time", 					mxInt64ByValue(universal_header->start_time));
+    mxSetField(mat_uh, 0, "end_time", 						mxInt64ByValue(universal_header->end_time));  
+    mxSetField(mat_uh, 0, "number_of_entries", 				mxInt64ByValue(universal_header->number_of_entries));  
+    mxSetField(mat_uh, 0, "maximum_entry_size", 			mxInt64ByValue(universal_header->maximum_entry_size));  
+    mxSetField(mat_uh, 0, "segment_number", 				mxInt32ByValue(universal_header->segment_number));  
+    mxSetField(mat_uh, 0, "channel_name", 					mxCreateString(universal_header->channel_name));  
+    mxSetField(mat_uh, 0, "session_name", 					mxCreateString(universal_header->session_name));  
+    mxSetField(mat_uh, 0, "anonymized_name", 				mxCreateString(universal_header->anonymized_name));  
+    mxSetField(mat_uh, 0, "level_UUID", 					mxUint8ArrayByValue(universal_header->level_UUID, UUID_BYTES));
+    mxSetField(mat_uh, 0, "file_UUID", 						mxUint8ArrayByValue(universal_header->file_UUID, UUID_BYTES));
+    mxSetField(mat_uh, 0, "provenance_UUID", 				mxUint8ArrayByValue(universal_header->provenance_UUID, UUID_BYTES));
+    mxSetField(mat_uh, 0, "level_1_password_validation_field", mxUint8ArrayByValue(universal_header->level_1_password_validation_field, PASSWORD_VALIDATION_FIELD_BYTES));
+    mxSetField(mat_uh, 0, "level_2_password_validation_field", mxUint8ArrayByValue(universal_header->level_2_password_validation_field, PASSWORD_VALIDATION_FIELD_BYTES));
+    mxSetField(mat_uh, 0, "protected_region", 				mxUint8ArrayByValue(universal_header->protected_region, UNIVERSAL_HEADER_PROTECTED_REGION_BYTES)); 
+    mxSetField(mat_uh, 0, "discretionary_region", 			mxUint8ArrayByValue(universal_header->discretionary_region, UNIVERSAL_HEADER_DISCRETIONARY_REGION_BYTES));
+    
+	// return the struct
+	return mat_uh;
+	
 }
