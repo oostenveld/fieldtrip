@@ -40,3 +40,11 @@ cfg = [];
 cfg.plotevents = 'no';
 cfg.viewmode = 'component';
 ft_databrowser(cfg, comp)
+
+%%
+
+cfg = [];
+cfg.plotevents = 'no';
+cfg.viewmode = 'multiplot';
+cfg.layout = 'CTF151_helmet.mat';
+ft_databrowser(cfg, data)

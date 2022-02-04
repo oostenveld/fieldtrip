@@ -302,13 +302,14 @@ if isempty(ft_getopt(cfg, 'channel'))
   end
 end
 
-if strcmp(cfg.viewmode, 'component')
+if strcmp(cfg.viewmode, 'component') || strcmp(cfg.viewmode, 'multiplot')
   % read or create the topographic layout that will be used for the topoplots
   tmpcfg = keepfields(cfg, {'layout', 'rows', 'columns', 'commentpos', 'skipcomnt', 'scalepos', 'skipscale', 'projection', 'viewpoint', 'rotate', 'width', 'height', 'elec', 'grad', 'opto', 'showcallinfo', 'trackcallinfo', 'trackconfig', 'trackusage', 'trackdatainfo', 'trackmeminfo', 'tracktimeinfo'});
-  if hasdata
-    % select those channels from the layout that are relevant for the
-    % decomposition that is being plotted
+  if hasdata && isfield(data, 'topolabel')
+    % sselect the channels in the data that are relevant for the component topography that is to be being plotted
     tmpcfg.channel = data.topolabel;
+    cfg.layout = ft_prepare_layout(tmpcfg, data);
+  elseif hasdata
     cfg.layout = ft_prepare_layout(tmpcfg, data);
   else
     cfg.layout = ft_prepare_layout(tmpcfg);
@@ -774,7 +775,9 @@ else
   uicontrol('parent', h, 'units', 'normalized', 'style', 'pushbutton', 'string', 'preproc', 'userdata', 'p', 'position', [0.91, 0.88, 0.08, 0.04], 'callback', @keyboard_cb)
 
   % identify button - to find label of nearest channel to datapoint
-  uicontrol('parent', h, 'units', 'normalized', 'style', 'pushbutton', 'string', 'identify', 'userdata', 'i', 'position', [0.91, 0.83, 0.08, 0.04], 'callback', @keyboard_cb)
+  if ~strcmp(cfg.viewmode, 'multiplot')
+    uicontrol('parent', h, 'units', 'normalized', 'style', 'pushbutton', 'string', 'identify', 'userdata', 'i', 'position', [0.91, 0.83, 0.08, 0.04], 'callback', @keyboard_cb)
+  end
 
   % viewmode button to toggle between vertical and butterfly
   if ~strcmp(cfg.viewmode, 'component')
@@ -1513,54 +1516,56 @@ switch key
     delete(findobj(h, 'tag', 'chanlabel'));  % remove channel labels here, and not in redrawing to save significant execution time (see bug 2065)
     redraw_cb(h, eventdata);
   case 'i'
-    delete(findobj(h, 'tag', 'identified'));
-    % click in data and get name of nearest channel
-    fprintf('click in the figure to identify the name of the closest channel\n');
-    val = ginput(1);
-    xpos = val(1);
-    if strcmp(cfg.viewmode, 'butterfly')
-      if val>0.5
-        ypos = 0.1;
-      else
-        ypos = 0.9;
+    if ~strcmp(cfg.viewmode, 'multiplot')
+      delete(findobj(h, 'tag', 'identified'));
+      % click in data and get name of nearest channel
+      fprintf('click in the figure to identify the name of the closest channel\n');
+      val = ginput(1);
+      xpos = val(1);
+      if strcmp(cfg.viewmode, 'butterfly')
+        if val>0.5
+          ypos = 0.1;
+        else
+          ypos = 0.9;
+        end
+        % transform 'val' to match data
+        val(1) = val(1) * range(opt.hlim) + opt.hlim(1);
+        val(2) = val(2) * range(opt.vlim) + opt.vlim(1);
+        label  = val2nearestchan(opt.curdata, val);
+        datindx    = match_str(opt.curdata.label, label);
+        layoutindx = 1; % the butterfly layout only contains a single dummy channel that is used for all
+      elseif strcmp(cfg.viewmode, 'vertical') || strcmp(cfg.viewmode, 'component')
+        % find channel identity by extracting timecourse objects and finding the time course closest to the cursor
+        % this is a lot easier than the reverse, determining the y value of each time course scaled by the layout and vlim
+        tcobj   = findobj(h, 'tag', 'timecourse');
+        tmpydat = get(tcobj, 'ydata');
+        tmpydat = cat(1,tmpydat{:});
+        tmpydat = tmpydat(end:-1:1,:); % order of timecourse objects is reverse of channel order
+        tmpxdat = get(tcobj(1), 'xdata');
+        % first find closest sample on x
+        xsmp = nearest(tmpxdat, val(1));
+        % then find the closest y sample, this gives the channel number
+        datindx    = nearest(tmpydat(:,xsmp), val(2));
+        label      = opt.curdata.label{datindx};
+        layoutindx = match_str(opt.layouttime.label, label);
+        if val(2)>0.5
+          ypos = val(2) - opt.layouttime.height(layoutindx);
+        else
+          ypos = val(2) + opt.layouttime.height(layoutindx);
+        end
       end
-      % transform 'val' to match data
-      val(1) = val(1) * range(opt.hlim) + opt.hlim(1);
-      val(2) = val(2) * range(opt.vlim) + opt.vlim(1);
-      label  = val2nearestchan(opt.curdata, val);
-      datindx    = match_str(opt.curdata.label, label);
-      layoutindx = 1; % the butterfly layout only contains a single dummy channel that is used for all
-    elseif strcmp(cfg.viewmode, 'vertical') || strcmp(cfg.viewmode, 'component')
-      % find channel identity by extracting timecourse objects and finding the time course closest to the cursor
-      % this is a lot easier than the reverse, determining the y value of each time course scaled by the layout and vlim
-      tcobj   = findobj(h, 'tag', 'timecourse');
-      tmpydat = get(tcobj, 'ydata');
-      tmpydat = cat(1,tmpydat{:});
-      tmpydat = tmpydat(end:-1:1,:); % order of timecourse objects is reverse of channel order
-      tmpxdat = get(tcobj(1), 'xdata');
-      % first find closest sample on x
-      xsmp = nearest(tmpxdat, val(1));
-      % then find the closest y sample, this gives the channel number
-      datindx    = nearest(tmpydat(:,xsmp), val(2));
-      label      = opt.curdata.label{datindx};
-      layoutindx = match_str(opt.layouttime.label, label);
-      if val(2)>0.5
-        ypos = val(2) - opt.layouttime.height(layoutindx);
-      else
-        ypos = val(2) + opt.layouttime.height(layoutindx);
-      end
-    end
-    fprintf('channel name: %s\n',label);
-    redraw_cb(h, eventdata);
+      fprintf('channel name: %s\n',label);
+      redraw_cb(h, eventdata);
 
-    ft_plot_text(xpos, ypos, label, 'FontSize', cfg.fontsize, 'FontUnits', cfg.fontunits, 'tag', 'identified', 'FontSize', cfg.fontsize, 'FontUnits', cfg.fontunits);
-    if ~ishold
-      hold on
-      ft_plot_vector(opt.curdata.time{1}, opt.curdata.trial{1}(datindx,:)', 'box', false, 'tag', 'identified', 'hpos', opt.layouttime.pos(layoutindx,1), 'vpos', opt.layouttime.pos(layoutindx,2), 'width', opt.layouttime.width(layoutindx), 'height', opt.layouttime.height(layoutindx), 'hlim', opt.hlim, 'vlim', opt.vlim, 'color', 'k', 'linewidth', 2);
-      hold off
-    else
-      ft_plot_vector(opt.curdata.time{1}, opt.curdata.trial{1}(datindx,:)', 'box', false, 'tag', 'identified', 'hpos', opt.layouttime.pos(layoutindx,1), 'vpos', opt.layouttime.pos(layoutindx,2), 'width', opt.layouttime.width(layoutindx), 'height', opt.layouttime.height(layoutindx), 'hlim', opt.hlim, 'vlim', opt.vlim, 'color', 'k', 'linewidth', 2);
-    end
+      ft_plot_text(xpos, ypos, label, 'FontSize', cfg.fontsize, 'FontUnits', cfg.fontunits, 'tag', 'identified', 'FontSize', cfg.fontsize, 'FontUnits', cfg.fontunits);
+      if ~ishold
+        hold on
+        ft_plot_vector(opt.curdata.time{1}, opt.curdata.trial{1}(datindx,:)', 'box', false, 'tag', 'identified', 'hpos', opt.layouttime.pos(layoutindx,1), 'vpos', opt.layouttime.pos(layoutindx,2), 'width', opt.layouttime.width(layoutindx), 'height', opt.layouttime.height(layoutindx), 'hlim', opt.hlim, 'vlim', opt.vlim, 'color', 'k', 'linewidth', 2);
+        hold off
+      else
+        ft_plot_vector(opt.curdata.time{1}, opt.curdata.trial{1}(datindx,:)', 'box', false, 'tag', 'identified', 'hpos', opt.layouttime.pos(layoutindx,1), 'vpos', opt.layouttime.pos(layoutindx,2), 'width', opt.layouttime.width(layoutindx), 'height', opt.layouttime.height(layoutindx), 'hlim', opt.hlim, 'vlim', opt.vlim, 'color', 'k', 'linewidth', 2);
+      end
+    end % if not multiplot
   case 's'
     % toggle between selectmode options: switch from 'markartifact', to 'markpeakevent' to 'marktroughevent' and back with on screen feedback
     curstate = find(strcmp(cfg.selectmode, {'markartifact', 'markpeakevent', 'marktroughevent'}));
@@ -1745,15 +1750,19 @@ tim = opt.curdata.time{1};
 dat = opt.curdata.trial{1};
 
 if strcmp(cfg.viewmode, 'butterfly')
-  % the timecourse layout is always the same
+  % the layout of the time courses is always the same with all channels plotted on top of each other
   layouttime = [];
   layouttime.label = {'dummy'};
   layouttime.pos = [0.5 0.5];
   layouttime.width = 1;
   layouttime.height = 1;
   opt.layouttime = layouttime;
+elseif strcmp(cfg.viewmode, 'multiplot')
+  % the layout of the time courses is always the same and follows the 2D channel positions in the layout
+  opt.layouttime = cfg.layout;
 else
-  % the timecourse layout needs to be reconstructed whenever the channel selection changes
+  % the layout of the time courses consists of a number of vertical subplots
+  % it needs to be reconstructed whenever the channel selection changes
   if changedchanflg % trigger for redrawing channel labels and preparing layout again (see bug 2065 and 2878)
     tmpcfg = keepfields(cfg, {'channel', 'columns', 'rows', 'commentpos', 'scalepos', 'elec', 'grad', 'opto', 'showcallinfo', 'trackcallinfo', 'trackconfig', 'trackusage', 'trackdatainfo', 'trackmeminfo', 'tracktimeinfo'});
     tmpcfg.layout = 'vertical';
@@ -1785,7 +1794,7 @@ ax(3) = min(opt.layouttime.pos(:,2) - opt.layouttime.height/2);
 ax(4) = max(opt.layouttime.pos(:,2) + opt.layouttime.height/2);
 % add white space to bottom and top so channels are not out-of-axis for the majority
 % NOTE there is a second spot where this is done below, specifically for viewmode = component (also need to be here), which should be kept the same as this
-if any(strcmp(cfg.viewmode,{'vertical', 'component'}))
+if strcmp(cfg.viewmode, 'vertical') || strcmp(cfg.viewmode, 'component') || strcmp(cfg.viewmode, 'multiplot')
   % determine amount of vertical padding using cfg.verticalpadding
   if ~isnumeric(cfg.verticalpadding) && strcmp(cfg.verticalpadding, 'auto')
     % determine amount of padding using the number of channels
