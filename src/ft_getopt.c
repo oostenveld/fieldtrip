@@ -36,7 +36,7 @@
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		int num, i, emptymeaningful;
 		char *key = NULL, *str = NULL;
-		mxArray *field = NULL, *defaultval = NULL;
+		mxArray *field = NULL, *appdata = NULL, *defaultval = NULL;
 		int index;
 
 		if (nrhs<2 || nrhs>4)
@@ -61,17 +61,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		/* the default output will be dealt with later */
 		plhs[0] = NULL;
 
-		if (mxIsClass(prhs[0], "config")) {
-				/* the config object has to be converted to a struct object */
-                /* this fixes bug 885 */
-				mexPutVariable("caller", "bcks4i37yr3_cwb", prhs[0]);
-				mexEvalString("bcks4i37yr3_cwb = struct(bcks4i37yr3_cwb);");
-				prhs[0] = mexGetVariable("caller", "bcks4i37yr3_cwb");
-				mexEvalString("clear bcks4i37yr3_cwb;");
-		}
-
-		if (mxIsStruct(prhs[0])) {
-				/* it will also end up here if the input is an object, in which case this code fails */
+		if (mxIsClass(prhs[0], "struct")) {
 				if (num!=1)
 						mexErrMsgTxt("the first input should be a single structure");
 
@@ -79,7 +69,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				if (field)
 						plhs[0] = mxDuplicateArray(field);
 		}
-		else if (mxIsCell(prhs[0])) {
+		else if (mxIsClass(prhs[0], "matlab.ui.Figure")) {
+				if (num!=1)
+						mexErrMsgTxt("the first input should be a single handle");
+
+      appdata = mxGetProperty(prhs[0], 0, "ApplicationData");
+        if (appdata) {
+  				field = mxGetField(appdata, 0, key);
+  				if (field)
+	  					plhs[0] = mxDuplicateArray(field);
+        }
+		}
+		else if (mxIsClass(prhs[0], "cell")) {
 				if ((num % 2)!=0)
 						mexErrMsgTxt("the first input should contain key-value pairs");
 

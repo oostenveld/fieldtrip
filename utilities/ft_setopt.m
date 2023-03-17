@@ -6,11 +6,14 @@ function opt = ft_setopt(opt, key, val)
 %
 % Use as
 %   s = ft_setopt(s, key, val)
-% where s is a structure or a cell-array.
+% where
+%   s               = structure, cell-array, or figure handle
+%   key             = string
+%   value           = any MATLAB variable
 %
-% See also FT_GETOPT, FT_CHECKOPT
+% See also FT_GETOPT, FT_CHECKOPT, GETAPPDATA, SETAPPDATA, INPUTPARSER
 
-% Copyright (C) 2011-2012, Robert Oostenveld
+% Copyright (C) 2011-2023, Robert Oostenveld
 %
 % This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
@@ -31,10 +34,13 @@ function opt = ft_setopt(opt, key, val)
 % $Id$
 
 if isa(opt, 'struct')
-
   % just replace or add the option
   opt.(key) = val;
 
+elseif isa(opt, 'handle')
+  % just replace or add the option
+  setappdata(opt, key, val);
+    
 elseif isa(opt, 'cell')
   % determine whether the key already exists
   fn = opt(1:2:end);
@@ -57,4 +63,5 @@ elseif isa(opt, 'cell')
     opt{end+1} = key;
     opt{end+1} = val;
   end
+
 end % isstruct or iscell

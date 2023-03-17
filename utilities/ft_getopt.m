@@ -1,12 +1,12 @@
 function val = ft_getopt(opt, key, default, emptymeaningful)
 
-% FT_GETOPT gets the value of a specified option from a configuration structure
-% or from a cell-array with key-value pairs.
+% FT_GETOPT gets the value of a specified option from a configuration structure, from
+% a cell-array with key-value pairs or from a figure handle.
 %
 % Use as
-%   val = ft_getopt(s, key, default, emptymeaningful)
+%   value = ft_getopt(s, key, default, emptymeaningful)
 % where the input values are
-%   s               = structure or cell-array
+%   s               = structure, cell-array, or figure handle
 %   key             = string
 %   default         = any valid MATLAB data type (optional, default = [])
 %   emptymeaningful = boolean value (optional, default = false)
@@ -14,7 +14,7 @@ function val = ft_getopt(opt, key, default, emptymeaningful)
 % If the key is present as field in the structure, or as key-value pair in the
 % cell-array, the corresponding value will be returned.
 %
-% If the key is not present, ft_getopt will return the default, or an empty array
+% If the key is not present, this function will return the default, or an empty array
 % when no default was specified.
 %
 % If the key is present but has an empty value, then the emptymeaningful flag
@@ -22,9 +22,9 @@ function val = ft_getopt(opt, key, default, emptymeaningful)
 % If emptymeaningful==true, then the empty array will be returned.
 % If emptymeaningful==false, then the specified default will be returned.
 %
-% See also FT_SETOPT, FT_CHECKOPT, INPUTPARSER
+% See also FT_SETOPT, FT_CHECKOPT, GETAPPDATA, SETAPPDATA, INPUTPARSER
 
-% Copyright (C) 2011-2012, Robert Oostenveld
+% Copyright (C) 2011-2023, Robert Oostenveld
 %
 % This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
@@ -55,12 +55,20 @@ end
 if isa(opt, 'struct')
   % get the key-value from the structure
   fn = fieldnames(opt);
-  if ~any(strcmp(key, fn))
-    val = default;
-  else
+  if any(strcmp(key, fn))
     val = opt.(key);
+  else
+    val = default;
   end
-  
+
+elseif isa(opt, 'handle')
+  % get the key-value from the handle
+  if isappdata(s, key)
+    val = getappdata(opt, key);
+  else
+    val = default;
+  end
+
 elseif isa(opt, 'cell')
   % get the key-value from the cell-array
   if mod(length(opt),2)
@@ -91,7 +99,7 @@ elseif isa(opt, 'cell')
   else
     error('multiple input arguments with the same name');
   end
-  
+
 elseif isempty(opt)
   % no options are specified, return default
   val = default;
